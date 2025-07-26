@@ -1,0 +1,36 @@
+
+
+<!-- Header / Navbar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-transparent">
+    <nav class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4 text-white text-xs sm:text-sm font-semibold tracking-widest">
+        <ul class="flex space-x-6 uppercase">
+            <li><a class="hover:underline" href="/">Home</a></li>
+            <li><a class="hover:underline" href="/shop">Shop</a></li>
+            <li><a class="hover:underline" href="/company">Company</a></li>
+            <li><a class="hover:underline" href="/about">About</a></li>
+            <li><a class="hover:underline" href="/contact">Contact</a></li>
+        </ul>
+        <div class="flex items-center space-x-4">
+            <!-- Profile Icon -->
+            <% if (typeof user !== 'undefined' && user) { %>
+                <a href="/profile" class="hover:underline flex items-center space-x-1" title="My Profile">
+                    <i class="fas fa-user"></i>
+                    <span class="hidden sm:inline">Hello, <%= user.name.split(' ')[0] %></span>
+                </a>
+            <% } else { %>
+                <a href="/login" class="hover:underline flex items-center space-x-1" title="Sign In">
+                    <i class="fas fa-user"></i>
+                    <span class="hidden sm:inline">Sign In</span>
+                </a>
+            <% } %>
+            
+            <!-- Cart Icon -->
+            <a href="/cart" class="hover:underline relative" title="Shopping Cart">
+                <i class="fas fa-shopping-bag text-lg"></i>
+                <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"><%= cartCount %></span>
+                <% } %>
+            </a>
+        </div>
+    </nav>
+</header>
