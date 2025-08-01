@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= pageTitle || "Login Page" %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-[#0a192f] min-h-screen flex items-center justify-center p-4">
+    <div class="bg-[#12161f] rounded-md p-8 w-full max-w-sm">
+
+      <% if (typeof message !== 'undefined') { %>
+        <div class="text-red-400 text-xs mb-2 text-center">
+          <%= message %>
+        </div>
+      <% } %>
+
+      <form action="/admin/login" method="POST" class="flex flex-col space-y-4 text-white text-xs font-sans">
+        <label class="block">
+          <span class="block mb-2">Login</span>
+          <input name="email" type="email" placeholder="Email" required
+            class="w-full bg-[#1a1f2a] rounded text-xs text-white px-3 py-1.5 focus:outline-none" />
+        </label>
+        <label class="block">
+          <input name="password" type="password" placeholder="Password" required
+            class="w-full bg-[#1a1f2a] rounded text-xs text-white px-3 py-1.5 focus:outline-none" />
+        </label>
+        <button type="submit"
+          class="bg-[#6c3aed] rounded text-[10px] font-semibold py-1.5 mt-1">Log in</button>
+      </form>
+    </div>
+  </body>
+</html>

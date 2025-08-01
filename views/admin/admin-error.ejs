@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= pageTitle || 'Error Page Admin' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+    </style>
+  </head>
+  <body class="font-montserrat min-h-screen bg-[#7a9a97]">
+    <header class="bg-[#7a9a97] flex justify-end items-center p-3">
+     
+    </header>
+
+    <main class="bg-[#7a9a97] text-center py-16 px-4 min-h-[calc(100vh-56px)]">
+      <h1 class="text-3xl font-semibold text-gray-900 mb-2">
+        <%= heading || 'Error Page Admin' %>
+      </h1>
+      <p class="text-gray-300 mb-6">
+        <%= errorMessage || 'An error occurred.' %>
+      </p>
+      <a
+        href="/"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded inline-block"
+      >
+        Go to Home Page
+      </a>
+    </main>
+  </body>
+</html>
