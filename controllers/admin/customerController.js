@@ -35,22 +35,22 @@ exports.customerInfo = async (req, res) => {
 };
 
 
-exports.customerBlocked = async(req,res)=>{
-    try{
+exports.customerBlocked = async (req, res) => {
+    try {
         let id = req.params.id;
-        await User.updateOne({_id:id},{$set:{isBlocked:true}})
-        res.redirect('/admin/users')
-    }catch(error){
-        res.redirect('admin/pageError')
+        await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
+        res.json({ success: true, message: 'User blocked successfully' });
+    } catch (error) {
+        res.json({ success: false, message: 'Error blocking user' });
     }
-}
+};
 
-exports.customerUnblocked = async(req,res)=>{
-    try{
-        let id= req.params.id;
-        await User.updateOne({_id:id},{$set:{isBlocked:false}})
-        res.redirect('/admin/users')
-    }catch(error){
-        res.redirect('admin/pageError')
+exports.customerUnblocked = async (req, res) => {
+    try {
+        let id = req.params.id;
+        await User.updateOne({ _id: id }, { $set: { isBlocked: false } });
+        res.json({ success: true, message: 'User unblocked successfully' });
+    } catch (error) {
+        res.json({ success: false, message: 'Error unblocking user' });
     }
-}
+};

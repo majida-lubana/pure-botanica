@@ -3,6 +3,13 @@ const router = express.Router();
 const adminController = require('../controllers/admin/adminController')
 const {userAuth,adminAuth} = require('../middlewares/auth')
 const customerController = require('../controllers/admin/customerController')
+const categoryController = require('../controllers/admin/categoryController')
+const productController = require('../controllers/admin/productController')
+
+const uploads = require('../utils/multer');
+const path = require('path')
+
+
 
 
 router.get('/pageError',adminController.pageError)
@@ -13,9 +20,25 @@ router.get('/dashboard',adminAuth,adminController.loadDashboard)
 router.get('/logout',adminController.logout)
 //customer managent
 router.get('/users',adminAuth,customerController.customerInfo)
-router.get('/block/:id',adminAuth,customerController.customerBlocked)
-router.get('/unblock/:id',adminAuth,customerController.customerUnblocked)
+router.post('/block/:id',adminAuth,customerController.customerBlocked)
+router.post('/unblock/:id',adminAuth,customerController.customerUnblocked)
 
+//category management
+router.get('/category',adminAuth,categoryController.categoryInfo)
+router.post('/addCategory',adminAuth,categoryController.addCategory)
+router.post('/addCategoryOffer',adminAuth,categoryController.addCategoryOffer)
+router.post('/removeCategoryOffer',adminAuth,categoryController.removeCategoryOffer)
+router.put('/listCategory',adminAuth,categoryController.getListCategory);
+router.put('/unListCategory',adminAuth,categoryController.getUnlistCategory)
+router.get('/edit-category/:id',adminAuth,categoryController.getEditCategory)
+router.post('/edit-category/:id',adminAuth,categoryController.editCategory)
 
+//Product management
+router.get('/add-product',adminAuth,productController.getproductAddPage);
+router.post('/addProducts',adminAuth,uploads.array("images",4),productController.addProducts)
+router.get('/product-list',adminAuth,productController.getAllproducts)
+router.get('/blockProduct/:id',adminAuth,productController.blockProduct)
+router.get('/unblockProduct/:id',adminAuth,productController.unblockProduct)
+router.get('/editProduct',adminAuth,productController.getEditProduct)
 
 module.exports = router

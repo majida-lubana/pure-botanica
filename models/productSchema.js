@@ -7,13 +7,13 @@ const productSchema = new mongoose.Schema ({
         type:String,
         required:true
     },
-    productDescription :{
+    description :{
         type:String,
         required:true
     },
     brand:{
         type:String,
-        required:true
+        required:false
     },
     category:{
         type:Schema.Types.ObjectId,
@@ -55,6 +55,10 @@ const productSchema = new mongoose.Schema ({
        type: Boolean,
        default: true
     },
+    isBlocked: {
+    type: Boolean,
+    default: false
+    },
     productImages: {
        type: [String], // Store image URLs or file paths
        default: []
@@ -71,5 +75,5 @@ const productSchema = new mongoose.Schema ({
   }
 },{timestamps:true});
 
-const Product = mongoose.model("Product",ProductSchema)
-module.exprts = Product;
+const Product = mongoose.model("Product",productSchema)
+module.exports = Product;

@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const userController = require('../controllers/user/userController')
+const profileController = require('../controllers/user/profileController')
 
 
 
@@ -37,4 +38,7 @@ router.get('/google/callback', (req, res, next) => {
     res.redirect('/');
 });
 
+// profile management
+router.get('/forgot-password',profileController.getForgotPassPage)
+router.post('/forgotPass-otp',profileController.forgotEmailValid)
 module.exports = router

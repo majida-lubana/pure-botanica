@@ -32,12 +32,15 @@ exports.loadHomePage = async (req, res) => {
 }
 
 exports.loadSignup = async(req,res)=>{
-    try{
-       return res.render("user/signup")
-    }catch(error){
-        console.log("signup page not found")
-        res.status(500).send('Server error')
-    }
+   try{
+      if(req.session.user){
+        return res.redirect('user/home')
+      }
+      return res.render('user/signup')
+   }catch(error){
+      console.log('signup page not found',error)
+      res.status(500).send('server error')
+   }
 }
 
 exports.loadOtp = (req, res) => {
@@ -141,6 +144,7 @@ exports.signup = async (req, res) => {
     req.session.userOtp = otp;
     // FIXED: Changed fullName to name
     req.session.userData = {email, password, name, phone};
+   
 
     console.log("OTP stored in session:", otp);
     console.log("Session data:", req.session);
@@ -314,3 +318,4 @@ exports.logout = async(req,res)=>{
     res.redirect('user/pageNotFound')
   }
 }
+

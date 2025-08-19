@@ -7,7 +7,8 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true // removes extra space
+    trim: true ,// removes extra space
+    lowercase:true
   },
   description: {
     type: String,

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css" />
+  <title>Add Product</title>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="min-h-screen p-6">
+    <div class="bg-white rounded-xl shadow-md p-6 max-w-3xl mx-auto">
+      <!-- Title -->
+      <h2 class="text-3xl font-bold text-gray-800 text-center mb-8">Add Product</h2>
+
+      <!-- Form -->
+      <form action="/admin/addProduct" method="post" class="space-y-6">
+        <!-- Product Name -->
+        <div>
+          <label for="productName" class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+          <input
+            type="text"
+            id="productName"
+            name="productName"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Type here"
+          />
+        </div>
+
+        <!-- Product Description -->
+        <div>
+          <label for="productDescription" class="block text-sm font-medium text-gray-700 mb-2">Product Description *</label>
+          <textarea
+            id="productDescription"
+            name="productDescription"
+            required
+            rows="4"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Type here"
+          ></textarea>
+        </div>
+
+        <!-- How to Use -->
+        <div>
+          <label for="howToUse" class="block text-sm font-medium text-gray-700 mb-2">How to Use *</label>
+          <textarea
+            id="howToUse"
+            name="howToUse"
+            required
+            rows="4"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Type here"
+          ></textarea>
+        </div>
+
+        <!-- Product Category -->
+        <div>
+          <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Product Category *</label>
+          <select
+            id="category"
+            name="category"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select a category</option>
+            <!-- Populate with dynamic categories from backend if available -->
+            <% if (categories && categories.length > 0) { %>
+              <% categories.forEach(category => { %>
+                <option value="<%= category._id %>"><%= category.name %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+
+        <!-- Skin Type -->
+        <div>
+          <label for="skinType" class="block text-sm font-medium text-gray-700 mb-2">Skin Type *</label>
+          <input
+            type="text"
+            id="skinType"
+            name="skinType"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Type here"
+          />
+        </div>
+
+        <!-- Skin Concern -->
+        <div>
+          <label for="skinConcern" class="block text-sm font-medium text-gray-700 mb-2">Skin Concern *</label>
+          <input
+            type="text"
+            id="skinConcern"
+            name="skinConcern"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Type here"
+          />
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center mt-6">
+          <button
+            type="submit"
+            class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors duration-200"
+          >
+            Add Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 & jQuery -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <!-- Optional: Add success/error handling -->
+  <script>
+    $(document).ready(function () {
+      $("form").submit(function (e) {
+        Swal.fire({
+          icon: "success",
+          title: "Product Added!",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+      });
+    });
+  </script>
+</body>
+</html>
