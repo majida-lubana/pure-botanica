@@ -37,8 +37,8 @@ exports.categoryInfo = async (req, res) => {
       currentPage,
       totalPages,
       totalCategories,
-      search,
-      csrfToken: req.csrfToken ? req.csrfToken() : null // Pass CSRF token if used
+      search
+     
     });
   } catch (error) {
     console.error("Category info error:", error);
@@ -80,87 +80,16 @@ exports.addCategory = async (req, res) => {
 };
 
 
-exports.addCategoryOffer = async (req, res) => {
-  try {
-    const percentage = parseInt(req.body.percentage);
-    const categoryId = req.body.categoryId;
-
-    const category = await Category.findById(categoryId);
-    if (!category) {
-      return res.status(404).json({ status: false, message: "Category not found" });
-    }
-
-    const products = await Product.find({ category: category._id });
-
-    const hasProductOffer = products.some((p) => p.productOffer > percentage);
-    if (hasProductOffer) {
-      return res.json({
-        status: false,
-        message: "Some products already have a higher product offer",
-      });
-    }
-
-    await Category.updateOne(
-      { _id: categoryId },
-      {
-        $set: {
-          categoryOffer: percentage,
-          offerActive: true,
-        },
-      }
-    );
-
-    for (const p of products) {
-      p.productOffer = 0;
-      p.salesPrice = p.regularPrice - (percentage / 100) * p.regularPrice;
-      await p.save();
-    }
-
-    return res.json({ status: true, message: "Category offer applied" });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ status: false, message: "Internal server error" });
-  }
-};
 
 
 
-exports.removeCategoryOffer = async(req,res) =>{
-    try{
-        const categoryId = req.body.categoryId
-        const category = await Category.findById(categoryId)
 
-        if(!category){
-            return res.status(404).json({status:false,message:"Category Not found"})
-        }
-
-        console.log("Before removal:", category.categoryOffer);
-        const percentage = category.categoryOffer;
-        const products = await Product.find({category:category._id});
-
-
-        if(products.length>0){
-            console.log(`Resetting offer for: ${product.productName}`);
-            for(const product of products){
-                product.salesPrice = product.regularPrice
-                product.productOffer = 0
-                await product.save()
-            }
-        }
-        console.log("Before:", category.categoryOffer);
-        category.categoryOffer = 0
-        await category.save()
-        console.log("After:", category.categoryOffer);
-        res.json({status:true});
-    }catch(error){
-        res.status(500).json({status:false,message:"internal server error"})
-    }
-}
 
 exports.getListCategory = async(req,res)=>{
     try{
         let id = req.query.id;
-        await Category.updateOne({_id:id},{$set:{isListed:false}})
+        // This should LIST the category (set isListed to true)
+        await Category.updateOne({_id:id},{$set:{isListed:true}})
         res.json({ success: true, isListed: true });
     }catch(error){
         res.status(500).json({ success: false, message: error.message });
@@ -170,7 +99,8 @@ exports.getListCategory = async(req,res)=>{
 exports.getUnlistCategory = async(req,res)=>{
     try{
         let id = req.query.id ;
-        await Category.updateOne({_id:id},{$set:{isListed:true}})
+        // This should UNLIST the category (set isListed to false)
+        await Category.updateOne({_id:id},{$set:{isListed:false}})
         res.json({ success: true, isListed: false });
     }catch(error){
        res.status(500).json({ success: false, message: error.message });
@@ -178,28 +108,7 @@ exports.getUnlistCategory = async(req,res)=>{
 }
 
 
-exports.getEditCategory = async (req, res) => {
-    try {
-        const id = req.params.id; 
-        const category = await Category.findOne({ _id: id });
-        if (!category) {
-            return res.status(404).render('admin/admin-error', {
-                pageTitle: 'Admin Error',
-                heading: 'Category Not Found',
-                userName: 'Admin',
-                imageURL: '/images/admin-avatar.jpg',
-                errorMessage: 'The requested category was not found.',
-            });
-        }
-        res.render("admin/edit-category", {
-            category,
-            currentPage: 'category'
-        });
-    } catch (error) {
-        console.error('Error in getEditCategory:', error);
-        res.redirect('/admin/pageError');
-    }
-};
+
 
 exports.getEditCategory = async (req, res) => {
     try {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= pageTitle || "Login Page" %></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
   </head>
   <body class="bg-[#0a192f] min-h-screen flex items-center justify-center p-4">
     <div class="bg-[#12161f] rounded-md p-8 w-full max-w-sm">
@@ -15,19 +16,35 @@
         </div>
       <% } %>
 
-      <form action="/admin/login" method="POST" class="flex flex-col space-y-4 text-white text-xs font-sans">
+      <form id="loginForm" action="/admin/login" method="POST" class="flex flex-col space-y-4 text-white text-xs font-sans">
         <label class="block">
           <span class="block mb-2">Login</span>
-          <input name="email" type="email" placeholder="Email" required
+          <input name="email" id="email" type="email" placeholder="Email" required
             class="w-full bg-[#1a1f2a] rounded text-xs text-white px-3 py-1.5 focus:outline-none" />
         </label>
         <label class="block">
-          <input name="password" type="password" placeholder="Password" required
+          <input name="password" id="password" type="password" placeholder="Password" required
             class="w-full bg-[#1a1f2a] rounded text-xs text-white px-3 py-1.5 focus:outline-none" />
         </label>
         <button type="submit"
           class="bg-[#6c3aed] rounded text-[10px] font-semibold py-1.5 mt-1">Log in</button>
       </form>
     </div>
+
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', function(e) {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        
+        // Empty field validation
+        if (!email || !password) {
+          e.preventDefault();
+          Swal.fire('Error', 'Please fill in all fields', 'error');
+          return;
+        }
+        
+        // If fields are filled, form will submit via POST to /admin/login
+      });
+    </script>
   </body>
 </html>

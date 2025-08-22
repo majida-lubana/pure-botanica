@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Shop - Pure Botanica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+      }
+      .product-card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        height: 100%;
+      }
+      .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+      .product-image {
+        transition: transform 0.3s ease-in-out;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      .product-image:hover {
+        transform: scale(1.05);
+      }
+      .filter-section {
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .filter-section:last-child {
+        border-bottom: none;
+      }
+      input[type="checkbox"] {
+        accent-color: #000000;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-black">
+    <!-- Header partial -->
+    <%- include("../partials/user/header") %>
+
+    <!-- Main content -->
+    <main class="max-w-[1400px] mx-auto px-8 py-12">
+      <!-- Poster Banner -->
+      <div class="relative mb-12 rounded-lg overflow-hidden shadow-lg">
+        <img
+          src="/images/bannerimages.jpeg"
+          alt="Shop Banner"
+          class="w-full h-[300px] object-cover"
+          loading="lazy"
+        />
+        <div class="absolute inset-0 flex flex-col items-center justify-center bg-[#1a4a5a] bg-opacity-50 text-white">
+          <h1 class="text-4xl font-bold mb-2">Shop Our Natural Products</h1>
+          <p class="text-xl">Pure, Botanical Skincare for Every Skin Type</p>
+        </div>
+      </div>
+      <!-- Breadcrumbs -->
+      <nav class="max-w-[1400px] mx-auto px-8 py-4 text-sm text-gray-600">
+        <ol class="flex space-x-2">
+          <li><a href="/" class="hover:underline">Home</a></li>
+          <li><span>></span></li>
+          <li><a href="/shop" class="hover:underline">Shop</a></li>
+        </ol>
+      </nav>
+      
+      <div class="flex flex-col md:flex-row gap-8">
+        <!-- Sidebar: Filters -->
+        <aside class="w-full md:w-1/4 bg-gray-50 p-6 rounded-lg shadow-sm">
+          <h2 class="text-xl font-bold mb-6 text-gray-800">Filters</h2>
+          <div class="mb-4">
+            <a href="/shop" class="text-gray-700 underline hover:text-gray-900">Clear All Filters</a>
+          </div>
+
+          <!-- Categories -->
+          <div class="filter-section">
+            <h3 class="font-bold mb-3 text-gray-800">Categories</h3>
+            <ul class="space-y-2">
+              <li class="flex items-center">
+                <input
+                  type="checkbox"
+                  id="cat-all"
+                  class="mr-2"
+                  <%= selectedCategories.length === 0 ? 'checked' : '' %>
+                />
+                <label for="cat-all" class="text-gray-700">All Categories</label>
+              </li>
+              <% categories.forEach(cat => { %>
+                <li class="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="category[]"
+                    value="<%= cat.categoryName %>"
+                    id="cat-<%= cat.categoryName %>"
+                    <%= selectedCategories.includes(cat.categoryName) ? 'checked' : '' %>
+                    class="mr-2"
+                  />
+                  <label for="cat-<%= cat.categoryName %>" class="text-gray-700">
+                    <%= cat.categoryName.charAt(0).toUpperCase() + cat.categoryName.slice(1) %>
+                  </label>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+
+          <!-- Skin Type -->
+          <div class="filter-section">
+            <h3 class="font-bold mb-3 text-gray-800">Skin Type</h3>
+            <ul class="space-y-2">
+              <% skinTypeOptions.forEach(type => { %>
+                <li class="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="skinType[]"
+                    value="<%= type %>"
+                    id="type-<%= type.toLowerCase().replace(/\s+/g, '-') %>"
+                    <%= selectedSkinTypes.includes(type) ? 'checked' : '' %>
+                    class="mr-2"
+                  />
+                  <label for="type-<%= type.toLowerCase().replace(/\s+/g, '-') %>" class="text-gray-700">
+                    <%= type %>
+                  </label>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+
+          <!-- Skin Concern -->
+          <div class="filter-section">
+            <h3 class="font-bold mb-3 text-gray-800">Skin Concern</h3>
+            <ul class="space-y-2">
+              <% skinConcernOptions.forEach(concern => { %>
+                <li class="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="skinConcern[]"
+                    value="<%= concern %>"
+                    id="concern-<%= concern.toLowerCase().replace(/\s+/g, '-') %>"
+                    <%= selectedSkinConcerns.includes(concern) ? 'checked' : '' %>
+                    class="mr-2"
+                  />
+                  <label for="concern-<%= concern.toLowerCase().replace(/\s+/g, '-') %>" class="text-gray-700">
+                    <%= concern %>
+                  </label>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+          <!-- Price Range -->
+          <div class="filter-section">
+            <h3 class="font-bold mb-3 text-gray-800">Price Range</h3>
+            <input
+              type="number"
+              id="minPrice"
+              placeholder="Min Price"
+              value="<%= minPrice || 0 %>"
+              class="p-2 border border-gray-300 rounded w-full mb-2 text-gray-700"
+            />
+            <input
+              type="number"
+              id="maxPrice"
+              placeholder="Max Price"
+              value="<%= maxPrice || 10000 %>"
+              class="p-2 border border-gray-300 rounded w-full mb-4 text-gray-700"
+            />
+          </div>
+        </aside>
+
+        <!-- Products Grid -->
+        <div class="w-full md:w-3/4">
+          <!-- Search and Sort -->
+          <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
+            <div class="w-full sm:w-1/2 flex">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search products..."
+                value="<%= search || '' %>"
+                class="p-2 border border-gray-300 rounded w-full text-gray-700"
+              />
+              <button id="searchBtn" class="ml-2 bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors font-semibold">
+                Search
+              </button>
+            </div>
+            <div class="flex items-center">
+              <label for="sortSelect" class="mr-2 text-gray-700 font-semibold">Sort by:</label>
+              <select
+                id="sortSelect"
+                class="p-2 border border-gray-300 rounded text-gray-700"
+              >
+                <option value="default" <%= sort === 'default' ? 'selected' : '' %>>Newest First</option>
+                <option value="price-asc" <%= sort === 'price-asc' ? 'selected' : '' %>>Price: Low to High</option>
+                <option value="price-desc" <%= sort === 'price-desc' ? 'selected' : '' %>>Price: High to Low</option>
+                <option value="name-asc" <%= sort === 'name-asc' ? 'selected' : '' %>>Name: A to Z</option>
+                <option value="name-desc" <%= sort === 'name-desc' ? 'selected' : '' %>>Name: Z to A</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Products (dynamic container) -->
+          <div id="productsGrid">
+            <% if (products.length > 0) { %>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                <% products.forEach(product => { %>
+                  <div class="product-card flex flex-col items-center p-4 bg-white rounded-lg shadow-md border border-gray-200">
+                    <a href="/product/<%= product._id %>">
+                      <img
+                        alt="<%= product.productName %>"
+                        class="mb-4 product-image cursor-pointer w-32 h-32"
+                        src="<%= product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150' %>"
+                        loading="lazy"
+                      />
+                    </a>
+                    <div class="font-bold text-base mb-2 text-gray-800 text-center">
+                      <%= product.productName.toUpperCase() %>
+                    </div>
+                    <div class="mb-3 text-gray-600 font-semibold">
+                      ₹<%= product.salePrice.toFixed(2) %>
+                      <% if (product.quantity === 0) { %>
+                        <span class="text-red-600 text-sm">(Out of Stock)</span>
+                      <% } %>
+                    </div>
+                    <button
+                      class="bg-black text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-800 transition-colors w-full"
+                      onclick="addToCart('<%= product._id %>')"
+                      <%= product.quantity === 0 ? 'disabled' : '' %>
+                    >
+                      <%= product.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART' %>
+                    </button>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <div class="text-center text-gray-600 py-12">No products found. Try adjusting your filters.</div>
+            <% } %>
+          </div>
+
+          <!-- Pagination (dynamic container) -->
+          <div id="pagination" class="mt-8 flex justify-center">
+            <% if (totalPages > 1) { %>
+              <nav class="flex space-x-2">
+                <% if (currentPage > 1) { %>
+                  <a onclick="changePage(<%= currentPage - 1 %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Previous</a>
+                <% } %>
+                <% for (let i = 1; i <= totalPages; i++) { %>
+                  <a onclick="changePage(<%= i %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded <%= currentPage === i ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100' %>">
+                    <%= i %>
+                  </a>
+                <% } %>
+                <% if (currentPage < totalPages) { %>
+                  <a onclick="changePage(<%= currentPage + 1 %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Next</a>
+                <% } %>
+              </nav>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Pagination above footer -->
+    <div class="w-full flex justify-center mt-6 mb-4">
+      <div class="flex space-x-2 bg-black text-white px-4 py-2 rounded">
+        <% if (currentPage > 1) { %>
+          <a href="?page=<%= currentPage - 1 %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm">
+            &laquo; Prev
+          </a>
+        <% } %>
+
+        <% for (let i = 1; i <= totalPages; i++) { %>
+          <% if (i === currentPage) { %>
+            <span class="px-3 py-1 rounded text-sm font-semibold"><%= i %></span>
+          <% } else { %>
+            <a href="?page=<%= i %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm"><%= i %></a>
+          <% } %>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+          <a href="?page=<%= currentPage + 1 %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm">
+            Next &raquo;
+          </a>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <%- include("../partials/user/footer") %>
+
+    <!-- Dynamic Filter JS -->
+    <script>
+      let currentParams = {
+        search: '<%= search || "" %>',
+        sort: '<%= sort || "default" %>',
+        category: <%= JSON.stringify(selectedCategories) %>,
+        skinType: <%= JSON.stringify(selectedSkinTypes) %>,
+        skinConcern: <%= JSON.stringify(selectedSkinConcerns) %>,
+        minPrice: <%= minPrice || 0 %>,
+        maxPrice: <%= maxPrice || 10000 %>,
+        page: <%= currentPage || 1 %>,
+        limit: 12
+      };
+
+      // Function to fetch and update products
+      async function updateProducts(updateUrl = false) {
+        const queryString = new URLSearchParams();
+        if (currentParams.search) queryString.append('search', currentParams.search);
+        if (currentParams.sort !== 'default') queryString.append('sort', currentParams.sort);
+        currentParams.category.forEach(c => queryString.append('category', c));
+        currentParams.skinType.forEach(st => queryString.append('skinType', st));
+        currentParams.skinConcern.forEach(sc => queryString.append('skinConcern', sc));
+        if (currentParams.minPrice != 0) queryString.append('minPrice', currentParams.minPrice);
+        if (currentParams.maxPrice != 10000) queryString.append('maxPrice', currentParams.maxPrice);
+        queryString.append('page', currentParams.page);
+        queryString.append('limit', currentParams.limit);
+
+        try {
+          const response = await fetch(`/api/products?${queryString.toString()}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+
+          // Update products grid
+          const grid = document.getElementById('productsGrid');
+          grid.innerHTML = '';
+          if (data.products.length > 0) {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6';
+            data.products.forEach(product => {
+              const card = `
+                <div class="product-card flex flex-col items-center p-4 bg-white rounded-lg shadow-md border border-gray-200">
+                  <a href="/product/${product._id}">
+                    <img
+                      alt="${product.productName}"
+                      class="mb-4 product-image cursor-pointer w-32 h-32"
+                      src="${product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150'}"
+                      loading="lazy"
+                    />
+                  </a>
+                  <div class="font-bold text-base mb-2 text-gray-800 text-center">
+                    ${product.productName.toUpperCase()}
+                  </div>
+                  <div class="mb-3 text-gray-600 font-semibold">
+                    ₹${product.salePrice.toFixed(2)}
+                    ${product.quantity === 0 ? '<span class="text-red-600 text-sm">(Out of Stock)</span>' : ''}
+                  </div>
+                  <button
+                    class="bg-black text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-800 transition-colors w-full"
+                    onclick="addToCart('${product._id}')"
+                    ${product.quantity === 0 ? 'disabled' : ''}
+                  >
+                    ${product.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
+                  </button>
+                </div>
+              `;
+              div.innerHTML += card;
+            });
+            grid.appendChild(div);
+          } else {
+            grid.innerHTML = '<div class="text-center text-gray-600 py-12">No products found. Try adjusting your filters.</div>';
+          }
+
+          // Update pagination
+          const pagination = document.getElementById('pagination');
+          pagination.innerHTML = '';
+          if (data.totalPages > 1) {
+            const nav = document.createElement('nav');
+            nav.className = 'flex space-x-2';
+            if (data.currentPage > 1) {
+              const prev = document.createElement('a');
+              prev.className = 'cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100';
+              prev.textContent = 'Previous';
+              prev.onclick = () => changePage(data.currentPage - 1);
+              nav.appendChild(prev);
+            }
+            for (let i = 1; i <= data.totalPages; i++) {
+              const link = document.createElement('a');
+              link.className = `cursor-pointer px-4 py-2 border border-gray-300 rounded ${data.currentPage === i ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`;
+              link.textContent = i;
+              link.onclick = () => changePage(i);
+              nav.appendChild(link);
+            }
+            if (data.currentPage < data.totalPages) {
+              const next = document.createElement('a');
+              next.className = 'cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100';
+              next.textContent = 'Next';
+              next.onclick = () => changePage(data.currentPage + 1);
+              nav.appendChild(next);
+            }
+            pagination.appendChild(nav);
+          }
+
+          // Update URL without reload
+          if (updateUrl) {
+            history.pushState(null, '', `/shop?${queryString.toString()}`);
+          }
+        } catch (error) {
+          console.error('Error fetching products:', error);
+          document.getElementById('productsGrid').innerHTML = '<div class="text-center text-red-600 py-12">Error loading products: ' + error.message + '. Please try again.</div>';
+        }
+      }
+
+      // Add to cart
+      async function addToCart(productId) {
+        try {
+          const response = await fetch(`/product/availability/${productId}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          if (data.available) {
+            // Replace with actual cart logic (POST to /cart/add)
+            const cartResponse = await fetch('/cart/add', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productId, quantity: 1 })
+            });
+            if (!cartResponse.ok) throw new Error('Failed to add to cart');
+            alert('Product added to cart!');
+          } else {
+            alert('Product is out of stock.');
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+          alert('Error adding product to cart: ' + error.message);
+        }
+      }
+
+      // Event listeners for filters
+      document.querySelectorAll('input[type="checkbox"][name="category[]"], input[type="checkbox"][name="skinType[]"], input[type="checkbox"][name="skinConcern[]"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          const name = checkbox.name.replace('[]', '');
+          currentParams[name] = Array.from(document.querySelectorAll(`input[name="${checkbox.name}"]:checked`)).map(c => c.value);
+          currentParams.page = 1;
+          updateProducts(true);
+        });
+      });
+
+      // "All Categories" logic
+      const allCatCheckbox = document.getElementById('cat-all');
+      allCatCheckbox.addEventListener('change', () => {
+        if (allCatCheckbox.checked) {
+          document.querySelectorAll('input[name="category[]"]').forEach(c => c.checked = false);
+          currentParams.category = [];
+        }
+        currentParams.page = 1;
+        updateProducts(true);
+      });
+
+      // Category checkboxes uncheck "All"
+      document.querySelectorAll('input[name="category[]"]').forEach(c => {
+        c.addEventListener('change', () => {
+          if (c.checked) allCatCheckbox.checked = false;
+        });
+      });
+
+      // Price inputs (on blur/enter)
+      document.getElementById('minPrice').addEventListener('blur', () => {
+        currentParams.minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
+        currentParams.page = 1;
+        updateProducts(true);
+      });
+      document.getElementById('maxPrice').addEventListener('blur', () => {
+        currentParams.maxPrice = parseFloat(document.getElementById('maxPrice').value) || 10000;
+        currentParams.page = 1;
+        updateProducts(true);
+      });
+      document.getElementById('minPrice').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          currentParams.minPrice = parseFloat(e.target.value) || 0;
+          currentParams.page = 1;
+          updateProducts(true);
+        }
+      });
+      document.getElementById('maxPrice').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          currentParams.maxPrice = parseFloat(e.target.value) || 10000;
+          currentParams.page = 1;
+          updateProducts(true);
+        }
+      });
+
+      // Search
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        currentParams.search = document.getElementById('searchInput').value.trim();
+        currentParams.page = 1;
+        updateProducts(true);
+      });
+      document.getElementById('searchInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          currentParams.search = e.target.value.trim();
+          currentParams.page = 1;
+          updateProducts(true);
+        }
+      });
+
+      // Sort
+      document.getElementById('sortSelect').addEventListener('change', (e) => {
+        currentParams.sort = e.target.value;
+        currentParams.page = 1;
+        updateProducts(true);
+      });
+
+      // Pagination change
+      function changePage(page) {
+        currentParams.page = page;
+        updateProducts(true);
+      }
+    </script>
+  </body>
+</html>

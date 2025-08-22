@@ -9,10 +9,7 @@ const productController = require('../controllers/admin/productController')
 const uploads = require('../utils/multer');
 const path = require('path')
 
-
-
-
-router.get('/pageError',adminController.pageError)
+router.get('/admin-error',adminController.pageError)
 
 router.get('/login',adminController.loadLogin)
 router.post('/login',adminController.login)
@@ -26,19 +23,20 @@ router.post('/unblock/:id',adminAuth,customerController.customerUnblocked)
 //category management
 router.get('/category',adminAuth,categoryController.categoryInfo)
 router.post('/addCategory',adminAuth,categoryController.addCategory)
-router.post('/addCategoryOffer',adminAuth,categoryController.addCategoryOffer)
-router.post('/removeCategoryOffer',adminAuth,categoryController.removeCategoryOffer)
 router.put('/listCategory',adminAuth,categoryController.getListCategory);
 router.put('/unListCategory',adminAuth,categoryController.getUnlistCategory)
+
+
 router.get('/edit-category/:id',adminAuth,categoryController.getEditCategory)
 router.post('/edit-category/:id',adminAuth,categoryController.editCategory)
 
 //Product management
 router.get('/add-product',adminAuth,productController.getproductAddPage);
-router.post('/addProducts',adminAuth,uploads.array("images",4),productController.addProducts)
+router.post('/add-product',adminAuth,uploads.array("images",4),productController.addProducts)
 router.get('/product-list',adminAuth,productController.getAllproducts)
-router.get('/blockProduct/:id',adminAuth,productController.blockProduct)
-router.get('/unblockProduct/:id',adminAuth,productController.unblockProduct)
-router.get('/editProduct',adminAuth,productController.getEditProduct)
+router.put('/blockProduct/:id',adminAuth,productController.blockProduct)
+router.put('/unblockProduct/:id',adminAuth,productController.unblockProduct)
+router.get('/edit-product/:id',adminAuth,productController.getEditProduct)
+router.post('/update-product/:id',adminAuth,productController.updateProduct)
 
 module.exports = router

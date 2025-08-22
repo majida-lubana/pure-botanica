@@ -1,35 +1,69 @@
-const User = require('../../models/userSchema')
 const env = require('dotenv').config()
 const nodemailer = require('nodemailer')
 const bcrypt = require('bcrypt') 
+const Product = require('../../models/productSchema')
+const User = require('../../models/userSchema')
+const Category = require('../../models/categorySchema');
+
+
+
+
 
 
 
 exports.loadHomePage = async (req, res) => {
-    try {
-        console.log("Session data:", req.session); 
-        const userId = req.session.user;
-        
-        if (userId) {
-            console.log("User found in session:", userId); 
-            const userData = await User.findOne({_id: userId});
-            console.log("User data from DB:", userData);
-            
-            if (userData) {
-                return res.render('user/home', {user: userData}); 
-            } else {
-                console.log("User not found in database");
-                return res.render('user/home'); 
-            }
-        } else {
-            console.log("No user in session");
-            return res.render('user/home'); // 
-        }
-    } catch (error) {
-        console.error("Home Page Error:", error); 
-        res.status(500).send('Server Error');
-    }
-}
+  try {
+    const productsPerPage = 9;
+    const currentPage = parseInt(req.query.page) || 1;
+    const totalProducts = await Product.countDocuments({
+      isActive: true,
+      isBlocked: false,
+      status: 'Available'
+    });
+    const totalPages = Math.ceil(totalProducts / productsPerPage);
+
+    // Fetch active products for the current page
+    const products = await Product.find({
+      isActive: true,
+      isBlocked: false,
+      status: 'Available'
+    })
+      .skip((currentPage - 1) * productsPerPage)
+      .limit(productsPerPage)
+      .populate('category')
+      .lean();
+
+    // Map products to match the expected EJS template structure
+    const formattedProducts = products.map(product => ({
+      id: product._id.toString(), // Ensure id is included for product details link
+      name: product.productName,
+      image: product.productImages?.length > 0 
+        ? '/Uploads/product-images/' + product.productImages[0] 
+        : 'https://storage.googleapis.com/a1aa/image/placeholder.jpg',
+      price: product.salePrice,
+      rating: product.rating ?? 4,
+      reviews: product.reviews ?? 0
+    }));
+      console.log(req.session.user)
+      if (req.session.user) {
+        var findUserData = await User.findById(req.session.user)
+      }
+    // Render the homepage with paginated products
+    res.render('user/home', {
+      title: 'Beauty Pronounced',
+      paginatedProducts: formattedProducts,
+      currentPage,
+      totalProducts,
+      totalPages,
+      user:findUserData
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).render('error', {
+      message: 'An error occurred while loading the homepage.'
+    });
+  }
+};
 
 exports.loadSignup = async(req,res)=>{
    try{
@@ -73,43 +107,48 @@ function generateOtp(){
   return otp;
 }
 
-async function sendVerificationEmail(email, otp){
+async function sendVerificationEmail(email, otp) {
   console.log("Attempting to send email to:", email);
   console.log("Using email credentials:", process.env.NODEMAILER_EMAIL);
-  
-  try{
+
+  try {
     const transporter = nodemailer.createTransport({
-      service:'gmail',
-      port:587,
-      secure:false,
-      requireTLS:true,
-      auth:{
-        user:process.env.NODEMAILER_EMAIL,
-        pass:process.env.NODEMAILER_PASSWORD
+      service: 'gmail',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: {
+        user: process.env.NODEMAILER_EMAIL,
+        pass: process.env.NODEMAILER_PASSWORD
       }
     });
 
     console.log("Transporter created successfully");
 
     const info = await transporter.sendMail({
-      from:process.env.NODEMAILER_EMAIL,
-      to:email,
-      subject:"verify your account",
-      text:`your OTP is ${otp}`,
-      html:`<b>Your OTP: ${otp}</b>`,
+      from: `"Your App Name" <${process.env.NODEMAILER_EMAIL}>`,
+      to: email,
+      subject: "Verify Your Account",
+      text: `Your OTP is ${otp}`,
+      html: `<b>Your OTP: ${otp}</b>`,
     });
-    
+
     console.log("Email send result:", info);
     console.log("Accepted:", info.accepted);
     console.log("Rejected:", info.rejected);
-    
+
     return info.accepted && info.accepted.length > 0;
-    
-  }catch(error){
-      console.error("Detailed email error:", error);
-      return false;
+  } catch (error) {
+    console.error("Detailed email error:", {
+      message: error.message,
+      code: error.code,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+    throw new Error(`Failed to send email: ${error.message}`);
   }
 }
+
 
 exports.signup = async (req, res) => {
   console.log("Signup request received:", req.body);
@@ -142,7 +181,7 @@ exports.signup = async (req, res) => {
     }
 
     req.session.userOtp = otp;
-    // FIXED: Changed fullName to name
+
     req.session.userData = {email, password, name, phone};
    
 
@@ -289,7 +328,7 @@ exports.login = async(req,res)=>{
       })
     }
 
-    req.session.user = findUser._id;
+    req.session.user = findUser._id
     res.redirect('/')
 
   }catch(error){
@@ -318,4 +357,3 @@ exports.logout = async(req,res)=>{
     res.redirect('user/pageNotFound')
   }
 }
-

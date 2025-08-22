@@ -1,42 +1,41 @@
 const mongoose = require('mongoose');
-const {Schema} = mongoose;
-
+const { Schema } = mongoose;
 
 const categorySchema = new mongoose.Schema({
-    categoryName: {
+  categoryName: {
     type: String,
     required: true,
     unique: true,
-    trim: true ,// removes extra space
-    lowercase:true
+    trim: true,
+    lowercase: true
   },
   description: {
     type: String,
     default: ''
   },
   skinConcern: {
-    type: [String], // e.g., ['Acne', 'Dryness']
+    type: [String],
     default: []
   },
   suitableForSkinType: {
     type: [String],
-    enum: ['Oily', 'Dry', 'Combination', 'Sensitive', 'Normal'],
+    enum: ['Oily', 'Dry', 'Combination', 'Sensitive', 'Normal', 'All Skin Types'],
     default: []
   },
   image: {
-    type: String, // for category display banner/image
+    type: String,
     default: ''
   },
   isActive: {
     type: Boolean,
     default: true
   },
-  isListed:{
-    type:Boolean,
-    default:true
+  isListed: {
+    type: Boolean,
+    default: true
   },
-   categoryOffer: {
-    type: Number, // % discount
+  categoryOffer: {
+    type: Number,
     default: 0
   },
   offerActive: {
@@ -49,8 +48,7 @@ const categorySchema = new mongoose.Schema({
   offerEnd: {
     type: Date
   }
-},{timestamps:true})
+}, { timestamps: true });
 
-
-const Category = mongoose.model("Category",categorySchema);
+const Category = mongoose.model("Category", categorySchema);
 module.exports = Category;

@@ -4,7 +4,7 @@ exports.customerInfo = async (req, res) => {
   try {
     const search = req.query.search || '';
     const page = parseInt(req.query.page) || 1;
-    const limit = 3;
+    const limit = 4;
 
     const filter = {
       isAdmin: false,
@@ -15,6 +15,7 @@ exports.customerInfo = async (req, res) => {
     };
 
     const userData = await User.find(filter)
+      .sort({createdAt:-1})
       .limit(limit)
       .skip((page - 1) * limit)
       .exec();
@@ -33,7 +34,7 @@ exports.customerInfo = async (req, res) => {
     res.redirect('/admin/pageError');
   }
 };
-
+ 
 
 exports.customerBlocked = async (req, res) => {
     try {

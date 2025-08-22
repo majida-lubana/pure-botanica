@@ -3,6 +3,7 @@ const router = express.Router()
 const passport = require('passport')
 const userController = require('../controllers/user/userController')
 const profileController = require('../controllers/user/profileController')
+const shopController = require('../controllers/user/shopController');
 
 
 
@@ -35,10 +36,23 @@ router.get('/google/callback', (req, res, next) => {
     console.log('=== Auth Successful ===');
     console.log('User object:', req.user);
     console.log('Is authenticated:', req.isAuthenticated());
+    req.session.user = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email
+    };
     res.redirect('/');
 });
 
 // profile management
 router.get('/forgot-password',profileController.getForgotPassPage)
 router.post('/forgotPass-otp',profileController.forgotEmailValid)
+
+
+router.get('/shop', shopController.loadShopPage);
+router.get('/api/products', shopController.getProductsApi);
+router.get('/product/availability/:id', shopController.checkProductAvailability);
+router.get('/product/:id', shopController.loadProductPage);
+
+
 module.exports = router

@@ -5,26 +5,23 @@ const bcrypt = require('bcrypt')
 
 exports.loadLogin = async (req,res)=>{
 
-
-
     if(req.session.admin){
-        return res.redirect('/dashboard')
+        return res.redirect('/admin/dashboard')
     }
     res.render("admin/login",{message:null,
         pageTitle:'Login Page'
     })
 }
 
-exports.pageError = async(req,res)=>{
-    res.render('admin/admin-error', {
-      pageTitle: 'Admin Error',
-      heading: 'Oops! Something Went Wrong',
-      userName: 'Admin',
-      imageURL: '/images/admin-avatar.jpg',
-      errorMessage: 'A server-side error occurred. Please try again later.',
-    });
-  
-}
+exports.pageError = (req, res) => {
+  res.render('admin/admin-error', {
+    pageTitle: 'Admin Error',
+    heading: 'Oops! Something Went Wrong',
+    userName: 'Admin',
+    imageURL: '/images/admin-avatar.jpg',
+    message: req.query.message || 'A server-side error occurred. Please try again later.',
+  });
+};
 
 exports.login = async(req,res)=>{
     try{
@@ -44,7 +41,7 @@ exports.login = async(req,res)=>{
         }
     }catch(error){
         console.log('login error',error)
-        return res.redirect('/pageError')
+        return res.redirect('/admin/admin-error')
     }
 }
 

@@ -69,6 +69,19 @@
       background: #2563eb;
     }
 
+    .clear-btn {
+      padding: 1rem 1.5rem;
+      background: #6b7280;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: #4b5563;
+    }
+
     .add-category-btn {
       padding: 0.75rem 1.5rem;
       background: #10b981;
@@ -187,15 +200,6 @@
       cursor: pointer;
       transition: all 0.2s;
       white-space: nowrap;
-    }
-
-    .btn-offer {
-      background: #088e85;
-      color: white;
-    }
-
-    .btn-offer:hover {
-      background: #0a906c;
     }
 
     .btn-remove-offer {
@@ -481,6 +485,10 @@
         border-radius: 0 0.5rem 0.5rem 0;
       }
 
+      .clear-btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+      }
+
       .modal-content {
         width: 95%;
         margin: 1rem;
@@ -506,6 +514,7 @@
             <input 
               type="text" 
               name="search" 
+              id="searchInput"
               placeholder="Search categories..." 
               class="search-input"
               value="<%= typeof search !== 'undefined' ? search : '' %>"
@@ -515,6 +524,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </button>
+            <% if (typeof search !== 'undefined' && search) { %>
+              <button type="button" id="clearSearchBtn" class="clear-btn" title="Clear Search">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            <% } %>
           </div>
         </form>
         
@@ -565,15 +581,7 @@
                     </td>
                     <td class="table-cell">
                       <div class="action-buttons">
-                        <% if (!category.categoryOffer || category.categoryOffer === 0) { %>
-                          <button 
-                            class="action-btn btn-offer" 
-                            onclick="addOffer('<%= category._id %>')"
-                            title="Add Offer"
-                          >
-                            Add Offer
-                          </button>
-                        <% } else { %>
+                        <% if (category.categoryOffer && category.categoryOffer > 0) { %>
                           <button 
                             class="action-btn btn-remove-offer" 
                             onclick="removeOffer('<%= category._id %>')"
@@ -652,398 +660,375 @@
     </div>
   </main>
 
-  <!-- Add Category Modal -->
-  <div id="categoryModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title">Add New Category</h2>
-        <button id="closeModalBtn" class="modal-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="categoryForm" class="category-form">
-          <div class="form-group">
-            <label for="categoryName" class="form-label">Category Name</label>
-            <input 
-              type="text" 
-              id="categoryName" 
-              name="categoryName" 
-              class="form-input" 
-              placeholder="Enter category name"
-              required
-            >
-            <div id="categoryName-error" class="error-message"></div>
-          </div>
-
-          <div class="form-group">
-            <label for="categoryDescription" class="form-label">Description</label>
-            <textarea 
-              id="categoryDescription" 
-              name="description" 
-              class="form-textarea" 
-              placeholder="Enter category description"
-              rows="4"
-            ></textarea>
-            <div id="description-error" class="error-message"></div>
-          </div>
-
-          <% if (typeof csrfToken !== 'undefined') { %>
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <% } %>
-
-          <button type="submit" class="submit-btn">
-            <span class="btn-text">Create Category</span>
-            <div class="btn-loader hidden">
-              <div class="spinner"></div>
+    <!-- Add Category Modal -->
+    <div id="categoryModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Add New Category</h2>
+          <button id="closeModalBtn" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="categoryForm" class="category-form">
+            <div class="form-group">
+              <label for="categoryName" class="form-label">Category Name</label>
+              <input 
+                type="text" 
+                id="categoryName" 
+                name="categoryName" 
+                class="form-input" 
+                placeholder="Enter category name"
+                required
+              >
+              <div id="categoryName-error" class="error-message"></div>
             </div>
-          </button>
-        </form>
+  
+            <div class="form-group">
+              <label for="categoryDescription" class="form-label">Description</label>
+              <textarea 
+                id="categoryDescription" 
+                name="description" 
+                class="form-textarea" 
+                placeholder="Enter category description"
+                rows="4"
+              ></textarea>
+              <div id="description-error" class="error-message"></div>
+            </div>
+  
+            <% if (typeof csrfToken !== 'undefined') { %>
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% } %>
+  
+            <button type="submit" class="submit-btn">
+              <span class="btn-text">Create Category</span>
+              <div class="btn-loader hidden">
+                <div class="spinner"></div>
+              </div>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script>
-    class CategoryManager {
-      constructor() {
-        this.form = document.getElementById("categoryForm");
-        this.submitBtn = this.form.querySelector(".submit-btn");
-        this.btnText = this.submitBtn.querySelector(".btn-text");
-        this.btnLoader = this.submitBtn.querySelector(".btn-loader");
-        this.modal = document.getElementById("categoryModal");
-        this.openModalBtn = document.getElementById("openModalBtn");
-        this.closeModalBtn = document.getElementById("closeModalBtn");
-
-        this.init();
-      }
-
-      init() {
-        this.form.addEventListener("submit", this.handleFormSubmit.bind(this));
-        this.openModalBtn.addEventListener("click", this.openModal.bind(this));
-        this.closeModalBtn.addEventListener("click", this.closeModal.bind(this));
-        this.modal.addEventListener("click", this.handleModalClick.bind(this));
-        
-        // Close modal on Escape key
-        document.addEventListener("keydown", (e) => {
-          if (e.key === "Escape" && this.modal.classList.contains("show")) {
+  
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+      class CategoryManager {
+        constructor() {
+          this.form = document.getElementById("categoryForm");
+          this.submitBtn = this.form.querySelector(".submit-btn");
+          this.btnText = this.submitBtn.querySelector(".btn-text");
+          this.btnLoader = this.submitBtn.querySelector(".btn-loader");
+          this.modal = document.getElementById("categoryModal");
+          this.openModalBtn = document.getElementById("openModalBtn");
+          this.closeModalBtn = document.getElementById("closeModalBtn");
+          this.clearSearchBtn = document.getElementById("clearSearchBtn");
+          this.searchInput = document.getElementById("searchInput");
+  
+          this.init();
+        }
+  
+        init() {
+          this.form.addEventListener("submit", this.handleFormSubmit.bind(this));
+          this.openModalBtn.addEventListener("click", this.openModal.bind(this));
+          this.closeModalBtn.addEventListener("click", this.closeModal.bind(this));
+          this.modal.addEventListener("click", this.handleModalClick.bind(this));
+          if (this.clearSearchBtn) {
+            this.clearSearchBtn.addEventListener("click", this.clearSearch.bind(this));
+          }
+          
+          // Close modal on Escape key
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && this.modal.classList.contains("show")) {
+              this.closeModal();
+            }
+          });
+        }
+  
+        openModal() {
+          this.modal.classList.add("show");
+          document.body.style.overflow = "hidden";
+          // Focus on first input
+          setTimeout(() => {
+            document.getElementById("categoryName").focus();
+          }, 100);
+        }
+  
+        closeModal() {
+          this.modal.classList.remove("show");
+          document.body.style.overflow = "";
+          this.form.reset();
+          this.clearErrors();
+        }
+  
+        handleModalClick(event) {
+          if (event.target === this.modal) {
             this.closeModal();
           }
-        });
-      }
-
-      openModal() {
-        this.modal.classList.add("show");
-        document.body.style.overflow = "hidden";
-        // Focus on first input
-        setTimeout(() => {
-          document.getElementById("categoryName").focus();
-        }, 100);
-      }
-
-      closeModal() {
-        this.modal.classList.remove("show");
-        document.body.style.overflow = "";
-        this.form.reset();
-        this.clearErrors();
-      }
-
-      handleModalClick(event) {
-        if (event.target === this.modal) {
-          this.closeModal();
         }
-      }
-
-      async handleFormSubmit(event) {
-        event.preventDefault();
-
-        if (!this.validateForm()) {
-          return;
-        }
-
-        const formData = new FormData(this.form);
-        const data = {
-          categoryName: formData.get("categoryName").trim(),
-          description: formData.get("description").trim(),
-          _csrf: formData.get("_csrf") // Include CSRF token if present
-        };
-
-        this.setLoading(true);
-
-        try {
-          const response = await fetch("/admin/addCategory", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || "Failed to add category");
+  
+        clearSearch() {
+          if (this.searchInput) {
+            this.searchInput.value = "";
+            window.location.href = "/admin/category";
           }
-
-          await Swal.fire({
-            icon: "success",
-            title: "Success!",
-            text: result.message || "Category added successfully",
-            timer: 1500,
-            showConfirmButton: false,
-          });
-
-          this.closeModal();
-          // Reload page to show new category
-          window.location.reload();
-
-        } catch (error) {
-          console.error("Error adding category:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "An error occurred while adding the category",
-          });
-        } finally {
-          this.setLoading(false);
         }
-      }
-
-      validateForm() {
-        this.clearErrors();
-
-        const categoryName = this.form.categoryName.value.trim();
-        const description = this.form.description.value.trim();
-        let isValid = true;
-
-        if (!categoryName) {
-          this.showError("categoryName-error", "Please enter a category name");
-          isValid = false;
-        } else if (!/^[a-zA-Z\s]+$/.test(categoryName)) {
-          this.showError("categoryName-error", "Category name should contain only alphabetic characters");
-          isValid = false;
-        } else if (categoryName.length < 2) {
-          this.showError("categoryName-error", "Category name must be at least 2 characters long");
-          isValid = false;
-        }
-
-        if (description && description.length < 10) {
-          this.showError("description-error", "Description must be at least 10 characters long if provided");
-          isValid = false;
-        }
-
-        return isValid;
-      }
-
-      showError(elementId, message) {
-        const errorElement = document.getElementById(elementId);
-        if (errorElement) {
-          errorElement.textContent = message;
-          errorElement.classList.add("show");
-        }
-      }
-
-      clearErrors() {
-        const errorElements = document.querySelectorAll(".error-message");
-        errorElements.forEach((element) => {
-          element.textContent = "";
-          element.classList.remove("show");
-        });
-      }
-
-      setLoading(loading) {
-        this.submitBtn.disabled = loading;
-        if (loading) {
-          this.btnText.classList.add("hidden");
-          this.btnLoader.classList.remove("hidden");
-        } else {
-          this.btnText.classList.remove("hidden");
-          this.btnLoader.classList.add("hidden");
-        }
-      }
-    }
-
-    // Add Offer Function
-    async function addOffer(categoryId) {
-      const { value: percentage } = await Swal.fire({
-        title: "Add Category Offer",
-        input: "number",
-        inputLabel: "Offer Percentage",
-        inputPlaceholder: "Enter percentage (1-90)",
-        inputAttributes: {
-          min: 1,
-          max: 90,
-          step: 1,
-        },
-        showCancelButton: true,
-        confirmButtonText: "Add Offer",
-        cancelButtonText: "Cancel",
-        inputValidator: (value) => {
-          const num = Number.parseInt(value);
-          if (!value || num < 1 || num > 90) {
-            return "Please enter a valid percentage between 1 and 90";
+  
+        async handleFormSubmit(event) {
+          event.preventDefault();
+  
+          if (!this.validateForm()) {
+            return;
           }
-        },
-      });
-
-      if (percentage) {
-        try {
-          const response = await fetch("/admin/addCategoryOffer", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              percentage: Number.parseInt(percentage),
-              categoryId: categoryId,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.status) {
+  
+          const formData = new FormData(this.form);
+          const data = {
+            categoryName: formData.get("categoryName").trim(),
+            description: formData.get("description").trim(),
+            _csrf: formData.get("_csrf") // Include CSRF token if present
+          };
+  
+          this.setLoading(true);
+  
+          try {
+            const response = await fetch("/admin/addCategory", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(data),
+            });
+  
+            const result = await response.json();
+  
+            if (!response.ok) {
+              throw new Error(result.error || "Failed to add category");
+            }
+  
             await Swal.fire({
               icon: "success",
-              title: "Offer Added",
-              text: `${percentage}% offer has been added successfully`,
+              title: "Success!",
+              text: result.message || "Category added successfully",
               timer: 1500,
               showConfirmButton: false,
             });
+  
+            this.closeModal();
+            // Reload page to show new category
             window.location.reload();
-          } else {
-            throw new Error(data.message || "Failed to add offer");
-          }
-        } catch (error) {
-          console.error("Error adding offer:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "An error occurred while adding the offer",
-          });
-        }
-      }
-    }
-
-    // Remove Offer Function
-    async function removeOffer(categoryId) {
-      const result = await Swal.fire({
-        title: "Remove Offer",
-        text: "Are you sure you want to remove this offer?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#ef4444",
-        cancelButtonColor: "#6b7280",
-        confirmButtonText: "Yes, remove it",
-        cancelButtonText: "Cancel",
-      });
-
-      if (result.isConfirmed) {
-        try {
-          const response = await fetch("/admin/removeCategoryOffer", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              categoryId: categoryId,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.status) {
-            await Swal.fire({
-              icon: "success",
-              title: "Offer Removed",
-              text: "The offer has been removed successfully",
-              timer: 1500,
-              showConfirmButton: false,
+  
+          } catch (error) {
+            console.error("Error adding category:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: error.message || "An error occurred while adding the category",
             });
-            window.location.reload();
-          } else {
-            throw new Error(data.message || "Failed to remove offer");
+          } finally {
+            this.setLoading(false);
           }
-        } catch (error) {
-          console.error("Error removing offer:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "An error occurred while removing the offer",
+        }
+  
+        validateForm() {
+          this.clearErrors();
+  
+          const categoryName = this.form.categoryName.value.trim();
+          const description = this.form.description.value.trim();
+          let isValid = true;
+  
+          if (!categoryName) {
+            this.showError("categoryName-error", "Please enter a category name");
+            isValid = false;
+          } else if (!/^[a-zA-Z\s]+$/.test(categoryName)) {
+            this.showError("categoryName-error", "Category name should contain only alphabetic characters");
+            isValid = false;
+          } else if (categoryName.length < 2) {
+            this.showError("categoryName-error", "Category name must be at least 2 characters long");
+            isValid = false;
+          }
+  
+          if (description && description.length < 10) {
+            this.showError("description-error", "Description must be at least 10 characters long if provided");
+            isValid = false;
+          }
+  
+          return isValid;
+        }
+  
+        showError(elementId, message) {
+          const errorElement = document.getElementById(elementId);
+          if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.add("show");
+          }
+        }
+  
+        clearErrors() {
+          const errorElements = document.querySelectorAll(".error-message");
+          errorElements.forEach((element) => {
+            element.textContent = "";
+            element.classList.remove("show");
           });
         }
-      }
-    }
-
-    // Toggle List/Unlist Function
-async function toggleList(categoryId, isListed) {
-  console.log(`Toggling category ${categoryId}, isListed: ${isListed}`);
-  const result = await Swal.fire({
-    title: isListed ? "Unlist this category?" : "List this category?",
-    text: "You can always change this later",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: isListed ? "Yes, Unlist it!" : "Yes, List it!"
-  });
-
-  if (result.isConfirmed) {
-    try {
-      const url = `/admin/${isListed ? 'unListCategory' : 'listCategory'}?id=${categoryId}`;
-      console.log(`Fetching: ${url}`);
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await response.json();
-      console.log('Server response:', data);
-
-      if (response.ok && data.success) {
-        await Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: `Category ${data.isListed ? "listed" : "unlisted"} successfully.`,
-          timer: 1500,
-          showConfirmButton: false
-        });
-
-        // Find button using data-category-id
-        const button = document.querySelector(`button[data-category-id="${categoryId}"]`);
-        if (button) {
-          console.log('Button found, updating:', button);
-          // Remove old class and add new class
-          button.classList.remove(isListed ? 'btn-unlist' : 'btn-list');
-          button.classList.add(isListed ? 'btn-list' : 'btn-unlist');
-          // Update button text
-          button.textContent = isListed ? 'List' : 'Unlist';
-          // Update title attribute
-          button.title = isListed ? 'List Category' : 'Unlist Category';
-          // Update onclick to reflect new state
-          button.onclick = () => toggleList(categoryId, !isListed);
-        } else {
-          console.warn(`Button with data-category-id="${categoryId}" not found`);
+  
+        setLoading(loading) {
+          this.submitBtn.disabled = loading;
+          if (loading) {
+            this.btnText.classList.add("hidden");
+            this.btnLoader.classList.remove("hidden");
+          } else {
+            this.btnText.classList.remove("hidden");
+            this.btnLoader.classList.add("hidden");
+          }
         }
-      } else {
-        throw new Error(data.message || "Failed to update category");
       }
-    } catch (error) {
-      console.error("Error:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "An error occurred while updating the category",
+  
+      // Remove Offer Function
+      async function removeOffer(categoryId) {
+        const result = await Swal.fire({
+          title: "Remove Offer",
+          text: "Are you sure you want to remove this offer?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#6b7280",
+          confirmButtonText: "Yes, remove it",
+          cancelButtonText: "Cancel",
+        });
+  
+        if (result.isConfirmed) {
+          try {
+            const response = await fetch("/admin/removeCategoryOffer", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                categoryId: categoryId,
+              }),
+            });
+  
+            const data = await response.json();
+  
+            if (response.ok && data.status) {
+              await Swal.fire({
+                icon: "success",
+                title: "Offer Removed",
+                text: "The offer has been removed successfully",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              window.location.reload();
+            } else {
+              throw new Error(data.message || "Failed to remove offer");
+            }
+          } catch (error) {
+            console.error("Error removing offer:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: error.message || "An error occurred while removing the offer",
+            });
+          }
+        }
+      }
+  
+      // Toggle List/Unlist Function
+      async function toggleList(categoryId, isListed) {
+        console.log(`Toggling category ${categoryId}, isListed: ${isListed}`);
+        const result = await Swal.fire({
+          title: isListed ? "Unlist this category?" : "List this category?",
+          text: "You can always change this later",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          confirmButtonText: isListed ? "Yes, Unlist it!" : "Yes, List it!"
+        });
+  
+        if (result.isConfirmed) {
+          try {
+            const url = `/admin/${isListed ? 'unListCategory' : 'listCategory'}?id=${categoryId}`;
+            console.log(`Fetching: ${url}`);
+            const response = await fetch(url, {
+              method: 'PUT',
+              headers: { "Content-Type": "application/json" },
+            });
+            const data = await response.json();
+            console.log('Server response:', data);
+  
+            if (response.ok && data.success) {
+              await Swal.fire({
+                icon: "success",
+                title: "Success",
+                text: `Category ${data.isListed ? "listed" : "unlisted"} successfully.`,
+                timer: 1500,
+                showConfirmButton: false
+              });
+  
+              // Find the table row for this category
+              const tableRow = document.querySelector(`tr[data-category-id="${categoryId}"]`);
+              
+              if (tableRow) {
+                // Update the status badge
+                const statusCell = tableRow.querySelector('td:nth-child(5)'); // Status is in 5th column
+                const statusBadge = statusCell.querySelector('.status-badge');
+                
+                if (statusBadge) {
+                  // Remove old status classes
+                  statusBadge.classList.remove('status-active', 'status-inactive');
+                  
+                  // Add new status class and update text
+                  if (data.isListed) {
+                    statusBadge.classList.add('status-active');
+                    statusBadge.textContent = 'Listed';
+                  } else {
+                    statusBadge.classList.add('status-inactive');
+                    statusBadge.textContent = 'Unlisted';
+                  }
+                }
+  
+                // Update the button
+                const button = tableRow.querySelector(`button[data-category-id="${categoryId}"]`);
+                if (button) {
+                  console.log('Button found, updating:', button);
+                  // Remove old class and add new class
+                  button.classList.remove(isListed ? 'btn-unlist' : 'btn-list');
+                  button.classList.add(isListed ? 'btn-list' : 'btn-unlist');
+                  // Update button text
+                  button.textContent = isListed ? 'List' : 'Unlist';
+                  // Update title attribute
+                  button.title = isListed ? 'List Category' : 'Unlist Category';
+                  // Update onclick to reflect new state
+                  button.onclick = () => toggleList(categoryId, !isListed);
+                } else {
+                  console.warn(`Button with data-category-id="${categoryId}" not found`);
+                }
+              } else {
+                console.warn(`Table row with data-category-id="${categoryId}" not found`);
+              }
+            } else {
+              throw new Error(data.message || "Failed to update category");
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: error.message || "An error occurred while updating the category",
+            });
+          }
+        }
+      }
+  
+      // Edit Category Function
+      async function editCategory(categoryId) {
+        window.location.href = `/admin/edit-category/${categoryId}`;
+      }
+  
+      // Initialize when DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        new CategoryManager();
       });
-    }
-  }
-}
-    // Edit Category Function
-    async function editCategory(categoryId) {
-      window.location.href = `/admin/edit-category/${categoryId}`;
-    }
-
-    // Initialize when DOM is loaded
-    document.addEventListener("DOMContentLoaded", () => {
-      new CategoryManager();
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

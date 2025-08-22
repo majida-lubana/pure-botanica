@@ -1,3 +1,5 @@
+
+const mongoose = require('mongoose')
 const Category = require('../../models/categorySchema');
 const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema')
@@ -17,6 +19,8 @@ exports.getproductAddPage = async (req, res) => {
         res.redirect('/pageError');
     }
 };
+
+
 exports.addProducts = async (req, res) => {
   try {
       console.log('Request body:', req.body);
@@ -88,7 +92,7 @@ exports.addProducts = async (req, res) => {
       }
 
    
-      const categoryId = await Category.findOne({ name: products.category });
+      const categoryId = await Category.findOne({ categoryName: products.category });
       if (!categoryId) {
           return res.status(400).json({ error: 'Invalid category name' });
       }
@@ -103,10 +107,10 @@ exports.addProducts = async (req, res) => {
           salePrice: products.salePrice || 0,
           createdOn: new Date(),
           quantity: products.quantity,
-          skintype: products.skinType,
+          skinType: products.skinType,
           skinConcern: products.skinConcern,
           howToUse: products.howToUse,
-          productImage: images,
+          productImages: images,
           status: 'Available',
       });
 
@@ -148,81 +152,141 @@ exports.addProducts = async (req, res) => {
   }
 };
 
-exports.getAllproducts = async (req, res) => {
-    try {
-        const search = req.query.search || "";
-        const page = parseInt(req.query.page) || 1;
-        const limit = 4;
 
-        const query = {
-            $or: [
-                { productName: { $regex: new RegExp(search, "i") } },
-                { brand: { $regex: new RegExp(search, "i") } },
-            ],
-        };
 
-        const productData = await Product.find(query)
-            .limit(limit)
-            .skip((page - 1) * limit)
-            .populate("category")
-            .exec();
-
-        const count = await Product.countDocuments(query);
-
-        const category = await Category.find({ isListed: true });
-        const brand = await Brand.find({ isBlocked: false });
-
-        if (category && brand) {
-            res.render("admin/product-list", {
-                products: productData,
-                currentPage: page,
-                totalPages: Math.ceil(count / limit),
-                cat: category,
-                brand: brand,
-            });
-        } else {
-            res.render("page-404");
-        }
-    } catch (error) {
-        console.error("Error in getAllproducts:", error.message);
-        res.redirect("/admin/add-product");
-    }
+exports.blockProduct = async (req, res) => {
+  try {
+    let id = req.params.id;
+    await Product.updateOne({ _id: id }, { $set: { isBlocked: true } });
+    res.json({
+      success: true,
+      isListed: false,
+      message: 'Product unlisted successfully'
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: 'Error while unlisting product'
+    });
+  }
 };
 
-exports.blockProduct = async(req,res)=>{
-    try{
-        let id = req.params.id;
-        await Product.updateOne({_id:id},{$set:{isBlocked:true}})
-        res.redirect('/admin/product-list')
+exports.unblockProduct = async (req, res) => {
+  try {
+    let id = req.params.id;
+    await Product.updateOne({ _id: id }, { $set: { isBlocked: false } });
+    res.json({
+      success: true,
+      isListed: true, // Correctly indicate the product is listed
+      message: 'Product listed successfully'
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: 'Error while listing product'
+    });
+  }
+};
 
-    }catch(error){
-        res.redirect('/admin/admin-error')
+exports.getEditProduct = async (req, res) => {
+  try {
+    const id = req.params.id;
+    console.log(`Attempting to fetch product with ID: ${id}`);
 
+    if (!mongoose.isValidObjectId(id)) {
+      console.error('Invalid product ID:', id);
+      return res.status(400).render('admin/admin-error', {
+        pageTitle: 'Admin Error',
+        heading: 'Invalid Product ID',
+        userName: 'Admin',
+        imageURL: '/images/admin-avatar.jpg',
+        message: 'The provided product ID is invalid.',
+      });
     }
-}
 
-exports.unblockProduct = async(req,res)=>{
-    try{
-        let id = req.params.id;
-        await Product.updateOne({_id:id},{$set:{isBlocked:false}})
-        res.redirect('/admin/product-list')
-    }catch(error){
-        res.redirect('/admin/admin-error')
+    const product = await Product.findById(id);
+    if (!product) {
+      console.error('Product not found for ID:', id);
+      return res.status(404).render('admin/admin-error', {
+        pageTitle: 'Admin Error',
+        heading: 'Product Not Found',
+        userName: 'Admin',
+        imageURL: '/images/admin-avatar.jpg',
+        message: 'The requested product was not found.',
+      });
     }
-}
 
-exports.getEditProduct = async(req,res)=>{
-    try{
-        const id = req.query.id;
-        const product = await Product.findOne({_id:id});
-        const category = await Category.find({});
-        res.render('/admin/edit-product',{
-            product:product,
-            cat:category
-        })
-    }catch(error){
-        res.redirect('/admin/admin-error')
+    const categories = await Category.find({});
+    if (!categories || categories.length === 0) {
+      console.error('No categories found');
+      return res.status(404).render('admin/admin-error', {
+        pageTitle: 'Admin Error',
+        heading: 'No Categories Found',
+        userName: 'Admin',
+        imageURL: '/images/admin-avatar.jpg',
+        message: 'No categories are available to assign to the product.',
+      });
     }
+
+    console.log('Rendering edit-product with product:', product._id, 'and categories:', categories.length);
+    res.render('admin/edit-product', {
+      product,
+      categories,
+      currentPage: 'product',
+    });
+  } catch (error) {
+    console.error('Error in getEditProduct:', error);
+    res.status(500).render('admin/admin-error', {
+      pageTitle: 'Admin Error',
+      heading: 'Server Error',
+      userName: 'Admin',
+      imageURL: '/images/admin-avatar.jpg',
+      message: 'A server-side error occurred. Please try again later.',
+    });
+  }
+};
+
+exports.updateProduct = async(req,res)=>{
+  try{
+    const id = req.params.id
+
+    const {
+      productName,
+      productDescription,
+      howToUse,
+      category,
+      skinType,
+      skinConcern
+    } = req.body
+
+    if(!productName||!productDescription||!howToUse||!category||!skinType||!skinConcern){
+      return res.status(400).json({success:false,message:'All  required fields are must be provided'})
+    }
+
+    const updateProduct = await Product.findByIdAndUpdate(id,{
+        productName,
+        description: productDescription,
+        howToUse,
+        category,
+        skinType,
+        skinConcern 
+    },
+    { new: true, runValidators: true } // Return updated document and run validation
+  )
+
+  if(!updateProduct){
+    return res.status(404).json({
+        success: false,
+        message: "Product not found"
+    })
+  }
+
+  res.redirect('admin/product-list')
+    
+  }catch(error){
+    console.error("Error updating product:", error);
+
+  }
 }
 exports.getAllproducts = async (req, res) => {
   try {
@@ -243,7 +307,7 @@ exports.getAllproducts = async (req, res) => {
       .populate("category")
       .exec();
 
-    const count = await Product.countDocuments(query); // Total number of products
+    const count = await Product.countDocuments(query);
 
     const category = await Category.find({ isListed: true });
     const brand = await Brand.find({ isBlocked: false });
@@ -253,7 +317,7 @@ exports.getAllproducts = async (req, res) => {
         products: productData,
         currentPage: page,
         totalPages: Math.ceil(count / limit),
-        totalProducts: count, // Add totalProducts here
+        totalProducts: count, 
         cat: category,
         brand: brand,
       });

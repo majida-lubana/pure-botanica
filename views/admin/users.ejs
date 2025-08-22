@@ -259,15 +259,30 @@
 
   <!-- Search Form -->
   <div class="search-container">
-    <form action="/admin/users" method="get">
-      <div class="input-group" style="max-width: 500px;">
-        <input type="text" class="form-control search-input" placeholder="Search users by name or email..." name="search" value="<%= search %>">
-        <button class="btn search-btn" type="submit">
-          <i class="fas fa-search me-2"></i>Search
-        </button>
-      </div>
-    </form>
-  </div>
+  <form action="/admin/users" method="get">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex w-1/2 relative">
+            <input 
+              class="bg-gray-800 text-white p-2 rounded-l w-full" 
+              name="search" 
+              value="<%= locals.search || '' %>" 
+              placeholder="Search for User Name or Email" 
+              type="text"
+            />
+            <button type="submit" class="bg-green-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r">
+              <i class="fas fa-search"></i>
+              Search
+            </button>
+          </div>
+          
+          <% if (locals.search && locals.search.trim() !== '') { %>
+            <a href="/admin/users" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition">
+              <i class="fas fa-times mr-1"></i> Clear Results
+            </a>
+          <% } %>
+        </div>
+      </form>
+</div>
 
   <!-- User Table -->
   <div class="table-container">
@@ -388,6 +403,8 @@ async function toggleBlock(userId, isBlocked, buttonElement) {
     console.error(error);
     Swal.fire("Error!", "Something went wrong. Please try again.", "error");
   }
+
+
 }
 
 </script>
