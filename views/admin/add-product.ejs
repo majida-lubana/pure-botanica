@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>Order Details</title>
+  <title>Add Product</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
+    /* Full width layout */
     .content-main {
       margin-left: 250px;
       padding: 30px;
@@ -20,19 +23,100 @@
       flex-shrink: 0;
     }
 
+    /* Form Section Styling - Full width */
     .card {
       border: none;
       border-radius: 20px;
       box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
       background: white;
       overflow: hidden;
-      margin-bottom: 20px;
+      width: 100%;
     }
 
     .card-body {
-      padding: 30px;
+      padding: 0;
     }
 
+    .form-container {
+      padding: 30px;
+      background: #fafafa;
+      width: 100%;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .form-control {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 12px 15px;
+      font-size: 14px;
+      background: white;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .form-control:focus {
+      border-color: #0a4439;
+      box-shadow: 0 0 0 3px rgba(9, 95, 92, 0.1);
+      outline: none;
+    }
+
+    textarea.form-control {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn-primary {
+      background: #067d6d;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 0;
+      width: 100%;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #138496;
+      transform: translateY(-1px);
+    }
+
+    /* Image Section Styling */
+    .image-preview, .cropped-image {
+      max-width: 100%;
+      max-height: 150px;
+      display: none;
+    }
+
+    .image-cropper-container {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    .image-section {
+      padding: 30px;
+      background: #fafafa;
+      width: 100%;
+    }
+
+    /* Error Messages */
+    .error-message {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: -15px;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    /* Content Title */
     .content-title {
       color: #333;
       font-weight: 700;
@@ -40,190 +124,14 @@
       font-size: 24px;
     }
 
-    .order-info-grid {
+    /* Grid layout for form fields */
+    .form-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
-      margin-bottom: 30px;
     }
 
-    .info-label {
-      font-weight: 600;
-      color: #555;
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-
-    .info-value {
-      color: #333;
-      font-size: 14px;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .status-pending {
-      background: #fff3cd;
-      color: #856404;
-    }
-
-    .status-processing {
-      background: #cce5ff;
-      color: #004085;
-    }
-
-    .status-shipped {
-      background: #d1ecf1;
-      color: #0c5460;
-    }
-
-    .status-delivered {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .status-cancelled {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .status-return-requested {
-      background: #fff3cd;
-      color: #856404;
-    }
-
-    .status-return-approved {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .status-return-rejected {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .product-item {
-      display: flex;
-      gap: 20px;
-      padding: 20px;
-      border-bottom: 1px solid #e0e0e0;
-      align-items: center;
-    }
-
-    .product-item:last-child {
-      border-bottom: none;
-    }
-
-    .product-image {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 10px;
-    }
-
-    .product-details {
-      flex: 1;
-    }
-
-    .product-name {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 5px;
-    }
-
-    .product-meta {
-      color: #666;
-      font-size: 13px;
-    }
-
-    .verify-dropdown {
-      position: relative;
-      display: inline-block;
-    }
-
-    .verify-btn {
-      background: #067d6d;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .verify-btn:hover {
-      background: #138496;
-    }
-
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: white;
-      min-width: 160px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      border-radius: 8px;
-      z-index: 1;
-      margin-top: 5px;
-      overflow: hidden;
-    }
-
-    .dropdown-content.show {
-      display: block;
-    }
-
-    .dropdown-item {
-      color: #333;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-      cursor: pointer;
-      transition: background 0.2s;
-      font-size: 14px;
-    }
-
-    .dropdown-item:hover {
-      background-color: #f5f5f5;
-    }
-
-    .dropdown-item.accept {
-      color: #155724;
-    }
-
-    .dropdown-item.reject {
-      color: #721c24;
-    }
-
-    .return-reason {
-      background: #fff3cd;
-      border-left: 4px solid #856404;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-
-    .return-reason-label {
-      font-weight: 600;
-      color: #856404;
-      font-size: 13px;
-      margin-bottom: 5px;
-    }
-
-    .return-reason-text {
-      color: #856404;
-      font-size: 13px;
-    }
-
+    /* Responsive Design */
     @media (max-width: 768px) {
       .content-main {
         margin-left: 0;
@@ -231,265 +139,418 @@
         width: 100%;
       }
 
-      .order-info-grid {
+      .form-grid {
         grid-template-columns: 1fr;
       }
+    }
 
-      .product-item {
-        flex-direction: column;
-        text-align: center;
-      }
+    /* Ensure proper spacing */
+    .d-grid {
+      margin-top: 20px;
     }
   </style>
 </head>
 
 <body class="bg-white text-gray-700">
   <div class="flex h-screen">
-    <!-- Sidebar (placeholder - include your sidebar partial here) -->
-    <aside class="sidebar bg-gray-800 text-white">
-      <!-- Sidebar content -->
-    </aside>
+    <!-- Sidebar -->
+    <%- include("../partials/admin/sidebar") %>
 
-    <!-- Main Content -->
+    <!-- Main Content - Full width -->
     <section class="content-main">
       <div class="content-header">
-        <h2 class="content-title">Order Details</h2>
+        <h2 class="content-title">Add Product</h2>
       </div>
-
-      <!-- Order Information Card -->
       <div class="card">
         <div class="card-body">
-          <h3 class="font-semibold text-lg mb-4">Order Information</h3>
-          <div class="order-info-grid">
-            <div>
-              <div class="info-label">Order ID</div>
-              <div class="info-value">#ORD-2025-001234</div>
-            </div>
-            <div>
-              <div class="info-label">Order Date</div>
-              <div class="info-value">October 15, 2025</div>
-            </div>
-            <div>
-              <div class="info-label">Customer Name</div>
-              <div class="info-value">John Doe</div>
-            </div>
-            <div>
-              <div class="info-label">Payment Method</div>
-              <div class="info-value">Credit Card</div>
-            </div>
-            <div>
-              <div class="info-label">Order Status</div>
-              <div class="info-value">
-                <span class="status-badge status-delivered">Delivered</span>
+          <form id="productForm" action="/admin/addProduct" method="post" enctype="multipart/form-data" class="form-container">
+            <div class="form-grid">
+              <!-- Column 1 -->
+              <div>
+                <div class="mb-4">
+                  <label for="productName" class="form-label">Product Name *</label>
+                  <input name="productName" class="form-control" type="text" placeholder="Type here" required/>
+                  <div id="productName-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Product Description *</label>
+                  <textarea name="description" class="form-control" placeholder="Type here" required></textarea>
+                  <div id="description-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">How To Use *</label>
+                  <textarea name="howToUse" class="form-control" placeholder="Type here" required></textarea>
+                  <div id="howToUse-error" class="error-message"></div>
+                </div>
+                <select name="category" class="form-control" required>
+                  <option value="" disabled selected hidden>Select Category</option>
+                  <% if (cat && cat.length > 0) { %>
+                    <% cat.forEach(category => { %>
+                      <option value="<%= category.categoryName %>">
+                        <%= category.categoryName %>
+                      </option>
+                    <% }); %>
+                  <% } else { %>
+                    <option value="" disabled>No categories available</option>
+                  <% } %>
+                </select>
+              </div>
+              <!-- Column 2 -->
+              <div>
+                <div class="mb-4">
+                  <label class="form-label">Skin Type *</label>
+                  <select name="skinType" class="form-control" required>
+                    <option value="" disabled selected hidden>Select Skin Type</option>
+                    <option value="Oily">Oily</option>
+                    <option value="Dry">Dry</option>
+                    <option value="Combination">Combination</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Sensitive">Sensitive</option>
+                    <option value="All Skin Types">All Skin Types</option>
+                  </select>
+                  <div id="skinType-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Skin Concern *</label>
+                  <select name="skinConcern" class="form-control" required>
+                    <option value="" disabled selected hidden>Select Skin Concern</option>
+                    <option value="Acne">Acne</option>
+                    <option value="Dryness">Dryness</option>
+                    <option value="Oiliness">Oiliness</option>
+                    <option value="Aging">Aging</option>
+                    <option value="Pigmentation">Pigmentation</option>
+                    <option value="Sensitivity">Sensitivity</option>
+                  </select>
+                  <div id="skinConcern-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Regular Price *</label>
+                  <input name="regularPrice" class="form-control" type="number" step="0.01" placeholder="Type here"/>
+                  <div id="regularPrice-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Sale Price</label>
+                  <input name="salePrice" class="form-control" type="number" step="0.01" placeholder="Type here"/>
+                  <div id="salePrice-error" class="error-message"></div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Stock Quantity *</label>
+                  <input name="quantity" class="form-control" type="number" placeholder="Type here"/>
+                  <div id="quantity-error" class="error-message"></div>
+                </div>
               </div>
             </div>
-            <div>
-              <div class="info-label">Total Amount</div>
-              <div class="info-value">$125.99</div>
-            </div>
-          </div>
-
-          <!-- Shipping Address -->
-          <div class="mt-4">
-            <div class="info-label">Shipping Address</div>
-            <div class="info-value">
-              123 Main Street, Apt 4B<br>
-              New York, NY 10001<br>
-              United States
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Order Items Card -->
-      <div class="card">
-        <div class="card-body">
-          <h3 class="font-semibold text-lg mb-4">Order Items</h3>
-          
-          <!-- Product 1 - Return Requested -->
-          <div class="product-item">
-            <img src="https://via.placeholder.com/80" alt="Product" class="product-image">
-            <div class="product-details">
-              <div class="product-name">Hydrating Face Serum</div>
-              <div class="product-meta">Quantity: 1 | Price: $45.99</div>
-              <div class="mt-2">
-                <span class="status-badge status-return-requested">Return Requested</span>
-              </div>
-              <div class="return-reason">
-                <div class="return-reason-label">Return Reason:</div>
-                <div class="return-reason-text">Product not as described. The serum texture is different from what was shown in the images.</div>
-              </div>
-            </div>
-            <div class="verify-dropdown">
-              <button class="verify-btn" onclick="toggleDropdown(1)">
-                <i class="fas fa-check-circle"></i>
-                Verify Return
-                <i class="fas fa-chevron-down"></i>
-              </button>
-              <div id="dropdown1" class="dropdown-content">
-                <a class="dropdown-item accept" onclick="handleReturn(1, 'accept')">
-                  <i class="fas fa-check"></i> Accept Return
-                </a>
-                <a class="dropdown-item reject" onclick="handleReturn(1, 'reject')">
-                  <i class="fas fa-times"></i> Reject Return
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <!-- Product 2 - Normal Item -->
-          <div class="product-item">
-            <img src="https://via.placeholder.com/80" alt="Product" class="product-image">
-            <div class="product-details">
-              <div class="product-name">Moisturizing Cream</div>
-              <div class="product-meta">Quantity: 2 | Price: $40.00</div>
-              <div class="mt-2">
-                <span class="status-badge status-delivered">Delivered</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Product 3 - Another Return Requested -->
-          <div class="product-item">
-            <img src="https://via.placeholder.com/80" alt="Product" class="product-image">
-            <div class="product-details">
-              <div class="product-name">Vitamin C Cleanser</div>
-              <div class="product-meta">Quantity: 1 | Price: $40.00</div>
-              <div class="mt-2">
-                <span class="status-badge status-return-requested">Return Requested</span>
-              </div>
-              <div class="return-reason">
-                <div class="return-reason-label">Return Reason:</div>
-                <div class="return-reason-text">Received damaged product. The bottle was leaking.</div>
-              </div>
-            </div>
-            <div class="verify-dropdown">
-              <button class="verify-btn" onclick="toggleDropdown(2)">
-                <i class="fas fa-check-circle"></i>
-                Verify Return
-                <i class="fas fa-chevron-down"></i>
-              </button>
-              <div id="dropdown2" class="dropdown-content">
-                <a class="dropdown-item accept" onclick="handleReturn(2, 'accept')">
-                  <i class="fas fa-check"></i> Accept Return
-                </a>
-                <a class="dropdown-item reject" onclick="handleReturn(2, 'reject')">
-                  <i class="fas fa-times"></i> Reject Return
-                </a>
+            
+            <!-- Product Images Section - Full width -->
+            <div class="mb-4 image-section">
+              <h3 class="form-label">Product Images *</h3>
+              <p class="text-gray-500 text-sm mb-2">Upload at least three product images. Square images are recommended.</p>
+              <div id="images-error" class="error-message"></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Image 1 -->
+                <div>
+                  <label class="form-label">Image 1 (Required)</label>
+                  <div class="mb-2">
+                    <img id="imgView1" src="" alt="Preview" class="image-preview">
+                  </div>
+                  <div class="mb-2">
+                    <img id="croppedImg1" src="" alt="Cropped" class="cropped-image">
+                  </div>
+                  <div class="mb-2">
+                    <input id="input1" name="images" type="file" accept="image/*" class="form-control" required>
+                  </div>
+                  <div class="image-cropper-container image-cropper-container-1">
+                    <div class="flex justify-end gap-1 mt-1">
+                      <button id="cancelButton1" type="button" class="px-2 py-0.5 bg-gray-400 text-white rounded text-sm">Cancel</button>
+                      <button id="saveButton1" type="button" class="px-2 py-0.5 bg-green-600 text-white rounded text-sm">Save Crop</button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Image 2 -->
+                <div>
+                  <label class="form-label">Image 2 (Required)</label>
+                  <div class="mb-2">
+                    <img id="imgView2" src="" alt="Preview" class="image-preview">
+                  </div>
+                  <div class="mb-2">
+                    <img id="croppedImg2" src="" alt="Cropped" class="cropped-image">
+                  </div>
+                  <div class="mb-2">
+                    <input id="input2" name="images" type="file" accept="image/*" class="form-control" required>
+                  </div>
+                  <div class="image-cropper-container image-cropper-container-2">
+                    <div class="flex justify-end gap-1 mt-1">
+                      <button id="cancelButton2" type="button" class="px-2 py-0.5 bg-gray-400 text-white rounded text-sm">Cancel</button>
+                      <button id="saveButton2" type="button" class="px-2 py-0.5 bg-green-600 text-white rounded text-sm">Save Crop</button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Image 3 -->
+                <div>
+                  <label class="form-label">Image 3 (Required)</label>
+                  <div class="mb-2">
+                    <img id="imgView3" src="" alt="Preview" class="image-preview">
+                  </div>
+                  <div class="mb-2">
+                    <img id="croppedImg3" src="" alt="Cropped" class="cropped-image">
+                  </div>
+                  <div class="mb-2">
+                    <input id="input3" name="images" type="file" accept="image/*" class="form-control" required>
+                  </div>
+                  <div class="image-cropper-container image-cropper-container-3">
+                    <div class="flex justify-end gap-1 mt-1">
+                      <button id="cancelButton3" type="button" class="px-2 py-0.5 bg-gray-400 text-white rounded text-sm">Cancel</button>
+                      <button id="saveButton3" type="button" class="px-2 py-0.5 bg-green-600 text-white rounded text-sm">Save Crop</button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Image 4 -->
+                <div>
+                  <label class="form-label">Image 4 (Optional)</label>
+                  <div class="mb-2">
+                    <img id="imgView4" src="" alt="Preview" class="image-preview">
+                  </div>
+                  <div class="mb-2">
+                    <img id="croppedImg4" src="" alt="Cropped" class="cropped-image">
+                  </div>
+                  <div class="mb-2">
+                    <input id="input4" name="images" type="file" accept="image/*" class="form-control">
+                  </div>
+                  <div class="image-cropper-container image-cropper-container-4">
+                    <div class="flex justify-end gap-1 mt-1">
+                      <button id="cancelButton4" type="button" class="px-2 py-0.5 bg-gray-400 text-white rounded text-sm">Cancel</button>
+                      <button id="saveButton4" type="button" class="px-2 py-0.5 bg-green-600 text-white rounded text-sm">Save Crop</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Order Summary Card -->
-      <div class="card">
-        <div class="card-body">
-          <h3 class="font-semibold text-lg mb-4">Order Summary</h3>
-          <div class="space-y-2">
-            <div class="flex justify-between">
-              <span>Subtotal:</span>
-              <span>$125.99</span>
+            
+            <div class="d-grid">
+              <button id="submitButton" type="button" class="btn btn-primary">Add Product</button>
             </div>
-            <div class="flex justify-between">
-              <span>Shipping:</span>
-              <span>Free</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Tax:</span>
-              <span>$0.00</span>
-            </div>
-            <div class="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-              <span>Total:</span>
-              <span>$125.99</span>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
     </section>
-  </div>
-
+    <%- include("../partials/admin/footer") %>
+  
   <script>
-    function toggleDropdown(id) {
-      const dropdown = document.getElementById(`dropdown${id}`);
-      
-      // Close all other dropdowns
-      const allDropdowns = document.querySelectorAll('.dropdown-content');
-      allDropdowns.forEach(dd => {
-        if (dd.id !== `dropdown${id}`) {
-          dd.classList.remove('show');
+    let cropperInstances = {};
+    let croppedImageBlobs = {};
+
+    function displayErrorMessage(elementId, message) {
+      const errorElement = document.getElementById(elementId);
+      if (errorElement) errorElement.textContent = message;
+    }
+
+    function clearErrorMessages() {
+      const errorElements = document.getElementsByClassName('error-message');
+      Array.from(errorElements).forEach(element => element.textContent = '');
+    }
+
+    function initImageHandler(imageNumber) {
+      const fileInput = document.getElementById(`input${imageNumber}`);
+      const imagePreview = document.getElementById(`imgView${imageNumber}`);
+      const croppedImage = document.getElementById(`croppedImg${imageNumber}`);
+      const cropperContainer = document.querySelector(`.image-cropper-container-${imageNumber}`);
+      const saveButton = document.getElementById(`saveButton${imageNumber}`);
+      const cancelButton = document.getElementById(`cancelButton${imageNumber}`);
+
+      fileInput.addEventListener('change', function(event) {
+        if (event.target.files && event.target.files[0]) {
+          const file = event.target.files[0];
+          const reader = new FileReader();
+          
+          reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            cropperContainer.style.display = 'block';
+
+            if (cropperInstances[imageNumber]) {
+              cropperInstances[imageNumber].destroy();
+            }
+
+            cropperInstances[imageNumber] = new Cropper(imagePreview, {
+              aspectRatio: 1,
+              viewMode: 1,
+              autoCropArea: 1,
+              responsive: true,
+              restore: false,
+              guides: true,
+              center: true,
+              highlight: false,
+              cropBoxMovable: true,
+              cropBoxResizable: true,
+              toggleDragModeOnDblclick: false
+            });
+          };
+          reader.readAsDataURL(file);
         }
       });
-      
-      // Toggle current dropdown
-      dropdown.classList.toggle('show');
-    }
 
-    function handleReturn(productId, action) {
-      const dropdown = document.getElementById(`dropdown${productId}`);
-      dropdown.classList.remove('show');
-      
-      if (action === 'accept') {
-        if (confirm('Are you sure you want to accept this return request?')) {
-          // Send accept request to server
-          fetch(`/admin/orders/return/${productId}/accept`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ productId, action: 'accept' })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              alert('Return request accepted successfully');
-              location.reload();
-            } else {
-              alert('Failed to accept return request');
+      if (saveButton) {
+        saveButton.addEventListener('click', function() {
+          if (cropperInstances[imageNumber]) {
+            const canvas = cropperInstances[imageNumber].getCroppedCanvas({
+              width: 440,
+              height: 440,
+              fillColor: '#fff',
+              imageSmoothingEnabled: true,
+              imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+              croppedImage.src = canvas.toDataURL('image/jpeg', 0.9);
+              croppedImage.style.display = 'block';
+              imagePreview.style.display = 'none';
+              
+              canvas.toBlob(function(blob) {
+                const croppedFile = new File([blob], `cropped-image-${imageNumber}.jpg`, {
+                  type: 'image/jpeg',
+                  lastModified: new Date().getTime()
+                });
+                
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(croppedFile);
+                fileInput.files = dataTransfer.files;
+                
+                croppedImageBlobs[imageNumber] = blob;
+                
+                cropperInstances[imageNumber].destroy();
+                cropperInstances[imageNumber] = null;
+                cropperContainer.style.display = 'none';
+              }, 'image/jpeg', 0.9);
             }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred');
-          });
-        }
-      } else if (action === 'reject') {
-        const reason = prompt('Please provide a reason for rejecting this return request:');
-        if (reason) {
-          // Send reject request to server
-          fetch(`/admin/orders/return/${productId}/reject`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ productId, action: 'reject', reason })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              alert('Return request rejected');
-              location.reload();
-            } else {
-              alert('Failed to reject return request');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred');
-          });
-        }
+          }
+        });
       }
-    }
 
-    // Close dropdowns when clicking outside
-    window.onclick = function(event) {
-      if (!event.target.matches('.verify-btn') && !event.target.matches('.verify-btn *')) {
-        const dropdowns = document.querySelectorAll('.dropdown-content');
-        dropdowns.forEach(dropdown => {
-          dropdown.classList.remove('show');
+      if (cancelButton) {
+        cancelButton.addEventListener('click', function() {
+          if (cropperInstances[imageNumber]) {
+            cropperInstances[imageNumber].destroy();
+            cropperInstances[imageNumber] = null;
+          }
+          cropperContainer.style.display = 'none';
+          fileInput.value = '';
         });
       }
     }
+
+    function initAllImageHandlers() {
+      for (let i = 1; i <= 4; i++) {
+        initImageHandler(i);
+      }
+    }
+
+    function validateForm() {
+      clearErrorMessages();
+      let isValid = true;
+
+      const productName = document.querySelector('[name="productName"]').value.trim();
+      if (!productName) {
+        displayErrorMessage('productName-error', 'Please enter a product name');
+        isValid = false;
+      }
+
+      const description = document.querySelector('[name="description"]').value.trim();
+      if (!description) {
+        displayErrorMessage('description-error', 'Please enter a product description');
+        isValid = false;
+      }
+
+      const howToUse = document.querySelector('[name="howToUse"]').value.trim();
+      if (!howToUse) {
+        displayErrorMessage('howToUse-error', 'Please enter how to use instructions');
+        isValid = false;
+      }
+
+      const regularPrice = document.querySelector('[name="regularPrice"]').value.trim();
+      if (!regularPrice || !/^\d+(\.\d{1,2})?$/.test(regularPrice) || parseFloat(regularPrice) <= 0) {
+        displayErrorMessage('regularPrice-error', 'Please enter a valid positive price (e.g., 10 or 10.99)');
+        isValid = false;
+      }
+
+      const salePrice = document.querySelector('[name="salePrice"]').value.trim();
+      if (salePrice) {
+        if (!/^\d+(\.\d{1,2})?$/.test(salePrice) || parseFloat(salePrice) < 0) {
+          displayErrorMessage('salePrice-error', 'Please enter a valid non-negative sale price (e.g., 8 or 8.99)');
+          isValid = false;
+        } else if (parseFloat(regularPrice) <= parseFloat(salePrice)) {
+          displayErrorMessage('salePrice-error', 'Sale price must be less than regular price');
+          isValid = false;
+        }
+      }
+
+      const quantity = document.querySelector('[name="quantity"]').value.trim();
+      if (!quantity || !/^\d+$/.test(quantity) || parseInt(quantity) < 0) {
+        displayErrorMessage('quantity-error', 'Please enter a valid non-negative integer for quantity');
+        isValid = false;
+      }
+
+      const skinType = document.querySelector('[name="skinType"]').value.trim();
+      if (!skinType) {
+        displayErrorMessage('skinType-error', 'Please select a skin type');
+        isValid = false;
+      }
+
+      const skinConcern = document.querySelector('[name="skinConcern"]').value.trim();
+      if (!skinConcern) {
+        displayErrorMessage('skinConcern-error', 'Please select a skin concern');
+        isValid = false;
+      }
+
+      let imageCount = 0;
+      for (let i = 1; i <= 4; i++) {
+        const input = document.getElementById(`input${i}`);
+        if (input && input.files.length > 0) imageCount++;
+      }
+      if (imageCount < 3) {
+        displayErrorMessage('images-error', 'Please upload at least 3 images');
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    function submitProductForm() {
+      if (!validateForm()) {
+        return;
+      }
+
+      const form = document.getElementById('productForm');
+      const formData = new FormData(form);
+      
+      fetch('/admin/add-product', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = data.redirectUrl || '/admin/products';
+        } else {
+          displayErrorMessage('productName-error', data.error || 'Failed to add product');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        displayErrorMessage('productName-error', 'An error occurred while adding the product');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initAllImageHandlers();
+
+      const submitButton = document.getElementById('submitButton');
+      if (submitButton) {
+        submitButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          submitProductForm();
+        });
+      }
+    });
   </script>
 </body>
 </html>
