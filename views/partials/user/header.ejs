@@ -1,7 +1,5 @@
-<!-- Header / Navbar -->
 <header class="fixed top-0 left-0 w-full z-50" style="background: linear-gradient(to right, #022b2e, #01232c);">
   <nav class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4 text-white text-xs sm:text-sm font-semibold tracking-widest">
-    <!-- Left Nav -->
     <ul class="flex space-x-6 uppercase">
       <li><a class="hover:underline" href="/">Home</a></li>
       <li><a class="hover:underline" href="/shop">Shop</a></li>
@@ -9,31 +7,28 @@
       <li><a class="hover:underline" href="/contact">Contact</a></li>
     </ul>
 
-    <!-- Right Nav: User + Cart + Wishlist -->
     <div class="flex items-center space-x-4 relative">
-      <!-- Profile Icon (Dropdown) -->
       <div class="relative">
         <button id="profileBtn" class="focus:outline-none" title="Profile Menu">
           <i class="fas fa-user text-lg"></i>
         </button>
 
-        <!-- Dropdown -->
         <div id="profileDropdown" class="absolute right-0 mt-2 w-44 bg-white text-black rounded-md shadow-md hidden z-50 py-2">
           <% if (typeof user !== 'undefined' && user) { %>
             <div class="px-4 py-2 border-b border-gray-200">
               <span class="block font-medium text-gray-800">Hello, <%= user.name %></span>
             </div>
-            <a href="/orders" class="block px-4 py-2 hover:bg-gray-100">Orders</a>
+            <a href="/orders" class="block px-4 py-2 hover:bg-gray-100">profile</a>
             <a href="/logout" class="block px-4 py-2 hover:bg-gray-100 text-red-500">Logout</a>
           <% } else { %>
             <a href="/signup" class="block px-4 py-2 hover:bg-gray-100">Sign Up</a>
             <a href="/login" class="block px-4 py-2 hover:bg-gray-100">Login</a>
-            <a href="/orders" class="block px-4 py-2 hover:bg-gray-100">Orders</a>
+            <a href="/orders" class="block px-4 py-2 hover:bg-gray-100">profile</a>
+
           <% } %>
         </div>
       </div>
 
-      <!-- Wishlist Icon -->
       <a href="/wishlist" class="hover:underline relative" title="Wishlist">
         <i class="fas fa-heart text-lg"></i>
         <% if (typeof wishlistCount !== 'undefined' && wishlistCount > 0) { %>
@@ -41,7 +36,6 @@
         <% } %>
       </a>
 
-      <!-- Cart Icon -->
       <a href="/cart" class="hover:underline relative" title="Shopping Cart">
         <i class="fas fa-shopping-bag text-lg"></i>
         <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
@@ -52,7 +46,6 @@
   </nav>
 </header>
 
-<!-- Toggle Dropdown Script -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("profileBtn");

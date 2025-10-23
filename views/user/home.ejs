@@ -43,7 +43,6 @@
 <body class="bg-white text-gray-900">
     <%-include("../../views/partials/user/header")%>
 
-    <!-- Hero Section -->
     <section class="hero-section pt-28 pb-20 px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 bg-gradient-to-b from-[#0f3a3f] to-[#0a2a2d]">
         <div class="hero-bg-image"></div>
         <div class="hero-content">
@@ -58,7 +57,6 @@
         </div>
     </section>
 
-    <!-- Products Section -->
     <section class="max-w-7xl mx-auto px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 py-16">
         <h2 class="text-center text-xs sm:text-sm font-semibold tracking-widest uppercase mb-10">
             ADD A FLAVOR TO BEING A GIRL
@@ -95,39 +93,8 @@
                 </div>
             <% } %>
         </div>
-        <!-- Pagination -->
-        <div
-          class="mt-8 text-[9px] text-gray-600 font-normal flex justify-center space-x-2"
-        >
-          <% if (totalPages > 1) { %>
-            <!-- Previous Button -->
-            <a
-              href="/?page=<%= currentPage > 1 ? currentPage - 1 : 1 %>"
-              class="px-2 py-1 rounded hover:bg-gray-100 transition <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
-            >
-              Previous
-            </a>
-            <!-- Page Numbers -->
-            <% for (let i = 1; i <= totalPages; i++) { %>
-              <a
-                href="/?page=<%= i %>"
-                class="px-2 py-1 rounded hover:bg-gray-100 transition <%= currentPage === i ? 'bg-[#0a2a2d] text-white' : '' %>"
-              >
-                <%= i %>
-              </a>
-            <% } %>
-            <!-- Next Button -->
-            <a
-              href="/?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-              class="px-2 py-1 rounded hover:bg-gray-100 transition <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
-            >
-              Next
-            </a>
-          <% } %>
-        </div>
     </section>
 
-    <!-- New Look Section -->
     <section class="max-w-7xl mx-auto px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 py-16 bg-white">
         <div class="flex flex-col lg:flex-row items-center gap-10">
             <div class="lg:w-1/2">
@@ -146,7 +113,6 @@
         </div>
     </section>
 
-    <!-- Features Section -->
     <section class="max-w-7xl mx-auto px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 py-12 flex flex-col sm:flex-row justify-between gap-8 text-center sm:text-left">
         <div class="flex flex-col items-center sm:items-start space-y-2 sm:space-y-3 sm:w-1/3">
             <i class="fas fa-leaf text-[#0a2a2d] text-3xl mb-1"></i>
@@ -171,7 +137,6 @@
         </div>
     </section>
 
-    <!-- Logos Section -->
     <section class="max-w-7xl mx-auto px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 py-8 flex justify-center items-center space-x-12 text-gray-400 text-xs sm:text-sm">
         <img alt="Logo 1 black and white" class="h-10 object-contain" height="40" src="https://storage.googleapis.com/a1aa/image/d551936b-594e-4906-9255-d3e232c8ef65.jpg" width="80"/>
         <img alt="Logo 2 black and white" class="h-10 object-contain" height="40" src="https://storage.googleapis.com/a1aa/image/49e3becb-ae1e-4fa9-2b81-ba8a1298ac8a.jpg" width="80"/>
@@ -179,7 +144,6 @@
         <img alt="Logo 4 black and white" class="h-10 object-contain" height="40" src="https://storage.googleapis.com/a1aa/image/403c672d-0185-4ad2-d8e4-4b6648e3054b.jpg" width="80"/>
     </section>
 
-    <!-- Happy Clients Section -->
     <section class="bg-gray-100 py-16 px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32 text-center max-w-7xl mx-auto">
         <h2 class="text-2xl sm:text-3xl font-semibold mb-4 text-[#0a2a2d]">OUR HAPPY CLIENTS</h2>
         <p class="max-w-3xl mx-auto text-gray-600 text-sm sm:text-base mb-8">
@@ -211,7 +175,6 @@
                     </div>
                 <% }) %>
             <% } else { %>
-                <!-- Default testimonials -->
                 <div class="bg-white p-6 rounded shadow text-left">
                     <div class="flex items-center mb-3">
                         <img alt="Client 1 smiling woman with short hair" class="w-12 h-12 rounded-full mr-3 object-cover" height="48" src="https://storage.googleapis.com/a1aa/image/55fe2d22-c8ac-4695-5342-c2fc5b8fd681.jpg" width="48"/>
@@ -270,7 +233,6 @@
         </div>
     </section>
 
-    <!-- Sign-up Section -->
     <section class="bg-[#0a2a2d] py-12 px-6 sm:px-10 md:px-16 lg:px-24 xl:px-32">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
             <h3 class="text-white uppercase text-xs sm:text-sm font-semibold tracking-widest">
@@ -293,7 +255,6 @@
     <%-include("../../views/partials/user/footer")%>
 
     <script>
-        // Newsletter form submission
         document.querySelector('form[action="/newsletter"]').addEventListener('submit', function(e) {
             e.preventDefault();
             const email = this.querySelector('input[name="email"]').value;
@@ -301,7 +262,6 @@
             this.reset();
         });
 
-        // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();

@@ -1,5 +1,4 @@
 const User = require('../../models/userSchema')
-const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 
 
@@ -26,7 +25,7 @@ exports.pageError = (req, res) => {
 exports.login = async(req,res)=>{
     try{
         const {email,password} = req.body
-        const admin = await User.findOne({isAdmin:true,email})
+        const admin = await User.findOne({isAdmin:true,email}).select('+password')
         if(admin){
 
             const passwordMatch = await bcrypt.compare(password, admin.password);

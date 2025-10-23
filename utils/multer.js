@@ -29,5 +29,5 @@ const upload = multer({
     }
   }
 });
-
+console.log("multer workkkkkkkkkkkk")
 module.exports = upload;

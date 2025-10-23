@@ -5,6 +5,7 @@ const {userAuth,adminAuth} = require('../middlewares/auth')
 const customerController = require('../controllers/admin/customerController')
 const categoryController = require('../controllers/admin/categoryController')
 const productController = require('../controllers/admin/productController')
+const orderController = require('../controllers/admin/orderController')
 
 const uploads = require('../utils/multer');
 const path = require('path')
@@ -37,6 +38,15 @@ router.get('/product-list',adminAuth,productController.getAllproducts)
 router.put('/blockProduct/:id',adminAuth,productController.blockProduct)
 router.put('/unblockProduct/:id',adminAuth,productController.unblockProduct)
 router.get('/edit-product/:id',adminAuth,productController.getEditProduct)
-router.post('/update-product/:id',adminAuth,productController.updateProduct)
+router.post('/update-product/:id',adminAuth,uploads.array("images",4),productController.updateProduct)
+
+
+router.get("/orders",  orderController.renderOrderManage);
+router.get("/order/details/:orderId", orderController.renderOrderDetails); 
+router.get("/order/orderId", orderController.getOrderById); 
+router.post('/order/update-status/:orderId', orderController.updateOrderStatus);
+router.post('/order/update-all-items/:orderId', orderController.updateAllItemsStatus);
+router.post('/admin/orders/return/${productId}/accept', orderController.acceptReturn);
+router.post('/admin/orders/return/${productId}/reject', orderController.rejectReturn);
 
 module.exports = router

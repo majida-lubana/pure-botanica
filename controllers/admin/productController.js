@@ -7,6 +7,7 @@ const Brand = require('../../models/brandSchema');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp')
+const multer  = require('multer')
 
 
 
@@ -177,7 +178,7 @@ exports.unblockProduct = async (req, res) => {
     await Product.updateOne({ _id: id }, { $set: { isBlocked: false } });
     res.json({
       success: true,
-      isListed: true, // Correctly indicate the product is listed
+      isListed: true,
       message: 'Product listed successfully'
     });
   } catch (error) {
@@ -246,48 +247,169 @@ exports.getEditProduct = async (req, res) => {
   }
 };
 
-exports.updateProduct = async(req,res)=>{
-  try{
-    const id = req.params.id
+exports.updateProduct = async (req, res) => {
+    try {
+      console.log('dsankndfkjnmfsndkdsfd,f,ksnkfsd:', req.body);
+      console.log('Request Files:', req.files);
 
-    const {
-      productName,
-      productDescription,
-      howToUse,
-      category,
-      skinType,
-      skinConcern
-    } = req.body
+      const id = req.params.id;
+      console.log("product update",id)
 
-    if(!productName||!productDescription||!howToUse||!category||!skinType||!skinConcern){
-      return res.status(400).json({success:false,message:'All  required fields are must be provided'})
-    }
+      // Validate ObjectId
+      if (!mongoose.isValidObjectId(id)) {
+        console.error('Invalid product ID:', id);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid product ID',
+        });
+      }
 
-    const updateProduct = await Product.findByIdAndUpdate(id,{
+     
+      const product = await Product.findById(id);
+      if (!product) {
+        console.error('Product not found for ID:', id);
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+      const {
         productName,
-        description: productDescription,
+        productDescription,
         howToUse,
         category,
         skinType,
-        skinConcern 
-    },
-    { new: true, runValidators: true } // Return updated document and run validation
-  )
+        skinConcern,
+        regularPrice,
+        salePrice,
+        stock,
+        existingImages,
+      } = req.body;
 
-  if(!updateProduct){
-    return res.status(404).json({
-        success: false,
-        message: "Product not found"
-    })
-  }
-
-  res.redirect('admin/product-list')
+       console.log("i am reached",req.body)
     
-  }catch(error){
-    console.error("Error updating product:", error);
+      if (
+        !productName ||
+        !productDescription ||
+        !howToUse ||
+        !category ||
+        !skinType ||
+        !skinConcern ||
+        !regularPrice ||
+        !salePrice ||
+        !stock
+      ) {
+        console.error('Missing required fields:', {
+          productName,
+          productDescription,
+          howToUse,
+          category,
+          skinType,
+          skinConcern,
+          regularPrice,
+          salePrice,
+          stock,
+        });
+        return res.status(400).json({
+          success: false,
+          message: 'All required fields must be provided',
+        });
+      }
+      if(stock<0){
+        return res.status(400).json({
+          success :false,
+          message:'Quantity cannot be negative',
+        })
+      }
+      // Handle images
+      let productImages = [...(product.productImages || [])];
 
+
+      // Process existing images
+      const existingImagesArray = Array.isArray(existingImages)
+        ? existingImages
+        : existingImages
+        ? [existingImages]
+        : [];
+      existingImagesArray.forEach((img, index) => {
+        if (img && index < productImages.length) {
+          productImages[index] = img;
+        }
+      });
+
+      // Process new uploaded images
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((file) => {
+          const match = file.originalname.match(/^image(\d+)\.jpg$/);
+          if (match) {
+            const index = parseInt(match[1]) - 1;
+            // Delete old image if it exists
+            if (productImages[index]) {
+              const oldImagePath = path.join(
+                __dirname,
+                '../public/uploads/product-images',
+                productImages[index]
+              );
+              if (fs.existsSync(oldImagePath)) {
+                console.log('Deleting old image:', oldImagePath);
+                fs.unlinkSync(oldImagePath);
+              }
+            }
+            // Update with new image
+            productImages[index] = file.filename;
+          }
+        });
+      }
+
+      // Ensure at least 3 images
+      if (productImages.filter(Boolean).length < 3) {
+        console.error('Insufficient images:', productImages);
+        return res.status(400).json({
+          success: false,
+          message: 'At least three product images are required',
+        });
+      }
+
+      // Update product
+      const updatedProduct = await Product.findByIdAndUpdate(
+        id,
+        {
+          productName,
+          description: productDescription,
+          howToUse,
+          category,
+          skinType,
+          skinConcern,
+          regularPrice,
+          salePrice,
+          quantity: stock,
+          productImages,
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedProduct) {
+        console.error('Failed to update product for ID:', id);
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+      console.log('Product updated successfully:', updatedProduct._id);
+      return res.json({
+        success: true,
+        message: 'Product updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating product:', error.stack);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'An error occurred while updating the product',
+      });
+    }
   }
-}
 exports.getAllproducts = async (req, res) => {
   try {
     const search = req.query.search || "";
@@ -305,7 +427,7 @@ exports.getAllproducts = async (req, res) => {
       .limit(limit)
       .skip((page - 1) * limit)
       .populate("category")
-      .exec();
+     
 
     const count = await Product.countDocuments(query);
 

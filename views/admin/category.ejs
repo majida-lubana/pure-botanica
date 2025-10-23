@@ -784,7 +784,7 @@
           const data = {
             categoryName: formData.get("categoryName").trim(),
             description: formData.get("description").trim(),
-            _csrf: formData.get("_csrf") // Include CSRF token if present
+            _csrf: formData.get("_csrf")
           };
   
           this.setLoading(true);
@@ -965,19 +965,19 @@
                 showConfirmButton: false
               });
   
-              // Find the table row for this category
+       
               const tableRow = document.querySelector(`tr[data-category-id="${categoryId}"]`);
               
               if (tableRow) {
-                // Update the status badge
+       
                 const statusCell = tableRow.querySelector('td:nth-child(5)'); // Status is in 5th column
                 const statusBadge = statusCell.querySelector('.status-badge');
                 
                 if (statusBadge) {
-                  // Remove old status classes
+      
                   statusBadge.classList.remove('status-active', 'status-inactive');
                   
-                  // Add new status class and update text
+    
                   if (data.isListed) {
                     statusBadge.classList.add('status-active');
                     statusBadge.textContent = 'Listed';
@@ -987,7 +987,6 @@
                   }
                 }
   
-                // Update the button
                 const button = tableRow.querySelector(`button[data-category-id="${categoryId}"]`);
                 if (button) {
                   console.log('Button found, updating:', button);
@@ -1020,12 +1019,12 @@
         }
       }
   
-      // Edit Category Function
+
       async function editCategory(categoryId) {
         window.location.href = `/admin/edit-category/${categoryId}`;
       }
   
-      // Initialize when DOM is loaded
+
       document.addEventListener("DOMContentLoaded", () => {
         new CategoryManager();
       });

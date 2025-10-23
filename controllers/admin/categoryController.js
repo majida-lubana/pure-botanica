@@ -7,24 +7,23 @@ const mongoose = require('mongoose')
 exports.categoryInfo = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 4; // Number of categories per page
+    const limit = 4;
     const skip = (page - 1) * limit;
     const search = req.query.search ? req.query.search.trim() : '';
 
-    // Build query: include all categories (listed or unlisted) for admin view
+
     const query = search
-      ? { categoryName: { $regex: search, $options: 'i' } } // Case-insensitive search
+      ? { categoryName: { $regex: search, $options: 'i' } }
       : {};
 
-    // Fetch categories
     const categoryData = await Category.find(query)
-      .sort({ createdAt: -1 }) // Newest first
+      .sort({ createdAt: -1 }) 
       .skip(skip)
       .limit(limit);
 
-    // Count total categories for pagination
+   
     const totalCategories = await Category.countDocuments(query);
-    const totalPages = Math.ceil(totalCategories / limit) || 1; // Ensure at least 1 page
+    const totalPages = Math.ceil(totalCategories / limit) || 1;
     const currentPage = Math.min(page, totalPages);
 
     console.log("Query:", query);
@@ -88,7 +87,7 @@ exports.addCategory = async (req, res) => {
 exports.getListCategory = async(req,res)=>{
     try{
         let id = req.query.id;
-        // This should LIST the category (set isListed to true)
+
         await Category.updateOne({_id:id},{$set:{isListed:true}})
         res.json({ success: true, isListed: true });
     }catch(error){
@@ -99,7 +98,6 @@ exports.getListCategory = async(req,res)=>{
 exports.getUnlistCategory = async(req,res)=>{
     try{
         let id = req.query.id ;
-        // This should UNLIST the category (set isListed to false)
         await Category.updateOne({_id:id},{$set:{isListed:false}})
         res.json({ success: true, isListed: false });
     }catch(error){

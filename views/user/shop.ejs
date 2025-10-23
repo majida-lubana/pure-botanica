@@ -13,6 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
       body {
         font-family: "Montserrat", sans-serif;
@@ -20,6 +21,10 @@
       .product-card {
         transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         height: 100%;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
       }
       .product-card:hover {
         transform: translateY(-5px);
@@ -29,6 +34,8 @@
         transition: transform 0.3s ease-in-out;
         object-fit: cover;
         border-radius: 8px;
+        width: 48;
+        height: 48;
       }
       .product-image:hover {
         transform: scale(1.05);
@@ -44,15 +51,18 @@
       input[type="checkbox"] {
         accent-color: #000000;
       }
+      .product-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
     </style>
   </head>
   <body class="bg-white text-black">
-    <!-- Header partial -->
     <%- include("../partials/user/header") %>
 
-    <!-- Main content -->
-    <main class="max-w-[1400px] mx-auto px-8 py-12">
-      <!-- Poster Banner -->
+    <main class="max-w-[1400px] mx-auto px-8 py-12 mt-8">
       <div class="relative mb-12 rounded-lg overflow-hidden shadow-lg">
         <img
           src="/images/bannerimages.jpeg"
@@ -65,7 +75,6 @@
           <p class="text-xl">Pure, Botanical Skincare for Every Skin Type</p>
         </div>
       </div>
-      <!-- Breadcrumbs -->
       <nav class="max-w-[1400px] mx-auto px-8 py-4 text-sm text-gray-600">
         <ol class="flex space-x-2">
           <li><a href="/" class="hover:underline">Home</a></li>
@@ -75,14 +84,11 @@
       </nav>
       
       <div class="flex flex-col md:flex-row gap-8">
-        <!-- Sidebar: Filters -->
         <aside class="w-full md:w-1/4 bg-gray-50 p-6 rounded-lg shadow-sm">
           <h2 class="text-xl font-bold mb-6 text-gray-800">Filters</h2>
           <div class="mb-4">
-            <a href="/shop" class="text-gray-700 underline hover:text-gray-900">Clear All Filters</a>
+            <a href="/shop" class="text-white bg-[#0a2a2d] px-4 py-2 rounded hover:bg-[#0f3a3f] transition font-semibold text-sm">Clear All Filters</a>
           </div>
-
-          <!-- Categories -->
           <div class="filter-section">
             <h3 class="font-bold mb-3 text-gray-800">Categories</h3>
             <ul class="space-y-2">
@@ -112,8 +118,6 @@
               <% }) %>
             </ul>
           </div>
-
-          <!-- Skin Type -->
           <div class="filter-section">
             <h3 class="font-bold mb-3 text-gray-800">Skin Type</h3>
             <ul class="space-y-2">
@@ -134,8 +138,6 @@
               <% }) %>
             </ul>
           </div>
-
-          <!-- Skin Concern -->
           <div class="filter-section">
             <h3 class="font-bold mb-3 text-gray-800">Skin Concern</h3>
             <ul class="space-y-2">
@@ -156,7 +158,6 @@
               <% }) %>
             </ul>
           </div>
-          <!-- Price Range -->
           <div class="filter-section">
             <h3 class="font-bold mb-3 text-gray-800">Price Range</h3>
             <input
@@ -175,10 +176,7 @@
             />
           </div>
         </aside>
-
-        <!-- Products Grid -->
         <div class="w-full md:w-3/4">
-          <!-- Search and Sort -->
           <div class="flex flex-col sm:flex-row justify-between mb-6 gap-4">
             <div class="w-full sm:w-1/2 flex">
               <input
@@ -188,7 +186,7 @@
                 value="<%= search || '' %>"
                 class="p-2 border border-gray-300 rounded w-full text-gray-700"
               />
-              <button id="searchBtn" class="ml-2 bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors font-semibold">
+              <button id="searchBtn" class="ml-2 bg-[#0a2a2d] text-white px-4 py-2 rounded hover:bg-[#0f3a3f] transition-colors font-semibold">
                 Search
               </button>
             </div>
@@ -206,33 +204,33 @@
               </select>
             </div>
           </div>
-
-          <!-- Products (dynamic container) -->
           <div id="productsGrid">
             <% if (products.length > 0) { %>
               <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                 <% products.forEach(product => { %>
-                  <div class="product-card flex flex-col items-center p-4 bg-white rounded-lg shadow-md border border-gray-200">
-                    <a href="/product/<%= product._id %>">
-                      <img
-                        alt="<%= product.productName %>"
-                        class="mb-4 product-image cursor-pointer w-32 h-32"
-                        src="<%= product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150' %>"
-                        loading="lazy"
-                      />
-                    </a>
-                    <div class="font-bold text-base mb-2 text-gray-800 text-center">
-                      <%= product.productName.toUpperCase() %>
-                    </div>
-                    <div class="mb-3 text-gray-600 font-semibold">
-                      ₹<%= product.salePrice.toFixed(2) %>
-                      <% if (product.quantity === 0) { %>
-                        <span class="text-red-600 text-sm">(Out of Stock)</span>
-                      <% } %>
+                  <div class="product-card bg-white rounded-lg shadow-md border border-gray-200">
+                    <div class="product-content">
+                      <a href="/product/<%= product._id %>">
+                        <img
+                          alt="<%= product.productName %>"
+                          class="mb-4 product-image cursor-pointer w-48 h-48 mx-auto"
+                          src="<%= product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150' %>"
+                          loading="lazy"
+                        />
+                      </a>
+                      <div class="font-bold text-lg mb-2 text-gray-800 text-center">
+                        <%= product.productName.toUpperCase() %>
+                      </div>
+                      <div class="mb-3 text-gray-600 font-semibold text-base text-center">
+                        ₹<%= product.salePrice.toFixed(2) %>
+                        <% if (product.quantity === 0) { %>
+                          <span class="text-red-600 text-sm">(Out of Stock)</span>
+                        <% } %>
+                      </div>
                     </div>
                     <button
-                      class="bg-black text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-800 transition-colors w-full"
-                      onclick="addToCart('<%= product._id %>')"
+                      class="bg-[#0a2a2d] text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] transition-colors w-full add-to-cart-btn"
+                      data-product-id="<%= product._id %>"
                       <%= product.quantity === 0 ? 'disabled' : '' %>
                     >
                       <%= product.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART' %>
@@ -244,58 +242,31 @@
               <div class="text-center text-gray-600 py-12">No products found. Try adjusting your filters.</div>
             <% } %>
           </div>
-
-          <!-- Pagination (dynamic container) -->
-          <div id="pagination" class="mt-8 flex justify-center">
-            <% if (totalPages > 1) { %>
-              <nav class="flex space-x-2">
-                <% if (currentPage > 1) { %>
-                  <a onclick="changePage(<%= currentPage - 1 %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Previous</a>
-                <% } %>
-                <% for (let i = 1; i <= totalPages; i++) { %>
-                  <a onclick="changePage(<%= i %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded <%= currentPage === i ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100' %>">
-                    <%= i %>
-                  </a>
-                <% } %>
-                <% if (currentPage < totalPages) { %>
-                  <a onclick="changePage(<%= currentPage + 1 %>)" class="cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Next</a>
-                <% } %>
-              </nav>
-            <% } %>
-          </div>
         </div>
       </div>
     </main>
-
-    <!-- Pagination above footer -->
     <div class="w-full flex justify-center mt-6 mb-4">
-      <div class="flex space-x-2 bg-black text-white px-4 py-2 rounded">
+      <div class="flex space-x-2 bg-[#0a2a2d] text-white px-4 py-2 rounded">
         <% if (currentPage > 1) { %>
-          <a href="?page=<%= currentPage - 1 %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm">
+          <a href="?page=<%= currentPage - 1 %>" class="px-3 py-1 rounded hover:bg-[#0f3a3f] text-sm">
             &laquo; Prev
           </a>
         <% } %>
-
         <% for (let i = 1; i <= totalPages; i++) { %>
           <% if (i === currentPage) { %>
             <span class="px-3 py-1 rounded text-sm font-semibold"><%= i %></span>
           <% } else { %>
-            <a href="?page=<%= i %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm"><%= i %></a>
+            <a href="?page=<%= i %>" class="px线下</a>
           <% } %>
         <% } %>
-
         <% if (currentPage < totalPages) { %>
-          <a href="?page=<%= currentPage + 1 %>" class="px-3 py-1 rounded hover:bg-gray-800 text-sm">
+          <a href="?page=<%= currentPage + 1 %>" class="px-3 py-1 rounded hover:bg-[#0f3a3f] text-sm">
             Next &raquo;
           </a>
         <% } %>
       </div>
     </div>
-
-    <!-- Footer -->
     <%- include("../partials/user/footer") %>
-
-    <!-- Dynamic Filter JS -->
     <script>
       let currentParams = {
         search: '<%= search || "" %>',
@@ -309,7 +280,6 @@
         limit: 12
       };
 
-      // Function to fetch and update products
       async function updateProducts(updateUrl = false) {
         const queryString = new URLSearchParams();
         if (currentParams.search) queryString.append('search', currentParams.search);
@@ -326,8 +296,6 @@
           const response = await fetch(`/api/products?${queryString.toString()}`);
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
-
-          // Update products grid
           const grid = document.getElementById('productsGrid');
           grid.innerHTML = '';
           if (data.products.length > 0) {
@@ -335,25 +303,27 @@
             div.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6';
             data.products.forEach(product => {
               const card = `
-                <div class="product-card flex flex-col items-center p-4 bg-white rounded-lg shadow-md border border-gray-200">
-                  <a href="/product/${product._id}">
-                    <img
-                      alt="${product.productName}"
-                      class="mb-4 product-image cursor-pointer w-32 h-32"
-                      src="${product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150'}"
-                      loading="lazy"
-                    />
-                  </a>
-                  <div class="font-bold text-base mb-2 text-gray-800 text-center">
-                    ${product.productName.toUpperCase()}
-                  </div>
-                  <div class="mb-3 text-gray-600 font-semibold">
-                    ₹${product.salePrice.toFixed(2)}
-                    ${product.quantity === 0 ? '<span class="text-red-600 text-sm">(Out of Stock)</span>' : ''}
+                <div class="product-card bg-white rounded-lg shadow-md border border-gray-200">
+                  <div class="product-content">
+                    <a href="/product/${product._id}">
+                      <img
+                        alt="${product.productName}"
+                        class="mb-4 product-image cursor-pointer w-48 h-48 mx-auto"
+                        src="${product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150'}"
+                        loading="lazy"
+                      />
+                    </a>
+                    <div class="font-bold text-lg mb-2 text-gray-800 text-center">
+                      ${product.productName.toUpperCase()}
+                    </div>
+                    <div class="mb-3 text-gray-600 font-semibold text-base text-center">
+                      ₹${product.salePrice.toFixed(2)}
+                      ${product.quantity === 0 ? '<span class="text-red-600 text-sm">(Out of Stock)</span>' : ''}
+                    </div>
                   </div>
                   <button
-                    class="bg-black text-white text-sm font-semibold px-4 py-2 rounded hover:bg-gray-800 transition-colors w-full"
-                    onclick="addToCart('${product._id}')"
+                    class="bg-[#0a2a2d] text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] transition-colors w-full add-to-cart-btn"
+                    data-product-id="${product._id}"
                     ${product.quantity === 0 ? 'disabled' : ''}
                   >
                     ${product.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
@@ -363,43 +333,9 @@
               div.innerHTML += card;
             });
             grid.appendChild(div);
+            attachAddToCartListeners();
           } else {
             grid.innerHTML = '<div class="text-center text-gray-600 py-12">No products found. Try adjusting your filters.</div>';
-          }
-
-          // Update pagination
-          const pagination = document.getElementById('pagination');
-          pagination.innerHTML = '';
-          if (data.totalPages > 1) {
-            const nav = document.createElement('nav');
-            nav.className = 'flex space-x-2';
-            if (data.currentPage > 1) {
-              const prev = document.createElement('a');
-              prev.className = 'cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100';
-              prev.textContent = 'Previous';
-              prev.onclick = () => changePage(data.currentPage - 1);
-              nav.appendChild(prev);
-            }
-            for (let i = 1; i <= data.totalPages; i++) {
-              const link = document.createElement('a');
-              link.className = `cursor-pointer px-4 py-2 border border-gray-300 rounded ${data.currentPage === i ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`;
-              link.textContent = i;
-              link.onclick = () => changePage(i);
-              nav.appendChild(link);
-            }
-            if (data.currentPage < data.totalPages) {
-              const next = document.createElement('a');
-              next.className = 'cursor-pointer px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100';
-              next.textContent = 'Next';
-              next.onclick = () => changePage(data.currentPage + 1);
-              nav.appendChild(next);
-            }
-            pagination.appendChild(nav);
-          }
-
-          // Update URL without reload
-          if (updateUrl) {
-            history.pushState(null, '', `/shop?${queryString.toString()}`);
           }
         } catch (error) {
           console.error('Error fetching products:', error);
@@ -407,31 +343,83 @@
         }
       }
 
-      // Add to cart
       async function addToCart(productId) {
         try {
           const response = await fetch(`/product/availability/${productId}`);
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
           if (data.available) {
-            // Replace with actual cart logic (POST to /cart/add)
             const cartResponse = await fetch('/cart/add', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ productId, quantity: 1 })
             });
-            if (!cartResponse.ok) throw new Error('Failed to add to cart');
-            alert('Product added to cart!');
+            const cartData = await cartResponse.json();
+            if (cartData.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Product added to cart!',
+                showConfirmButton: false,
+                timer: 1500
+              });
+              const cartCountEl = document.getElementById('cart-count');
+              if (cartCountEl && cartData.cartCount) {
+                cartCountEl.textContent = cartData.cartCount;
+              }
+            } else {
+              if (cartData.redirectUrl) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Login Required',
+                  text: cartData.message || 'Please login to add products to your cart.',
+                  showConfirmButton: true,
+                  confirmButtonText: 'Go to Login',
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    window.location.href = cartData.redirectUrl;
+                  }
+                });
+              } else {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: cartData.message || 'Failed to add product to cart',
+                  showConfirmButton: false,
+                  timer: 2000
+                });
+              }
+            }
           } else {
-            alert('Product is out of stock.');
+            Swal.fire({
+              icon: 'error',
+              title: 'Out of Stock',
+              text: 'Product is out of stock.',
+              showConfirmButton: false,
+              timer: 2000
+            });
           }
         } catch (error) {
           console.error('Error adding to cart:', error);
-          alert('Error adding product to cart: ' + error.message);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An error occurred while adding the product to the cart.',
+            showConfirmButton: false,
+            timer: 2000
+          });
         }
       }
 
-      // Event listeners for filters
+      function attachAddToCartListeners() {
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+          button.addEventListener('click', () => {
+            const productId = button.getAttribute('data-product-id');
+            addToCart(productId);
+          });
+        });
+      }
+
       document.querySelectorAll('input[type="checkbox"][name="category[]"], input[type="checkbox"][name="skinType[]"], input[type="checkbox"][name="skinConcern[]"]').forEach(checkbox => {
         checkbox.addEventListener('change', () => {
           const name = checkbox.name.replace('[]', '');
@@ -441,7 +429,6 @@
         });
       });
 
-      // "All Categories" logic
       const allCatCheckbox = document.getElementById('cat-all');
       allCatCheckbox.addEventListener('change', () => {
         if (allCatCheckbox.checked) {
@@ -452,14 +439,12 @@
         updateProducts(true);
       });
 
-      // Category checkboxes uncheck "All"
       document.querySelectorAll('input[name="category[]"]').forEach(c => {
         c.addEventListener('change', () => {
           if (c.checked) allCatCheckbox.checked = false;
         });
       });
 
-      // Price inputs (on blur/enter)
       document.getElementById('minPrice').addEventListener('blur', () => {
         currentParams.minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
         currentParams.page = 1;
@@ -485,7 +470,6 @@
         }
       });
 
-      // Search
       document.getElementById('searchBtn').addEventListener('click', () => {
         currentParams.search = document.getElementById('searchInput').value.trim();
         currentParams.page = 1;
@@ -499,18 +483,20 @@
         }
       });
 
-      // Sort
       document.getElementById('sortSelect').addEventListener('change', (e) => {
         currentParams.sort = e.target.value;
         currentParams.page = 1;
         updateProducts(true);
       });
 
-      // Pagination change
       function changePage(page) {
         currentParams.page = page;
         updateProducts(true);
       }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        attachAddToCartListeners();
+      });
     </script>
   </body>
 </html>

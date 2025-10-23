@@ -1,305 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <title>Sign Up Page</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
-  </head>
-  <body class="min-h-screen flex items-center justify-center p-10 relative">
-    <img
-      alt="Blurred cosmetic product bottles with white flowers in foreground"
-      class="absolute inset-0 w-full h-full object-cover"
-      src="https://storage.googleapis.com/a1aa/image/aff8b111-8925-4b75-503a-b5fdc7cbeab9.jpg"
-    />
-    <div class="relative w-full max-w-md bg-white bg-opacity-90 rounded-xl p-8 shadow-md">
-      <div class="flex border-b border-gray-300 mb-6 text-sm font-sans">
-        <button class="flex-1 py-2 border-b-2 border-black font-normal" type="button">Sign Up</button>
-        <a class="flex-1 py-2 text-gray-700" href="/login">LOGIN</a>
-      </div>
-      <form class="space-y-4 text-xs font-sans text-gray-600" method="POST" action="/signup">
-        <div>
-          <input
-            class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Name"
-            type="text"
-            name="name"
-            required
-          />
-          <div id="error1" class="error-message"></div>
-        </div>
-        <div>
-          <input
-            class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Your email address *"
-            type="email"
-            name="email"
-            required
-          />
-          <div id="error2" class="error-message"></div>
-        </div>
-        <div>
-          <input
-            class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Phone Number*"
-            type="tel"
-            name="phone"
-            required
-          />
-          <div id="error3" class="error-message"></div>
-        </div>
-        <div>
-          <input
-            class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Password*"
-            type="password"
-            name="password"
-            required
-          />
-          <div id="error4" class="error-message"></div>
-        </div>
-        <div>
-          <input
-            class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Confirm Password*"
-            type="password"
-            name="confirmPassword"
-            required
-          />
-          <div id="error5" class="error-message"></div>
-        </div>
-
-        <%if(locals.message && message.length>0){%>
-        <div class="error-message text-red-500 mb-4">
-        <%= message %>
-        </div>
-        <%}%>
-       
-        <div class="flex items-center space-x-2">
-          <button class="bg-black text-white text-xs px-4 py-1 rounded-sm" type="submit">SIGN UP</button>
-          <label class="text-gray-600 text-xs select-none">I agree to the privacy policy</label>
-        </div>
-      </form>
-      <div class="flex items-center my-4 text-xs text-gray-500">
-        <div class="flex-grow border-t border-gray-300"></div>
-        <span class="mx-3 whitespace-nowrap">or sign in with</span>
-        <div class="flex-grow border-t border-gray-300"></div>
-      </div>
-      <div class="flex space-x-2 text-[9px]">
-        <a href="/auth/google" class="flex-1 border border-gray-300 rounded-sm py-1 text-gray-600 hover:bg-gray-100 text-center block">
-        <i class="fab fa-google mr-2"></i>Login With Google
-        </a>
-        <button class="flex-1 border border-gray-300 rounded-sm py-1 text-gray-600 hover:bg-gray-100" type="button">
-          Login With Facebook
-        </button>
-      </div>
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <title>Sign Up Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+  <style>
+    .error-message { color: red; font-size: 0.75rem; margin-top: 0.25rem; }
+    .password-container { position: relative; }
+    .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; }
+    .password-input { padding-right: 2.5rem; } /* Added to prevent text overlap with icon */
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-10 relative">
+  <img
+    alt="Blurred cosmetic product bottles with white flowers in foreground"
+    class="absolute inset-0 w-full h-full object-cover"
+    src="https://storage.googleapis.com/a1aa/image/aff8b111-8925-4b75-503a-b5fdc7cbeab9.jpg"
+  />
+  <div class="relative w-full max-w-md bg-white bg-opacity-90 rounded-xl p-8 shadow-md">
+    <div class="flex border-b border-gray-300 mb-6 text-sm font-sans">
+      <button class="flex-1 py-2 border-b-2 border-black font-normal" type="button">Sign Up</button>
+      <a class="flex-1 py-2 text-gray-700" href="/login">LOGIN</a>
     </div>
+    <form class="space-y-4 text-xs font-sans text-gray-600" method="POST" action="/signup" id="signForm">
+      <div>
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
+          placeholder="Name"
+          type="text"
+          name="name"
+          id="fullName"
+          value="<%= old.name || '' %>"
+        />
+        <% if (errors.name) { %>
+          <div class="error-message"><%= errors.name %></div>
+        <% } %>
+        <div id="error1" class="error-message"></div>
+      </div>
+      <div>
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
+          placeholder="Your email address *"
+          type="email"
+          name="email"
+          id="email"
+          value="<%= old.email || '' %>"
+        />
+        <% if (errors.email) { %>
+          <div class="error-message"><%= errors.email %></div>
+        <% } %>
+        <div id="error2" class="error-message"></div>
+      </div>
+      <div>
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
+          placeholder="Phone Number*"
+          type="tel"
+          name="phone"
+          id="phone"
+          value="<%= old.phone || '' %>"
+        />
+        <% if (errors.phone) { %>
+          <div class="error-message"><%= errors.phone %></div>
+        <% } %>
+        <div id="error3" class="error-message"></div>
+      </div>
+      <div class="password-container">
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black password-input"
+          placeholder="Password*"
+          type="password"
+          name="password"
+          id="password"
+          value="<%= old.password || '' %>"
+        />
+        <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+        <% if (errors.password) { %>
+          <div class="error-message"><%= errors.password %></div>
+        <% } %>
+        <div id="error4" class="error-message"></div>
+      </div>
+      <div class="password-container">
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black password-input"
+          placeholder="Confirm Password*"
+          type="password"
+          name="confirmPassword"
+          id="confirmPassword"
+          value="<%= old.confirmPassword || '' %>"
+        />
+        <i class="fas fa-eye password-toggle" id="toggleConfirmPassword"></i>
+        <% if (errors.confirmPassword) { %>
+          <div class="error-message"><%= errors.confirmPassword %></div>
+        <% } %>
+        <div id="error5" class="error-message"></div>
+      </div>
+      <% if (locals.message && message.length > 0) { %>
+        <div class="error-message text-red-500 mb-4"><%= message %></div>
+      <% } %>
+      <div class="flex items-center space-x-2">
+        <button class="bg-black text-white text-xs px-4 py-1 rounded-sm" type="submit">SIGN UP</button>
+        <label class="text-gray-600 text-xs select-none">I agree to the privacy policy</label>
+      </div>
+    </form>
+    <div class="flex items-center my-4 text-xs text-gray-500">
+      <div class="flex-grow border-t border-gray-300"></div>
+      <span class="mx-3 whitespace-nowrap">or sign in with</span>
+      <div class="flex-grow border-t border-gray-300"></div>
+    </div>
+    <div class="flex space-x-2 text-[9px]">
+      <a href="/auth/google" class="flex-1 border border-gray-300 rounded-sm py-1 text-gray-600 hover:bg-gray-100 text-center block">
+        <i class="fab fa-google mr-2"></i>Login With Google
+      </a>
+      <button class="flex-1 border border-gray-300 rounded-sm py-1 text-gray-600 hover:bg-gray-100" type="button">
+        Login With Facebook
+      </button>
+    </div>
+  </div>
+  <script>
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const confirmPassword = document.getElementById('confirmPassword');
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Get all elements
-    const nameInput = document.getElementById("fullName");
-    const emailInput = document.getElementById("email");
-    const phoneInput = document.getElementById("phone");
-    const passwordInput = document.getElementById("password");
-    const confirmPasswordInput = document.getElementById("confirmPassword");
-    
-    const error1 = document.getElementById("error1");
-    const error2 = document.getElementById("error2");
-    const error3 = document.getElementById("error3");
-    const error4 = document.getElementById("error4");
-    const error5 = document.getElementById("error5");
-    
-    const form = document.getElementById("signForm");
-    
-    // Check if all elements exist
-    if (!nameInput || !emailInput || !phoneInput || !passwordInput || !confirmPasswordInput || !form) {
-        console.error("Some form elements are missing!");
-        return;
-    }
-
-    // Validation functions
-    function validateName() {
-        const name = nameInput.value.trim();
-        const namePattern = /^[A-Za-z\s.\'-]{2,50}$/;
-        
-        if (name === "") {
-            showError(error1, nameInput, "Please enter your full name");
-            return false;
-        } else if (name.length < 2) {
-            showError(error1, nameInput, "Name must be at least 2 characters");
-            return false;
-        } else if (!namePattern.test(name)) {
-            showError(error1, nameInput, "Name can only contain letters, spaces, dots, and hyphens");
-            return false;
-        } else {
-            hideError(error1, nameInput);
-            return true;
-        }
-    }
-
-    function validateEmail() {
-        const email = emailInput.value.trim();
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        
-        if (email === "") {
-            showError(error2, emailInput, "Please enter your email address");
-            return false;
-        } else if (!emailPattern.test(email)) {
-            showError(error2, emailInput, "Please enter a valid email address");
-            return false;
-        } else {
-            hideError(error2, emailInput);
-            return true;
-        }
-    }
-
-    function validatePhone() {
-        const phone = phoneInput.value.trim();
-        const phonePattern = /^[0-9]{10}$/;
-        
-        if (phone === "") {
-            showError(error3, phoneInput, "Please enter your phone number");
-            return false;
-        } else if (!phonePattern.test(phone)) {
-            showError(error3, phoneInput, "Please enter a valid 10-digit phone number");
-            return false;
-        } else {
-            hideError(error3, phoneInput);
-            return true;
-        }
-    }
-
-    function validatePassword() {
-        const password = passwordInput.value;
-        const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        
-        if (password === "") {
-            showError(error4, passwordInput, "Please enter a password");
-            return false;
-        } else if (password.length < 8) {
-            showError(error4, passwordInput, "Password must be at least 8 characters long");
-            return false;
-        } else if (!passwordPattern.test(password)) {
-            showError(error4, passwordInput, "Password must include uppercase, lowercase, number, and special character");
-            return false;
-        } else {
-            hideError(error4, passwordInput);
-            return true;
-        }
-    }
-
-    function validateConfirmPassword() {
-        const password = passwordInput.value;
-        const confirmPassword = confirmPasswordInput.value;
-        
-        if (confirmPassword === "") {
-            showError(error5, confirmPasswordInput, "Please confirm your password");
-            return false;
-        } else if (password !== confirmPassword) {
-            showError(error5, confirmPasswordInput, "Passwords do not match");
-            return false;
-        } else {
-            hideError(error5, confirmPasswordInput);
-            return true;
-        }
-    }
-
-    function showError(errorElement, inputElement, message) {
-        errorElement.textContent = message;
-        errorElement.style.display = "block";
-        inputElement.classList.add("error-border");
-    }
-
-    function hideError(errorElement, inputElement) {
-        errorElement.textContent = "";
-        errorElement.style.display = "none";
-        inputElement.classList.remove("error-border");
-    }
-
-    // Add event listeners for real-time validation
-    nameInput.addEventListener("blur", validateName);
-    nameInput.addEventListener("input", function() {
-        if (error1.style.display === "block") {
-            validateName();
-        }
+    togglePassword.addEventListener('click', function () {
+      const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+      password.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
     });
 
-    emailInput.addEventListener("blur", validateEmail);
-    emailInput.addEventListener("input", function() {
-        if (error2.style.display === "block") {
-            validateEmail();
-        }
+    toggleConfirmPassword.addEventListener('click', function () {
+      const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      confirmPassword.setAttribute('type', type);
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
     });
-
-    phoneInput.addEventListener("blur", validatePhone);
-    phoneInput.addEventListener("input", function() {
-        if (error3.style.display === "block") {
-            validatePhone();
-        }
-    });
-
-    passwordInput.addEventListener("blur", validatePassword);
-    passwordInput.addEventListener("input", function() {
-        if (error4.style.display === "block") {
-            validatePassword();
-        }
-        // Also revalidate confirm password if it has content
-        if (confirmPasswordInput.value) {
-            validateConfirmPassword();
-        }
-    });
-
-    confirmPasswordInput.addEventListener("blur", validateConfirmPassword);
-    confirmPasswordInput.addEventListener("input", function() {
-        if (error5.style.display === "block") {
-            validateConfirmPassword();
-        }
-    });
-
-    // Form submission validation
-    form.addEventListener("submit", function(event) {
-        console.log("Form submission started...");
-        
-        // Validate all fields
-        const isNameValid = validateName();
-        const isEmailValid = validateEmail();
-        const isPhoneValid = validatePhone();
-        const isPasswordValid = validatePassword();
-        const isConfirmPasswordValid = validateConfirmPassword();
-        
-        const isFormValid = isNameValid && isEmailValid && isPhoneValid && isPasswordValid && isConfirmPasswordValid;
-        
-        console.log("Validation results:", {
-            name: isNameValid,
-            email: isEmailValid,
-            phone: isPhoneValid,
-            password: isPasswordValid,
-            confirmPassword: isConfirmPasswordValid,
-            overall: isFormValid
-        });
-        
-        if (!isFormValid) {
-            event.preventDefault();
-            event.stopPropagation();
-            console.log("Form submission prevented due to validation errors");
-            
-            // Focus on first error field
-            if (!isNameValid) nameInput.focus();
-            else if (!isEmailValid) emailInput.focus();
-            else if (!isPhoneValid) phoneInput.focus();
-            else if (!isPasswordValid) passwordInput.focus();
-            else if (!isConfirmPasswordValid) confirmPasswordInput.focus();
-            
-            return false;
-        }
-        
-        console.log("Form is valid, allowing submission...");
-        return true;
-    });
-});
-</script>
+  </script>
 </body>
 </html>
-

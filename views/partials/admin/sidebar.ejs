@@ -102,6 +102,7 @@
     padding: 8px 0;
     transition: color 0.2s;
     width: 100%;
+    cursor: pointer;
   }
 
   .logout-button:hover {
@@ -165,13 +166,49 @@
         <span>Orders</span>
       </a>
     </div>
-    
+
     <!-- Logout section at bottom -->
     <div class="logout-section">
-      <a href="/admin/logout" class="logout-button">
+      <a href="/admin/logout" class="logout-button" id="logoutButton">
         <i class="fas fa-sign-out-alt"></i>
         <span>Logout</span>
       </a>
     </div>
   </nav>
 </div>
+
+<!-- Include SweetAlert2 for confirmation dialog -->
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+<script>
+  // Ensure SweetAlert2 is loaded
+  if (typeof Swal === 'undefined') {
+    console.error('SweetAlert2 is not loaded.');
+  }
+
+  // Add click event listener to the logout button
+  document.getElementById('logoutButton').addEventListener('click', function (e) {
+    e.preventDefault(); // Prevent the default link behavior
+
+    // Show SweetAlert2 confirmation dialog
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to log out?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, log out',
+      cancelButtonText: 'Cancel',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Redirect to logout endpoint if confirmed
+        window.location.href = '/admin/logout';
+      }
+    });
+  });
+</script>
