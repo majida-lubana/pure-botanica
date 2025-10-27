@@ -45,8 +45,9 @@ router.get("/orders",  orderController.renderOrderManage);
 router.get("/order/details/:orderId", orderController.renderOrderDetails); 
 router.get("/order/orderId", orderController.getOrderById); 
 router.post('/order/update-status/:orderId', orderController.updateOrderStatus);
-router.post('/order/update-all-items/:orderId', orderController.updateAllItemsStatus);
-router.post('/admin/orders/return/${productId}/accept', orderController.acceptReturn);
-router.post('/admin/orders/return/${productId}/reject', orderController.rejectReturn);
+// router.post('/order/update-all-items/:orderId', orderController.updateAllItemsStatus);
+router.post('/order/verify-return/:orderId', orderController.verifyReturn);
+
+
 
 module.exports = router

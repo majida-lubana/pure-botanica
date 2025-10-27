@@ -1,4 +1,4 @@
-const { name } = require('ejs');
+// const { name } = require('ejs');
 const Category = require('../../models/categorySchema')
 const Product = require('../../models/productSchema')
 const mongoose = require('mongoose')

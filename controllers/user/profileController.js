@@ -13,7 +13,7 @@ exports.loadUserProfile = async (req, res) => {
 
         let userId;
         if (req.session.user) {
-            // Handle both string and object cases
+
             userId = typeof req.session.user === 'string' ? req.session.user : req.session.user._id;
         }
 
@@ -81,7 +81,7 @@ exports.updateProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Update session with new user data
+   
         req.session.user = user;
 
         res.status(200).json({ success: true, user: { name: user.name, phone: user.phone } });
@@ -98,7 +98,7 @@ exports.sendEmailOtp = async (req, res) => {
         const { email } = req.body;
         let userId;
 
-        // Determine user ID from session or req.user
+       
         if (req.session.user) {
             userId = typeof req.session.user === 'string' ? req.session.user : req.session.user._id;
         } else if (req.user) {
@@ -110,7 +110,7 @@ exports.sendEmailOtp = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Unauthorized: No user session found' });
         }
 
-        // Validate email
+  
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email is required' });
         }
@@ -120,13 +120,12 @@ exports.sendEmailOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid email format' });
         }
 
-        // Check if email is already in use by another user
+    
         const existingUser = await User.findOne({ email });
         if (existingUser && existingUser._id.toString() !== userId) {
             return res.status(400).json({ success: false, message: 'Email is already in use by another account' });
         }
 
-        // Generate and send OTP
         const otp = generateOtp();
         const sent = await sendVerificationEmail(email, otp);
 
@@ -134,7 +133,7 @@ exports.sendEmailOtp = async (req, res) => {
             return res.status(500).json({ success: false, message: 'Failed to send OTP' });
         }
 
-        // Store OTP and email in session
+   
         req.session.emailChangeOtp = otp;
         req.session.emailChangeEmail = email;
         req.session.emailChangeTimestamp = Date.now();
@@ -152,7 +151,7 @@ exports.verifyEmailOtp = async (req, res) => {
         const { email, otp } = req.body;
         let userId;
 
-        // Determine user ID from session or req.user
+     
         if (req.session.user) {
             userId = typeof req.session.user === 'string' ? req.session.user : req.session.user._id;
         } else if (req.user) {
@@ -163,12 +162,11 @@ exports.verifyEmailOtp = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Unauthorized: No user session found' });
         }
 
-        // Validate inputs
         if (!email || !otp) {
             return res.status(400).json({ success: false, message: 'Email and OTP are required' });
         }
 
-        // Check session data
+
         const sessionOtp = req.session.emailChangeOtp;
         const sessionEmail = req.session.emailChangeEmail;
         const otpTimestamp = req.session.emailChangeTimestamp;
@@ -177,7 +175,7 @@ exports.verifyEmailOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'OTP not found or expired' });
         }
 
-        if (Date.now() - otpTimestamp > 300000) { // 5 minutes
+        if (Date.now() - otpTimestamp > 300000) { 
             delete req.session.emailChangeOtp;
             delete req.session.emailChangeEmail;
             delete req.session.emailChangeTimestamp;
@@ -192,7 +190,6 @@ exports.verifyEmailOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid OTP' });
         }
 
-        // Update user's email
         const user = await User.findByIdAndUpdate(
             userId,
             { email },
@@ -203,12 +200,11 @@ exports.verifyEmailOtp = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Update session with new user data
         if (req.session.user) {
             req.session.user = user;
         }
 
-        // Clear OTP from session
+
         delete req.session.emailChangeOtp;
         delete req.session.emailChangeEmail;
         delete req.session.emailChangeTimestamp;
@@ -225,7 +221,6 @@ exports.resendEmailOtp = async (req, res) => {
         const email = req.session.emailChangeEmail;
         let userId;
 
-        // Determine user ID from session or req.user
         if (req.session.user) {
             userId = typeof req.session.user === 'string' ? req.session.user : req.session.user._id;
         } else if (req.user) {
@@ -240,19 +235,16 @@ exports.resendEmailOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email not found in session' });
         }
 
-        // Validate email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ success: false, message: 'Invalid email format' });
         }
 
-        // Check if email is already in use by another user
         const existingUser = await User.findOne({ email });
         if (existingUser && existingUser._id.toString() !== userId) {
             return res.status(400).json({ success: false, message: 'Email is already in use by another account' });
         }
 
-        // Generate and send new OTP
         const otp = generateOtp();
         const sent = await sendVerificationEmail(email, otp);
 
@@ -260,7 +252,7 @@ exports.resendEmailOtp = async (req, res) => {
             return res.status(500).json({ success: false, message: 'Failed to send OTP' });
         }
 
-        // Update OTP in session
+
         req.session.emailChangeOtp = otp;
         req.session.emailChangeTimestamp = Date.now();
         console.log('Resend Email Change OTP for', email, 'is:', otp);

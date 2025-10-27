@@ -263,44 +263,68 @@
       zoomResult.style.backgroundImage = `url(${thumb.src})`;
     });
   });
+  const maxLimit = 5;
+const quantityInput = document.getElementById('quantity');
+const decreaseQty = document.getElementById('decreaseQty');
+const increaseQty = document.getElementById('increaseQty');
 
-  const quantityInput = document.getElementById('quantity');
-  const decreaseQty = document.getElementById('decreaseQty');
-  const increaseQty = document.getElementById('increaseQty');
-  
-  if (quantityInput && decreaseQty && increaseQty) {
-    decreaseQty.addEventListener('click', () => {
-      let value = parseInt(quantityInput.value);
-      if (value > 1) {
-        quantityInput.value = value - 1;
-      }
-      decreaseQty.disabled = value <= 1;
-      increaseQty.disabled = value >= parseInt(quantityInput.max);
-    });
+if (quantityInput && decreaseQty && increaseQty) {
+  const originalMax = parseInt(quantityInput.max);
+  const effectiveMax = Math.min(originalMax, maxLimit);
 
-    increaseQty.addEventListener('click', () => {
-      let value = parseInt(quantityInput.value);
-      if (value < parseInt(quantityInput.max)) {
-        quantityInput.value = value + 1;
-      }
-      decreaseQty.disabled = value <= 1;
-      increaseQty.disabled = value >= parseInt(quantityInput.max);
-    });
+  let notificationActive = false;
 
-    quantityInput.addEventListener('input', () => {
-      let value = parseInt(quantityInput.value);
-      if (isNaN(value) || value < 1) {
-        quantityInput.value = 1;
-        value = 1;
-      }
-      if (value > parseInt(quantityInput.max)) {
-        quantityInput.value = quantityInput.max;
-        value = parseInt(quantityInput.max);
-      }
-      decreaseQty.disabled = value <= 1;
-      increaseQty.disabled = value >= parseInt(quantityInput.max);
+  const showLimitAlert = () => {
+    if (notificationActive) return;
+    notificationActive = true;
+    Swal.fire({
+      icon: 'warning',
+      title: 'Limit reached',
+      text: `You can only buy up to ${maxLimit} units of this product.`,
+      confirmButtonColor: '#108a7e'
+    }).then(() => {
+      notificationActive = false;
     });
-  }
+  };
+
+  decreaseQty.addEventListener('click', () => {
+    let value = parseInt(quantityInput.value) || 1;
+    if (value > 1) quantityInput.value = value - 1;
+
+    decreaseQty.disabled = parseInt(quantityInput.value) <= 1;
+    increaseQty.disabled = parseInt(quantityInput.value) >= effectiveMax;
+  });
+
+  increaseQty.addEventListener('click', () => {
+    let value = parseInt(quantityInput.value) || 1;
+    if (value < effectiveMax) {
+      quantityInput.value = value + 1;
+    } else {
+      // Use setTimeout to let DOM update first
+      setTimeout(showLimitAlert, 50);
+    }
+
+    decreaseQty.disabled = parseInt(quantityInput.value) <= 1;
+    increaseQty.disabled = parseInt(quantityInput.value) >= effectiveMax;
+  });
+
+  quantityInput.addEventListener('input', () => {
+    let value = parseInt(quantityInput.value) || 1;
+
+    if (value < 1) value = 1;
+
+    if (value > effectiveMax) {
+      quantityInput.value = effectiveMax;
+      setTimeout(showLimitAlert, 50); // separate DOM update from alert
+    } else {
+      quantityInput.value = value;
+    }
+
+    decreaseQty.disabled = value <= 1;
+    increaseQty.disabled = value >= effectiveMax;
+  });
+}
+
 
   async function addToCart(productId, quantity) {
     try {

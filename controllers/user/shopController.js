@@ -16,6 +16,7 @@ exports.loadShopPage = async (req, res) => {
       isActive: true,
       isBlocked: false
     };
+    console.log('query',query)
 
     if (search) {
       query.$or = [

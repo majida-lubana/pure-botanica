@@ -342,6 +342,15 @@
           document.getElementById('productsGrid').innerHTML = '<div class="text-center text-red-600 py-12">Error loading products: ' + error.message + '. Please try again.</div>';
         }
       }
+      async function getProductCountInCart(productId){
+        const r = await fetch(`/cart/count`,{
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          body:JSON.stringify({productId})
+        });
+        const d = await r.json()
+        return d.count ?? 0
+      }
 
       async function addToCart(productId) {
         try {

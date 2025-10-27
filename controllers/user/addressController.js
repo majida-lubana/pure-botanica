@@ -2,13 +2,13 @@ const Address = require("../../models/addressSchema");
 const mongoose = require('mongoose')
 
 const addressController = {
-  // Load address page
+ 
   loadAddress: async (req, res) => {
     try {
       console.log("[GET /address] Session ID:", req.sessionID);
       console.log("[GET /address] Session:", req.session);
 
-      const userId = req.session.user?.id || req.session.user; // Handle both formats
+      const userId = req.session.user?.id || req.session.user; 
       console.log("[GET /address] User in session:", userId);
 
       if (!userId) {
@@ -26,18 +26,18 @@ const addressController = {
       const formattedAddresses = addresses.flatMap((user) =>
         user.address.map((details) => ({
           _id: details._id,
-          fullName: details.name, // Map name to fullName
+          fullName: details.name, 
           name: details.name,
           phone: details.phone,
-          address: details.address, // street/address string
+          address: details.address, 
           city: details.city,
           state: details.state,
           country: details.country || "India",
-          pincode: details.pinCode, // Map pinCode
+          pincode: details.pinCode, 
           pinCode: details.pinCode,
           addressType: details.addressType,
           isDefault: details.isDefault,
-          userId: user.userId, // optionally keep top-level userId
+          userId: user.userId,
         }))
       );
 
@@ -60,7 +60,6 @@ const addressController = {
     }
   },
 
-  // Get single address (for edit modal)
   getAddress: async (req, res) => {
     try {
       console.log("[GET /address/:id] Session ID:", req.sessionID);
@@ -81,8 +80,8 @@ const addressController = {
 
       console.log("[GET /address/:id] User found:", userId);
       const address = await Address.findOne(
-        { userId, "address._id": addressId }, // look inside the array
-        { "address.$": 1 } // project only the matching address
+        { userId, "address._id": addressId }, 
+        { "address.$": 1 } 
       );
       console.log("[GET /address/:id] Address found:", address);
 
@@ -93,7 +92,7 @@ const addressController = {
         });
       }
 
-    const details = address.address[0];  // the matched nested address
+    const details = address.address[0]; 
 
 res.json({
   success: true,
@@ -122,10 +121,8 @@ res.json({
     }
   },
 
-  // Add new address
-  addAddress: async (req, res) => {
+addAddress: async (req, res) => {
   try {
-
     console.log("[POST /address/add] Session ID:", req.sessionID);
     console.log("[POST /address/add] Session:", req.session);
 
@@ -144,7 +141,7 @@ res.json({
     console.log("req.body:", req.body);
 
     const {
-      name:fullName,
+      name: fullName,
       phone,
       address,
       city,
@@ -153,9 +150,67 @@ res.json({
       pincode,
       addressType,
       isDefault,
-    } = req.body; 
+    } = req.body;
 
+    const errors = [];
+
+    if (!fullName?.trim() || fullName.trim().length > 20)
+      errors.push("Full name must not exceed 20 characters.");
+
+    if (!phone?.trim() || !/^\d{10}$/.test(phone.trim()))
+      errors.push("Phone number must be a valid 10-digit number.");
+
+    if (!address?.trim() || address.trim().length < 5)
+      errors.push("Address must be at least 5 characters long.");
+
+    if (!city?.trim() || city.trim().length < 2)
+      errors.push("City name must be at least 2 characters.");
+
+    if (!state?.trim()) errors.push("State is required.");
+
+    if (!country?.trim()) errors.push("Country is required.");
+
+    if (!pincode?.trim() || !/^\d{5,6}$/.test(pincode.trim()))
+      errors.push("Pincode must be 5 or 6 digits.");
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed.",
+        errors,
+      });
+    }
+
+
+    let userAddressDoc = await Address.findOne({ userId });
     
+    if (userAddressDoc && userAddressDoc.address.length > 0) {
+      const isDuplicate = userAddressDoc.address.some((addr) => {
+        const normalizeStr = (str) => str?.toString().trim().toLowerCase() || '';
+        
+        return (
+          normalizeStr(addr.address) === normalizeStr(address) &&
+          normalizeStr(addr.city) === normalizeStr(city) &&
+          normalizeStr(addr.state) === normalizeStr(state) &&
+          normalizeStr(addr.pinCode) === normalizeStr(pincode) &&
+          normalizeStr(addr.country) === normalizeStr(country)
+        );
+      });
+
+      if (isDuplicate) {
+        return res.status(400).json({
+          success: false,
+          message: "This address already exists in your address book.",
+          isDuplicate: true,
+        });
+      }
+    }
+
+    if (!userAddressDoc) {
+      userAddressDoc = new Address({ userId, address: [] });
+      await userAddressDoc.save();
+    }
+
     if (isDefault) {
       await Address.updateMany(
         { userId },
@@ -179,13 +234,19 @@ res.json({
 
     const updatedDocument = await Address.findOneAndUpdate(
       { userId },
-      { $push: { address: newAddressObj } },
+      {
+        $push: {
+          address: {
+            $each: [newAddressObj],
+            $position: 0,
+          },
+        },
+      },
       { new: true, upsert: true }
     );
 
-    const addedAddress = updatedDocument.address.slice(-1)[0];
+    const addedAddress = updatedDocument.address[0];
 
-   
     res.json({
       success: true,
       message: "Address added successfully",
@@ -212,8 +273,7 @@ res.json({
     });
   }
 },
-
-  // Edit address
+  
   editAddress: async (req, res) => {
     try {
       console.log("[PUT /address/edit/:id] Session ID:", req.sessionID);
@@ -222,6 +282,7 @@ res.json({
       const addressId = req.params.id;
       const userId = req.session.user?.id || req.session.user;
       console.log("[PUT /address/edit/:id] User in session:", userId);
+      console.log("gdgshdhds",addressId)
 
       if (!userId) {
         console.log("[PUT /address/edit/:id] No user in session");
@@ -245,7 +306,7 @@ res.json({
         isDefault,
       } = req.body;
 
-      // Validate required fields
+
       if (
         !fullName ||
         !phone ||
@@ -262,7 +323,7 @@ res.json({
         });
       }
 
-      // Validate phone number format
+
       if (!/^\d{10}$/.test(phone)) {
         return res.status(400).json({
           success: false,
@@ -270,7 +331,7 @@ res.json({
         });
       }
 
-      // Validate pincode format
+  
       if (!/^\d{6}$/.test(pincode) || pincode === "000000") {
         return res.status(400).json({
           success: false,
@@ -278,7 +339,7 @@ res.json({
         });
       }
       const  objectAddressId = new mongoose.Types.ObjectId(addressId)
-      // Check if address exists and belongs to user
+      
       const existingAddress = await Address.findOne({userId,'address._id':objectAddressId});
       if (!existingAddress) {
         return res.status(404).json({
@@ -287,7 +348,6 @@ res.json({
         });
       }
 
-      // If this is set as default, remove default from other addresses
       if (isDefault) {
         await Address.updateMany(
           { userId, 'address.isDefault':true,'address._id':{ $ne: objectAddressId } },
@@ -362,7 +422,7 @@ res.json({
     }
   },
 
-  // Delete address
+
   deleteAddress: async (req, res) => {
     try {
       console.log("[DELETE /address/:id] Session ID:", req.sessionID);

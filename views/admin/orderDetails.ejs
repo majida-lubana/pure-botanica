@@ -438,21 +438,34 @@
                         <p class="text-gray-600">Price: <span class="font-bold text-green-600">₹<%= item.purchasePrice.toFixed(2) %></span></p>
                       </div>
                       <div class="flex items-center justify-between flex-wrap gap-3">
-                        <span class="status-badge <%= item.status %>">
-                          <%= item.status %>
-                        </span>
-                        <select class="status-select no-print" onchange="updateItemStatus('<%= order.orderId %>', '<%= item.ord_id %>', this.value)">
-                          <option value="ordered" <%= item.status === 'ordered' ? 'selected' : '' %>>Ordered</option>
-                          <option value="shipped" <%= item.status === 'shipped' ? 'selected' : '' %>>Shipped</option>
-                          <option value="delivered" <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
-                          <option value="cancelled" <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
-                          <!-- <option value="returned" <%= item.status === 'returned' ? 'selected' : '' %>>Returned</option> -->
-                        </select>
-                        <% if (item.returnRequested || item.status === 'returned') { %>
-                          <button class="btn btn-primary no-print ml-2" onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'accepted')">Accept Return</button>
-                          <button class="btn btn-danger no-print ml-2" onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'rejected')">Reject Return</button>
-                        <% } %>
-                      </div>
+  <span class="status-badge <%= item.status %>"><%= item.status.replace('-', ' ') %></span>
+
+  <select class="status-select no-print"
+          <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>
+          onchange="updateItemStatus('<%= order.orderId %>', '<%= item.ord_id %>', this.value)">
+    
+    <option value="ordered"
+            <%= item.status === 'ordered' ? 'selected' : '' %>
+            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Ordered</option>
+    
+    <option value="shipped"
+            <%= item.status === 'shipped' ? 'selected' : '' %>
+            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Shipped</option>
+    
+    <option value="delivered"
+            <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+    
+    <option value="cancelled"
+            <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+  </select>
+
+  <% if (item.status === 'return requested') { %>
+    <button class="btn btn-primary no-print ml-2"
+            onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'accepted')">Accept Return</button>
+    <button class="btn btn-danger no-print ml-2"
+            onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'rejected')">Reject Return</button>
+  <% } %>
+</div>
                     </div>
                   </div>
                 </div>
@@ -588,7 +601,7 @@
   </div>
 
   <script>
-    async function updateItemStatus(orderId, productId, newStatus) {
+    async function updateItemStatus(orderId, itemId, newStatus) {
       try {
         const confirmResult = await Swal.fire({
           title: 'Update Status?',
@@ -608,7 +621,7 @@
         const response = await fetch(`/admin/order/update-status/${orderId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, status: newStatus })
+          body: JSON.stringify({ itemId, status: newStatus })
         });
 
         let data = {};
@@ -645,7 +658,7 @@
       }
     }
 
-    async function verifyReturnRequest(orderId, productId, action) {
+    async function verifyReturnRequest(orderId, itemId, action) {
       try {
         const confirmResult = await Swal.fire({
           title: 'Verify Return Request?',
@@ -659,14 +672,16 @@
         });
 
         if (!confirmResult.isConfirmed) {
+          
           return; // don't reload here, let user stay on the page
         }
 
         const response = await fetch(`/admin/order/verify-return/${orderId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, action })
+          body: JSON.stringify({ itemId, action })
         });
+        console.log('YYEWYWY',response)
 
         let data = {};
         try {

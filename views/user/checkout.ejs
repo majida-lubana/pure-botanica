@@ -1,56 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
   <title>Beauty Cart - Checkout</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    body { 
-      font-family: 'Lato', sans-serif; 
-      background-color: #f9fafb; 
+    body {
+      font-family: "Lato", sans-serif;
+      background-color: #f9fafb;
       padding-top: 100px;
     }
+
     .input-field {
       border: 1px solid #e2e8f0;
       transition: all 0.2s ease;
     }
+
     .input-field:focus {
       border-color: palevioletred;
       outline: none;
       box-shadow: 0 0 0 2px pink;
     }
+
     .input-field.error {
       border-color: #ef4444;
       box-shadow: 0 0 0 1px #ef4444;
     }
+
     .error-message {
       color: #ef4444;
       font-size: 0.75rem;
       margin-top: 0.25rem;
       display: none;
     }
+
     .error-message.show {
       display: block;
     }
-    .address-card, .payment-option {
+
+    .address-card,
+    .payment-option {
       transition: all 0.2s ease;
       border: 1px solid #e5e7eb;
+      cursor: pointer;
     }
-    .address-card.selected, .payment-option.selected {
+
+    .address-card.selected,
+    .payment-option.selected {
       border-color: palevioletred;
       box-shadow: 0 0 0 1px pink;
     }
-    .address-card:hover, .payment-option:hover {
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+    .address-card:hover,
+    .payment-option:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-    input[type="radio"]:disabled + label {
+
+    input[type="radio"]:disabled+label {
       color: #a0aec0;
       cursor: not-allowed;
     }
+
+    .payment-option input[type="radio"]:disabled + label {
+      pointer-events: none;
+    }
+
+    .payment-option.disabled {
+      cursor: not-allowed;
+    }
+
     .header {
       position: fixed;
       top: 0;
@@ -58,815 +82,954 @@
       right: 0;
       z-index: 1000;
       background-color: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       height: 80px;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
     }
   </style>
 </head>
+
 <body>
   <%- include('../partials/user/header') %>
 
-  <div class="container mx-auto px-4 py-8 max-w-5xl">
-    <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">Checkout</h1>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">
+        Checkout
+      </h1>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Addresses and Payment Column -->
-      <div class="lg:col-span-2 space-y-8">
-        <form action="/checkout/place-order" method="POST" id="checkout-form">
-          <!-- Address Section -->
-          <div>
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Shipping Address</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="address-list">
-              <% if (userAddresses && Array.isArray(userAddresses) && userAddresses.length > 0) { %>
-                <% userAddresses.forEach((addr, index) => { %>
-                  <div class="address-card bg-white border rounded-lg p-4 <%= addr.isDefault ? 'selected' : '' %>" data-address-id="<%= addr._id %>">
-                    <div class="flex items-start mb-3">
-                      <input 
-                        type="radio" 
-                        name="selectedAddress" 
-                        id="address-<%= addr._id %>" 
-                        value="<%= addr._id %>" 
-                        <%= addr.isDefault ? 'checked' : '' %>
-                        class="mt-1 mr-2"
-                      >
-                      <div>
-                        <label for="address-<%= addr._id %>" class="font-medium text-gray-800 block mb-1">
-                          <%= addr.name || addr.fullName || 'Unnamed Address' %>
-                        </label>
-                        <span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded mb-2">
-                          <%= addr.addressType || 'Unknown' %>
-                        </span>
-                        <% if (addr.isDefault) { %>
-                          <span class="inline-block bg-black text-white px-2 py-1 text-xs rounded mb-2 ml-1">
-                            Default
-                          </span>
-                        <% } %>
-                        <p class="text-gray-600 text-sm">
-                          <%= addr.address || 'N/A' %><br>
-                          <%= addr.city || 'N/A' %>, <%= addr.state || 'N/A' %><br>
-                          <%= addr.country || 'N/A' %> - <%= addr.pinCode || addr.pincode || 'N/A' %><br>
-                          Phone: <%= addr.phone || 'N/A' %>
-                          <% if (addr.altPhone) { %>
-                            <br>Alt Phone: <%= addr.altPhone %>
-                          <% } %>
-                        </p>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- LEFT: Addresses + Payment (2 columns on desktop) -->
+        <div class="lg:col-span-2 space-y-6">
+          <form action="/checkout/place-order" method="POST" id="checkout-form">
+
+            <!-- Address Section -->
+            <div class="section-card">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                <i class="fas fa-map-marker-alt mr-2 text-gray-600"></i>
+                Shipping Address
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="address-list">
+                <% if (userAddresses && Array.isArray(userAddresses) && userAddresses.length> 0) { %>
+                  <% userAddresses.forEach((addr) => { %>
+                    <div class="address-card bg-gray-50 border rounded-lg p-4 <%= addr.isDefault ? 'selected' : '' %>"
+                      data-address-id="<%= addr._id %>">
+                      <div class="flex items-start mb-3">
+                        <input type="radio" name="selectedAddress" id="address-<%= addr._id %>"
+                          value="<%= addr._id %>" <%= addr.isDefault ? 'checked' : '' %> class="mt-1 mr-2">
+                        <div class="flex-1">
+                          <label for="address-<%= addr._id %>"
+                            class="font-medium text-gray-800 block mb-1 cursor-pointer">
+                            <%= addr.name || addr.fullName || 'Unnamed Address' %>
+                          </label>
+                          <div class="flex flex-wrap gap-1 mb-2">
+                            <span class="inline-block bg-gray-200 text-gray-700 px-2 py-1 text-xs rounded">
+                              <%= addr.addressType || 'Unknown' %>
+                            </span>
+                            <% if (addr.isDefault) { %>
+                              <span class="inline-block bg-black text-white px-2 py-1 text-xs rounded">
+                                Default
+                              </span>
+                              <% } %>
+                          </div>
+                          <p class="text-gray-600 text-sm leading-relaxed">
+                            <%= addr.address || 'N/A' %><br />
+                            <%= addr.city || 'N/A' %>, <%= addr.state || 'N/A' %><br />
+                            <%= addr.country || 'N/A' %> - <%= addr.pinCode || addr.pincode || 'N/A' %><br />
+                            Phone: <%= addr.phone || 'N/A' %>
+                            <% if (addr.altPhone) { %>
+                              <br />Alt Phone: <%= addr.altPhone %>
+                              <% } %>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="flex justify-end space-x-2 mt-3 pt-3 border-t border-gray-200 text-sm">
+                        <a href="#" class="text-black hover:text-gray-600 edit-address"
+                          data-address-id="<%= addr._id.toString() %>">
+                          <i class="fas fa-edit mr-1"></i>Edit
+                        </a>
+                        <span class="text-gray-300">|</span>
+                        <a href="#" class="text-gray-600 hover:text-red-600 remove-address"
+                          data-address-id="<%= addr._id %>">
+                          <i class="fas fa-trash mr-1"></i>Remove
+                        </a>
                       </div>
                     </div>
-                    <div class="flex justify-end space-x-2 mt-2 text-sm">
-                      <a href="#" class="text-black hover:text-pink-200 edit-address" data-address-id="<%= addr._id %>">Edit</a>
-                      <span class="text-gray-300">|</span>
-                      <a href="#" class="text-gray-600 hover:text-gray-800 remove-address" data-address-id="<%= addr._id %>">Remove</a>
-                    </div>
+                    <% }) %>
+                      <% } else { %>
+                        <div id="no-address-message"
+                          class="col-span-2 text-red-500 text-sm text-center p-4 bg-red-50 rounded-lg">
+                          <i class="fas fa-exclamation-circle mr-2"></i>
+                          No shipping addresses available. Please add an address to proceed.
+                        </div>
+                        <% } %>
+              </div>
+
+              <button type="button" id="add-address-btn"
+                class="mt-6 flex items-center text-black hover:text-gray-700 transition">
+                <i class="fas fa-plus-circle mr-2"></i>
+                <span class="font-medium">Add New Address</span>
+              </button>
+
+              <div id="address-error" class="text-red-500 text-sm mt-3 hidden bg-red-50 p-2 rounded">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Please select a shipping address before proceeding.
+              </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="section-card">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                <i class="fas fa-credit-card mr-2 text-gray-600"></i>
+                Payment Method
+              </h2>
+              <div class="space-y-3">
+
+                <!-- COD Option -->
+                <div class="payment-option bg-gray-50 rounded-lg p-4 selected">
+                  <div class="flex items-center">
+                    <input type="radio" id="cod" name="paymentMethod" value="cod" class="mr-3" checked />
+                    <label for="cod" class="flex items-center cursor-pointer w-full">
+                      <div class="bg-white p-3 rounded-lg mr-3 shadow-sm">
+                        <i class="fas fa-money-bill-wave text-green-600 text-lg"></i>
+                      </div>
+                      <div>
+                        <span class="font-medium text-gray-800 block">Cash on Delivery</span>
+                        <span class="text-sm text-gray-500">Pay when you receive your order</span>
+                      </div>
+                    </label>
                   </div>
+                </div>
+
+                <!-- UPI Option (Disabled) -->
+                <div class="payment-option bg-gray-50 rounded-lg p-4 opacity-60 disabled">
+                  <div class="flex items-center">
+                    <input type="radio" id="upi" name="paymentMethod" value="upi" class="mr-3" disabled />
+                    <label for="upi" class="flex items-center w-full cursor-not-allowed">
+                      <div class="bg-white p-3 rounded-lg mr-3 shadow-sm">
+                        <i class="fas fa-mobile-alt text-blue-600 text-lg"></i>
+                      </div>
+                      <div>
+                        <span class="font-medium text-gray-800 block flex items-center gap-2">
+                          UPI
+                          <span
+                            class="text-red-600 text-xs font-semibold bg-red-50 px-2 py-0.5 rounded">(Coming
+                            Soon)</span>
+                        </span>
+                        <span class="text-sm text-gray-500">Pay using UPI apps like Google Pay, PhonePe</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Wallet Option (Disabled) -->
+                <div class="payment-option bg-gray-50 rounded-lg p-4 opacity-60 disabled">
+                  <div class="flex items-center">
+                    <input type="radio" id="wallet" name="paymentMethod" value="wallet" class="mr-3" disabled />
+                    <label for="wallet" class="flex items-center w-full cursor-not-allowed">
+                      <div class="bg-white p-3 rounded-lg mr-3 shadow-sm">
+                        <i class="fas fa-wallet text-purple-600 text-lg"></i>
+                      </div>
+                      <div>
+                        <span class="font-medium text-gray-800 block flex items-center gap-2">
+                          Wallet
+                          <span
+                            class="text-red-600 text-xs font-semibold bg-red-50 px-2 py-0.5 rounded">(Coming
+                            Soon)</span>
+                        </span>
+                        <span class="text-sm text-gray-500">Pay using available wallet balance</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="payment-error" class="text-red-500 text-sm hidden bg-red-50 p-2 rounded">
+                  <i class="fas fa-exclamation-triangle mr-2"></i>
+                  Please select a payment method before proceeding.
+                </div>
+              </div>
+
+              <button type="submit" id="place-order-btn"
+                class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition mt-6 font-medium shadow-md"
+                <%= userAddresses && Array.isArray(userAddresses) && userAddresses.length> 0 ? '' : 'disabled' %>>
+                <i class="fas fa-lock mr-2"></i>
+                Place Order
+              </button>
+
+              <div class="mt-4 flex items-center justify-center text-gray-500 text-sm">
+                <i class="fas fa-shield-alt mr-2 text-green-500"></i>
+                Secure Checkout - Your information is safe with us
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- RIGHT: Order Summary (1 column on desktop) -->
+        <div class="lg:col-span-1">
+          <div class="section-card sticky top-24">
+            <h2 class="text-lg font-bold mb-4 text-gray-800 pb-3 border-b flex items-center">
+              <i class="fas fa-shopping-bag mr-2 text-gray-600"></i>
+              Order Summary
+            </h2>
+
+            <div class="space-y-3 mb-6">
+              <% cart.items.forEach((item) => { %>
+                <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+                  <div class="flex-1">
+                    <p class="font-medium text-sm text-gray-800">
+                      <%= item.productId.productName %>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Quantity: <%= item.quantity %>
+                    </p>
+                  </div>
+                  <p class="font-medium text-sm">₹<%= (item.productId.salePrice * item.quantity).toFixed(2) %>
+                  </p>
+                </div>
                 <% }) %>
-              <% } else { %>
-                <div id="no-address-message" class="text-red-500 text-sm text-center mb-4">
-                  No shipping addresses available. Please add an address to proceed.
-                </div>
-              <% } %>
+
+                  <div class="space-y-2 pt-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600">Subtotal</span>
+                      <span class="font-medium">₹<%= subtotal.toFixed(2) %></span>
+                    </div>
+                    <% if (discount> 0) { %>
+                      <div class="flex justify-between text-sm text-green-600">
+                        <span>Discount</span>
+                        <span class="font-medium">-₹<%= discount.toFixed(2) %></span>
+                      </div>
+                      <% } %>
+                        <div class="flex justify-between text-sm">
+                          <span class="text-gray-600">Shipping</span>
+                          <span class="font-medium">₹<%= shippingCost.toFixed(2) %></span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                          <span class="text-gray-600">Tax</span>
+                          <span class="font-medium">₹<%= tax.toFixed(2) %></span>
+                        </div>
+                  </div>
+
+                  <div class="flex justify-between font-bold text-lg pt-4 border-t-2 border-gray-200">
+                    <span>Total</span>
+                    <span class="text-black">₹<%= total.toFixed(2) %></span>
+                  </div>
             </div>
-            <button type="button" id="add-address-btn" class="mt-6 flex items-center text-black hover:text-gray-800">
-              <i class="fas fa-plus-circle mr-2"></i> Add New Address
-            </button>
-            <div id="address-error" class="text-red-500 text-sm text-center mt-2 hidden">
-              Please select a shipping address before proceeding.
-            </div>
-          </div>
-          <!-- Payment Section -->
-          <div>
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Payment Method</h2>
-            <div class="grid grid-cols-1 gap-4">
-              <div class="payment-option bg-white rounded-lg p-5 selected">
-                <div class="flex items-center">
-                  <input type="radio" id="cod" name="paymentMethod" value="cod" class="mr-3" checked>
-                  <label for="cod" class="flex items-center cursor-pointer w-full">
-                    <div class="bg-gray-100 p-3 rounded-full mr-3">
-                      <i class="fas fa-money-bill-wave text-gray-700"></i>
-                    </div>
-                    <div>
-                      <span class="font-medium text-gray-800 block">Cash on Delivery</span>
-                      <span class="text-sm text-gray-500">Pay when you receive your order</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              <div class="payment-option bg-white rounded-lg p-5">
-                <div class="flex items-center">
-                  <input type="radio" id="upi" name="paymentMethod" value="upi" class="mr-3">
-                  <label for="upi" class="flex items-center cursor-pointer w-full">
-                    <div class="bg-gray-100 p-3 rounded-full mr-3">
-                      <i class="fas fa-mobile-alt text-gray-700"></i>
-                    </div>
-                    <div>
-                      <span class="font-medium text-gray-800 block">UPI</span>
-                      <span class="text-sm text-gray-500">Pay using UPI apps like Google Pay, PhonePe</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              <div class="payment-option bg-white rounded-lg p-5">
-                <div class="flex items-center">
-                  <input type="radio" id="wallet" name="paymentMethod" value="wallet" class="mr-3">
-                  <label for="wallet" class="flex items-center cursor-pointer w-full">
-                    <div class="bg-gray-100 p-3 rounded-full mr-3">
-                      <i class="fas fa-wallet text-gray-700"></i>
-                    </div>
-                    <div>
-                      <span class="font-medium text-gray-800 block">Wallet</span>
-                      <span class="text-sm text-gray-500">Pay using available wallet balance</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div id="payment-error" class="text-red-500 text-sm text-center mt-2 hidden">
-              Please select a payment method before proceeding.
+
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <p class="text-xs text-gray-600">
+                <i class="fas fa-truck mr-1"></i>
+                Free delivery on orders above ₹999
+              </p>
             </div>
           </div>
-          
-          <button type="submit" id="place-order-btn" class="w-full bg-black text-white py-3 rounded hover:bg-gray-800 transition mt-6 font-medium"
-            <%= userAddresses && Array.isArray(userAddresses) && userAddresses.length > 0 ? '' : 'disabled' %>
-          >
-            Place Order
+        </div>
+      </div>
+    </div>
+
+    <!-- Address Modal -->
+    <div id="address-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-6 border max-w-md w-full shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-semibold text-gray-800">Add New Address</h3>
+          <button id="close-modal" class="text-gray-500 hover:text-gray-700 transition">
+            <i class="fas fa-times text-xl"></i>
           </button>
-          
-          <div class="mt-4 flex items-center justify-center text-gray-500 text-sm">
-            <i class="fas fa-shield-alt mr-2 text-green-500"></i>
-            Secure Checkout
+        </div>
+
+        <form id="new-address-form">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input type="text" name="fullName" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-fullName"></div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input type="tel" name="phone" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-phone"></div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <input type="text" name="address" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-address"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input type="text" name="city" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-city"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input type="text" name="state" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-state"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+              <input type="text" name="country" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-country"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+              <input type="text" name="pincode" class="input-field w-full px-3 py-2 rounded-md" />
+              <div class="error-message" id="error-pincode"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+              <select name="addressType" class="input-field w-full px-3 py-2 rounded-md bg-white">
+                <option value="Home">Home</option>
+                <option value="Work">Work</option>
+                <option value="Other">Other</option>
+              </select>
+              <div class="error-message" id="error-addressType"></div>
+            </div>
+            <div class="md:col-span-2">
+              <div class="flex items-center mt-2">
+                <input type="checkbox" name="isDefault" id="isDefault" class="h-4 w-4 text-black rounded" />
+                <label for="isDefault" class="ml-2 text-sm text-gray-700">Set as default address</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button type="button" id="cancel-address"
+              class="px-5 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-800 font-medium">
+              Cancel
+            </button>
+            <button type="submit" id="save-address-btn"
+              class="px-5 py-2 bg-black rounded-lg text-white hover:bg-gray-800 transition font-medium">
+              Save Address
+            </button>
           </div>
         </form>
       </div>
-      
-      <!-- Order Summary Column -->
-      <div class="lg:col-span-1">
-        <div class="bg-white rounded-lg shadow p-6 sticky top-24">
-          <h2 class="text-lg font-bold mb-4 text-gray-800 pb-2 border-b">
-            Order Summary
-          </h2>
-          <div class="space-y-3 mb-6">
-            <% cart.items.forEach((item) => { %>
-              <div class="flex justify-between items-center pb-2 text-sm">
-                <div>
-                  <p class="font-medium"><%= item.productId.productName %></p>
-                  <p class="text-xs text-gray-600">x <%= item.quantity %></p>
-                </div>
-                <p class="font-medium">
-                  ₹<%= (item.productId.salePrice * item.quantity).toFixed(2) %>
-                </p>
-              </div>
-            <% }) %>
-            
-            <div class="pt-3 border-t border-gray-100"></div>
-            
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Subtotal</span>
-              <span>₹<%= subtotal.toFixed(2) %></span>
-            </div>
-            <% if (discount > 0) { %>
-              <div class="flex justify-between text-sm text-green-600">
-                <span>Discount</span>
-                <span>-₹<%= discount.toFixed(2) %></span>
-              </div>
-            <% } %>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Shipping</span>
-              <span>₹<%= shippingCost.toFixed(2) %></span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Tax</span>
-              <span>₹<%= tax.toFixed(2) %></span>
-            </div>
-            <div class="flex justify-between font-bold text-lg pt-4 border-t">
-              <span>Total</span>
-              <span>₹<%= total.toFixed(2) %></span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Address Modal -->
-  <div id="address-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-6 border max-w-md w-full shadow-lg rounded-lg bg-white">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-semibold text-gray-800">Add New Address</h3>
-        <button id="close-modal" class="text-gray-500 hover:text-gray-700">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <form id="new-address-form">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input type="text" name="fullName" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-fullName"></div>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input type="tel" name="phone" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-phone"></div>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <input type="text" name="address" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-address"></div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <input type="text" name="city" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-city"></div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <input type="text" name="state" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-state"></div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-            <input type="text" name="country" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-country"></div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
-            <input type="text" name="pincode" class="input-field w-full px-3 py-2 rounded-md">
-            <div class="error-message" id="error-pincode"></div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
-            <select name="addressType" class="input-field w-full px-3 py-2 rounded-md bg-white">
-              <option value="Home">Home</option>
-              <option value="Work">Work</option>
-              <option value="Other">Other</option>
-            </select>
-            <div class="error-message" id="error-addressType"></div>
-          </div>
-          <div class="md:col-span-2">
-            <div class="flex items-center mt-2">
-              <input type="checkbox" name="isDefault" id="isDefault" class="h-4 w-4 text-black">
-              <label for="isDefault" class="ml-2 text-sm text-gray-700">Set as default address</label>
-            </div>
-          </div>
-        </div>
-        
-        <div class="mt-6 flex justify-end space-x-3">
-          <button type="button" id="cancel-address" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 transition text-gray-800">
-            Cancel
-          </button>
-          <button type="submit" id="save-address-btn" class="px-4 py-2 bg-black rounded text-white hover:bg-gray-800 transition">
-            Save Address
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <%- include('../partials/user/footer') %>
 
-  <%- include('../partials/user/footer') %>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const addAddressBtn = document.getElementById("add-address-btn");
+          const addressModal = document.getElementById("address-modal");
+          const cancelAddressBtn = document.getElementById("cancel-address");
+          const closeModalBtn = document.getElementById("close-modal");
+          const newAddressForm = document.getElementById("new-address-form");
+          const saveAddressBtn = document.getElementById("save-address-btn");
+          const checkoutForm = document.getElementById("checkout-form");
+          const placeOrderBtn = document.getElementById("place-order-btn");
+          const paymentRadios = document.querySelectorAll(
+            'input[name="paymentMethod"]'
+          );
+          const paymentOptions = document.querySelectorAll(".payment-option");
+          let isEditMode = false;
+          let currentAddressId = null;
 
-  <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const addAddressBtn = document.getElementById('add-address-btn');
-  const addressModal = document.getElementById('address-modal');
-  const cancelAddressBtn = document.getElementById('cancel-address');
-  const closeModalBtn = document.getElementById('close-modal');
-  const newAddressForm = document.getElementById('new-address-form');
-  const saveAddressBtn = document.getElementById('save-address-btn');
-  const checkoutForm = document.getElementById('checkout-form');
-  const placeOrderBtn = document.getElementById('place-order-btn');
-  const paymentRadios = document.querySelectorAll('input[name="paymentMethod"]');
-  const paymentOptions = document.querySelectorAll('.payment-option');
-  let isEditMode = false;
-  let currentAddressId = null;
+          // Auto-open modal if no addresses exist
+          if (document.querySelectorAll(".address-card").length === 0) {
+            console.log("No addresses found, opening modal");
+            addAddressBtn.click();
+          }
 
-  // Auto-open modal if no addresses exist
-  if (document.querySelectorAll('.address-card').length === 0) {
-    console.log('No addresses found, opening modal');
-    addAddressBtn.click();
-  }
-
-  // Open modal for adding address
-  addAddressBtn.addEventListener('click', () => {
-    isEditMode = false;
-    currentAddressId = null;
-    document.querySelector('#address-modal h3').textContent = 'Add New Address';
-    newAddressForm.reset();
-    clearErrors();
-    addressModal.classList.remove('hidden');
-  });
-  
-  // Close modal functions
-  function closeModal() {
-    addressModal.classList.add('hidden');
-    newAddressForm.reset();
-    clearErrors();
-    isEditMode = false;
-    currentAddressId = null;
-    document.querySelector('#address-modal h3').textContent = 'Add New Address';
-  }
-  
-  cancelAddressBtn.addEventListener('click', closeModal);
-  closeModalBtn.addEventListener('click', closeModal);
-  
-  addressModal.addEventListener('click', function(e) {
-    if (e.target === addressModal) closeModal();
-  });
-
-  // Address selection logic
-  const addressCards = document.querySelectorAll('.address-card');
-  addressCards.forEach(card => {
-    const radioInput = card.querySelector('input[type="radio"]');
-    card.addEventListener('click', function(e) {
-      if (e.target.tagName !== 'A') {
-        addressCards.forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        radioInput.checked = true;
-        document.getElementById('address-error').classList.add('hidden');
-        placeOrderBtn.disabled = false;
-      }
-    });
-  });
-
-  // Payment selection logic
-  paymentRadios.forEach(radio => {
-    radio.addEventListener('change', () => {
-      paymentOptions.forEach(option => {
-        const optionRadio = option.querySelector('input[type="radio"]');
-        option.classList.toggle('selected', optionRadio === radio);
-      });
-      document.getElementById('payment-error').classList.add('hidden');
-    });
-  });
-  
-  paymentOptions.forEach(option => {
-    option.addEventListener('click', function() {
-      const radio = this.querySelector('input[type="radio"]');
-      radio.checked = true;
-      const event = new Event('change');
-      radio.dispatchEvent(event);
-    });
-  });
-
-  // Edit Address
-  const editButtons = document.querySelectorAll('.edit-address');
-  editButtons.forEach(button => {
-    button.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const addressId = button.getAttribute('data-address-id');
-      console.log('Editing address:', addressId);
-      
-      try {
-        const response = await fetch(`/get-address/${addressId}`);
-        const address = await response.json();
-
-        if (address.success && address.data) {
-          document.querySelector('[name="fullName"]').value = address.data.fullName || address.data.name || '';
-          document.querySelector('[name="phone"]').value = address.data.phone || '';
-          document.querySelector('[name="address"]').value = address.data.address || '';
-          document.querySelector('[name="city"]').value = address.data.city || '';
-          document.querySelector('[name="state"]').value = address.data.state || '';
-          document.querySelector('[name="country"]').value = address.data.country || '';
-          document.querySelector('[name="pincode"]').value = address.data.pincode || address.data.pinCode || '';
-          document.querySelector('[name="addressType"]').value = address.data.addressType || 'Home';
-          document.querySelector('[name="isDefault"]').checked = address.data.isDefault || false;
-
-          isEditMode = true;
-          currentAddressId = addressId;
-          document.querySelector('#address-modal h3').textContent = 'Edit Address';
-          clearErrors();
-          addressModal.classList.remove('hidden');
-        } else {
-          showNotification(address.message || 'Failed to load address', false);
-        }
-      } catch (error) {
-        console.error('Error fetching address:', error);
-        showNotification('Error loading address', false);
-      }
-    });
-  });
-
-
-  // Remove Address
-// Remove Address
-const removeButtons = document.querySelectorAll('.remove-address');
-removeButtons.forEach(button => {
-  button.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const addressId = button.getAttribute('data-address-id');
-    console.log('Attempting to remove address with ID:', addressId); // Debug log
-
-    Swal.fire({
-      title: 'Remove address?',
-      text: 'Are you sure you want to remove this address?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, remove it'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await fetch(`/remove-address/${addressId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
+          // Open modal for adding address
+          addAddressBtn.addEventListener("click", () => {
+            isEditMode = false;
+            currentAddressId = null;
+            document.querySelector("#address-modal h3").textContent =
+              "Add New Address";
+            newAddressForm.reset();
+            clearErrors();
+            addressModal.classList.remove("hidden");
           });
-          
-          const responseText = await response.text(); // Get raw response
-          console.log('Remove address raw response:', responseText); // Debug log
-          console.log('Remove address status:', response.status); // Debug log
 
-          let result;
-          try {
-            result = responseText ? JSON.parse(responseText) : {};
-          } catch (parseError) {
-            console.error('Failed to parse response as JSON:', parseError);
-            result = { success: false, message: 'Invalid server response format' };
+          // Close modal functions
+          function closeModal() {
+            addressModal.classList.add("hidden");
+            newAddressForm.reset();
+            clearErrors();
+            isEditMode = false;
+            currentAddressId = null;
+            document.querySelector("#address-modal h3").textContent =
+              "Add New Address";
           }
 
-          console.log('Parsed remove address response:', result); // Debug log
+          cancelAddressBtn.addEventListener("click", closeModal);
+          closeModalBtn.addEventListener("click", closeModal);
 
-          if (response.ok && (result.success || result.status === 'success')) {
-            Swal.fire('Removed!', 'Address removed successfully.', 'success');
-            button.closest('.address-card').remove();
+          addressModal.addEventListener("click", function (e) {
+            if (e.target === addressModal) closeModal();
+          });
 
-            const addressList = document.querySelectorAll('.address-card');
-            placeOrderBtn.disabled = addressList.length === 0;
-            if (addressList.length === 0) {
-              document.getElementById('no-address-message').classList.remove('hidden');
-              addAddressBtn.click();
+          // Address selection logic
+          const addressCards = document.querySelectorAll(".address-card");
+          addressCards.forEach((card) => {
+            const radioInput = card.querySelector('input[type="radio"]');
+            card.addEventListener("click", function (e) {
+              if (e.target.tagName !== "A") {
+                addressCards.forEach((c) => c.classList.remove("selected"));
+                card.classList.add("selected");
+                radioInput.checked = true;
+                document.getElementById("address-error").classList.add("hidden");
+                placeOrderBtn.disabled = false;
+              }
+            });
+          });
+
+          // Payment selection logic
+          paymentRadios.forEach((radio) => {
+            radio.addEventListener("change", () => {
+              paymentOptions.forEach((option) => {
+                const optionRadio = option.querySelector('input[type="radio"]');
+                option.classList.toggle("selected", optionRadio === radio);
+              });
+              document.getElementById("payment-error").classList.add("hidden");
+            });
+          });
+
+          paymentOptions.forEach((option) => {
+            option.addEventListener("click", function () {
+              const radio = this.querySelector('input[type="radio"]');
+              if (radio && !radio.disabled) {
+                radio.checked = true;
+                const event = new Event("change");
+                radio.dispatchEvent(event);
+              }
+            });
+          });
+
+          // Edit Address
+          const editButtons = document.querySelectorAll(".edit-address");
+          editButtons.forEach((button) => {
+            button.addEventListener("click", async (e) => {
+              e.preventDefault();
+              const addressId = button.getAttribute("data-address-id");
+              console.log("Editing address:", addressId);
+
+              try {
+                const response = await fetch(`/get-address/${addressId}`);
+                const address = await response.json();
+                console.log("adresses", address);
+                if (address.success) {
+                  const addr = address.addresses[0];
+                  document.querySelector('[name="fullName"').value =
+                    addr.fullName || address.name || "";
+                  document.querySelector('[name="phone"]').value =
+                    addr.phone || "";
+                  document.querySelector('[name="address"]').value =
+                    addr.address || "";
+                  document.querySelector('[name="city"]').value = addr.city || "";
+                  document.querySelector('[name="state"]').value =
+                    addr.state || "";
+                  document.querySelector('[name="country"]').value =
+                    addr.country || "";
+                  document.querySelector('[name="pincode"]').value =
+                    addr.pincode || addr.pinCode || "";
+                  document.querySelector('[name="addressType"]').value =
+                    addr.addressType || "Home";
+                  document.querySelector('[name="isDefault"]').checked =
+                    addr.isDefault || false;
+
+                  isEditMode = true;
+                  currentAddressId = addressId;
+                  document.querySelector("#address-modal h3").textContent =
+                    "Edit Address";
+                  clearErrors();
+                  addressModal.classList.remove("hidden");
+                } else {
+                  showNotification(
+                    address.message || "Failed to load address",
+                    false
+                  );
+                }
+              } catch (error) {
+                console.error("Error fetching address:", error);
+                showNotification("Error loading address", false);
+              }
+            });
+          });
+
+          // Remove Address
+          const removeButtons = document.querySelectorAll(".remove-address");
+          removeButtons.forEach((button) => {
+            button.addEventListener("click", async (e) => {
+              e.preventDefault();
+              const addressId = button.getAttribute("data-address-id");
+              console.log("Attempting to remove address with ID:", addressId);
+
+              Swal.fire({
+                title: "Remove address?",
+                text: "Are you sure you want to remove this address?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, remove it",
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  try {
+                    const response = await fetch(`/remove-address/${addressId}`, {
+                      method: "DELETE",
+                      headers: { "Content-Type": "application/json" },
+                    });
+
+                    const responseText = await response.text();
+                    console.log("Remove address raw response:", responseText);
+                    console.log("Remove address status:", response.status);
+
+                    let result;
+                    try {
+                      result = responseText ? JSON.parse(responseText) : {};
+                    } catch (parseError) {
+                      console.error(
+                        "Failed to parse response as JSON:",
+                        parseError
+                      );
+                      result = {
+                        success: false,
+                        message: "Invalid server response format",
+                      };
+                    }
+
+                    console.log("Parsed remove address response:", result);
+
+                    if (
+                      response.ok &&
+                      (result.success || result.status === "success")
+                    ) {
+                      Swal.fire(
+                        "Removed!",
+                        "Address removed successfully.",
+                        "success"
+                      );
+                      button.closest(".address-card").remove();
+
+                      const addressList =
+                        document.querySelectorAll(".address-card");
+                      placeOrderBtn.disabled = addressList.length === 0;
+                      if (addressList.length === 0) {
+                        document
+                          .getElementById("no-address-message")
+                          .classList.remove("hidden");
+                        addAddressBtn.click();
+                      }
+                    } else {
+                      console.error(
+                        "Server error response:",
+                        result.message || "No error message provided"
+                      );
+                      Swal.fire(
+                        "Error",
+                        result.message ||
+                        "Failed to remove address. Please try again.",
+                        "error"
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Network or fetch error:", error.message);
+                    Swal.fire(
+                      "Error",
+                      "An unexpected error occurred while removing the address. Please try again.",
+                      "error"
+                    );
+                  }
+                }
+              });
+            });
+          });
+
+          // Form Validation and Submission for Address
+          newAddressForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            console.log("Save Address clicked");
+
+            saveAddressBtn.disabled = true;
+            saveAddressBtn.textContent = "Saving...";
+
+            const formData = new FormData(newAddressForm);
+            const data = Object.fromEntries(formData);
+            data.isDefault = formData.has("isDefault")
+            console.log("Form data:", data);
+
+            if (!validateForm(data)) {
+              console.log("Validation failed");
+              showNotification("Please correct the errors in the form", false);
+              saveAddressBtn.disabled = false;
+              saveAddressBtn.textContent = "Save Address";
+              return;
             }
-          } else {
-            console.error('Server error response:', result.message || 'No error message provided');
-            Swal.fire('Error', result.message || 'Failed to remove address. Please try again.', 'error');
-          }
-        } catch (error) {
-          console.error('Network or fetch error:', error.message); // Debug log
-          Swal.fire('Error', 'An unexpected error occurred while removing the address. Please try again.', 'error');
-        }
-      }
-    });
-  });
-});
 
-  // Form Validation and Submission for Address
-  newAddressForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    console.log('Save Address clicked');
+            const url = isEditMode
+              ? `/edit-address/${currentAddressId}`
+              : "/add-address";
+            const method = isEditMode ? "PUT" : "POST";
+            console.log("Request URL:", url, "Method:", method);
 
-    saveAddressBtn.disabled = true;
-    saveAddressBtn.textContent = 'Saving...';
+            try {
+              const response = await fetch(url, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
 
-    const formData = new FormData(newAddressForm);
-    const data = Object.fromEntries(formData);
-    data.isDefault = formData.get('isDefault') ? true : false;
-    console.log('Form data:', data);
+              const result = await response.json();
+              console.log("Response:", result);
 
-    if (!validateForm(data)) {
-      console.log('Validation failed');
-      showNotification('Please correct the errors in the form', false);
-      saveAddressBtn.disabled = false;
-      saveAddressBtn.textContent = 'Save Address';
-      return;
-    }
+              if (response.ok && result.success) {
+                showNotification(
+                  isEditMode
+                    ? "Address updated successfully"
+                    : "Address saved successfully"
+                );
 
-    const url = isEditMode ? `/edit-address/${currentAddressId}` : '/add-address';
-    const method = isEditMode ? 'PUT' : 'POST';
-    console.log('Request URL:', url, 'Method:', method);
+                // Dynamically update address list
+                const addressList = document.getElementById("address-list");
+                const noAddressMessage =
+                  document.getElementById("no-address-message");
+                const newAddress = result.address;
+                console.log("jsdjsjdsj", newAddress);
 
-    try {
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      const result = await response.json();
-      console.log('Response:', result);
-
-      if (response.ok && result.success && result.data) {
-        showNotification(isEditMode ? 'Address updated successfully' : 'Address saved successfully');
-        
-        // Dynamically update address list
-        const addressList = document.getElementById('address-list');
-        const noAddressMessage = document.getElementById('no-address-message');
-        const newAddress = result.data;
-        
-        if (isEditMode) {
-          const addressCard = document.querySelector(`.address-card[data-address-id="${currentAddressId}"]`);
-          if (addressCard) {
-            addressCard.querySelector('label').textContent = newAddress.fullName || newAddress.name;
-            addressCard.querySelector('p').innerHTML = `
+                if (isEditMode) {
+                  const addressCard = document.querySelector(
+                    `.address-card[data-address-id="${currentAddressId}"]`
+                  );
+                  if (addressCard) {
+                    addressCard.querySelector("label").textContent =
+                      newAddress.fullName || newAddress.name;
+                    addressCard.querySelector("p").innerHTML = `
               ${newAddress.address}<br>
               ${newAddress.city}, ${newAddress.state}<br>
               ${newAddress.country} - ${newAddress.pincode || newAddress.pinCode}<br>
               Phone: ${newAddress.phone}
-              ${newAddress.altPhone ? `<br>Alt Phone: ${newAddress.altPhone}` : ''}
+              ${newAddress.altPhone ? `<br>Alt Phone: ${newAddress.altPhone}` : ""}
             `;
-            addressCard.querySelector('.bg-gray-100').textContent = newAddress.addressType;
-            if (newAddress.isDefault) {
-              addressCard.classList.add('selected');
-              addressCard.querySelector('input[type="radio"]').checked = true;
-              document.querySelectorAll('.address-card').forEach(card => {
-                if (card !== addressCard) card.classList.remove('selected');
-              });
-            }
-          }
-        } else {
-          const addressCard = document.createElement('div');
-          addressCard.className = `address-card bg-white border rounded-lg p-4 ${newAddress.isDefault ? 'selected' : ''}`;
-          addressCard.setAttribute('data-address-id', newAddress._id);
-          addressCard.innerHTML = `
+                    addressCard.querySelector(".bg-gray-200").textContent =
+                      newAddress.addressType;
+                    if (newAddress.isDefault) {
+                      addressCard.classList.add("selected");
+                      addressCard.querySelector('input[type="radio"]').checked = true;
+                      document.querySelectorAll(".address-card").forEach((card) => {
+                        if (card !== addressCard) card.classList.remove("selected");
+                      });
+                    }
+                  }
+                } else {
+                  const addressCard = document.createElement("div");
+                  addressCard.className = `address-card bg-gray-50 border rounded-lg p-4 ${newAddress.isDefault ? "selected" : ""}`;
+                  addressCard.setAttribute("data-address-id", newAddress._id);
+                  addressCard.innerHTML = `
             <div class="flex items-start mb-3">
-              <input type="radio" name="selectedAddress" id="address-${newAddress._id}" value="${newAddress._id}" ${newAddress.isDefault ? 'checked' : ''} class="mt-1 mr-2">
-              <div>
-                <label for="address-${newAddress._id}" class="font-medium text-gray-800 block mb-1">${newAddress.fullName || newAddress.name}</label>
-                <span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded mb-2">${newAddress.addressType}</span>
-                ${newAddress.isDefault ? '<span class="inline-block bg-black text-white px-2 py-1 text-xs rounded mb-2 ml-1">Default</span>' : ''}
-                <p class="text-gray-600 text-sm">
+              <input type="radio" name="selectedAddress" id="address-${newAddress._id}" value="${newAddress._id}" ${newAddress.isDefault ? "checked" : ""} class="mt-1 mr-2">
+              <div class="flex-1">
+                <label for="address-${newAddress._id}" class="font-medium text-gray-800 block mb-1 cursor-pointer">
+                  ${newAddress.fullName || newAddress.name}
+                </label>
+                <div class="flex flex-wrap gap-1 mb-2">
+                  <span class="inline-block bg-gray-200 text-gray-700 px-2 py-1 text-xs rounded">
+                    ${newAddress.addressType}
+                  </span>
+                  ${newAddress.isDefault ? '<span class="inline-block bg-black text-white px-2 py-1 text-xs rounded">Default</span>' : ""}
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">
                   ${newAddress.address}<br>
                   ${newAddress.city}, ${newAddress.state}<br>
                   ${newAddress.country} - ${newAddress.pincode || newAddress.pinCode}<br>
                   Phone: ${newAddress.phone}
-                  ${newAddress.altPhone ? `<br>Alt Phone: ${newAddress.altPhone}` : ''}
+                  ${newAddress.altPhone ? `<br>Alt Phone: ${newAddress.altPhone}` : ""}
                 </p>
               </div>
             </div>
-            <div class="flex justify-end space-x-2 mt-2 text-sm">
-              <a href="#" class="text-black hover:text-pink-200 edit-address" data-address-id="${newAddress._id}">Edit</a>
+            <div class="flex justify-end space-x-2 mt-3 pt-3 border-t border-gray-200 text-sm">
+              <a href="#" class="text-black hover:text-gray-600 edit-address" data-address-id="${newAddress._id}">
+                <i class="fas fa-edit mr-1"></i>Edit
+              </a>
               <span class="text-gray-300">|</span>
-              <a href="#" class="text-gray-600 hover:text-gray-800 remove-address" data-address-id="${newAddress._id}">Remove</a>
+              <a href="#" class="text-gray-600 hover:text-red-600 remove-address" data-address-id="${newAddress._id}">
+                <i class="fas fa-trash mr-1"></i>Remove
+              </a>
             </div>
           `;
-          addressList.appendChild(addressCard);
-          if (noAddressMessage) noAddressMessage.classList.add('hidden');
-          placeOrderBtn.disabled = false;
-          
-          // Re-attach event listeners to new buttons
-          addressCard.querySelector('.edit-address').addEventListener('click', (e) => {
-            e.preventDefault();
-            const addressId = e.target.getAttribute('data-address-id');
-            console.log('Editing address:', addressId);
-            fetch(`/get-address/${addressId}`)
-              .then(response => response.json())
-              .then(address => {
-                if (address.success && address.data) {
-                  document.querySelector('[name="fullName"]').value = address.data.fullName || address.data.name || '';
-                  document.querySelector('[name="phone"]').value = address.data.phone || '';
-                  document.querySelector('[name="address"]').value = address.data.address || '';
-                  document.querySelector('[name="city"]').value = address.data.city || '';
-                  document.querySelector('[name="state"]').value = address.data.state || '';
-                  document.querySelector('[name="country"]').value = address.data.country || '';
-                  document.querySelector('[name="pincode"]').value = address.data.pincode || address.data.pinCode || '';
-                  document.querySelector('[name="addressType"]').value = address.data.addressType || 'Home';
-                  document.querySelector('[name="isDefault"]').checked = address.data.isDefault || false;
-                  isEditMode = true;
-                  currentAddressId = addressId;
-                  document.querySelector('#address-modal h3').textContent = 'Edit Address';
-                  clearErrors();
-                  addressModal.classList.remove('hidden');
-                } else {
-                  showNotification(address.message || 'Failed to load address', false);
-                }
-              })
-              .catch(error => {
-                console.error('Error fetching address:', error);
-                showNotification('Error loading address', false);
-              });
-          });
-          addressCard.querySelector('.remove-address').addEventListener('click', (e) => {
-            e.preventDefault();
-            const addressId = e.target.getAttribute('data-address-id');
-            Swal.fire({
-              title: 'Remove address?',
-              text: 'Are you sure you want to remove this address?',
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonColor: '#d33',
-              cancelButtonColor: '#3085d6',
-              confirmButtonText: 'Yes, remove it'
-            }).then(async (result) => {
-              if (result.isConfirmed) {
-                try {
-                  const response = await fetch(`/remove-address/${addressId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                  });
-                  const result = await response.json();
+                  addressList.appendChild(addressCard);
+                  if (noAddressMessage) noAddressMessage.classList.add("hidden");
+                  placeOrderBtn.disabled = false;
 
-                  if (result.success) {
-                    Swal.fire('Removed!', 'Address removed successfully.', 'success');
-                    e.target.closest('.address-card').remove();
-                    const addressList = document.querySelectorAll('.address-card');
-                    placeOrderBtn.disabled = addressList.length === 0;
-                    if (addressList.length === 0) {
-                      document.getElementById('no-address-message').classList.remove('hidden');
-                      addAddressBtn.click();
+                  // Re-attach event listeners to new buttons
+                  addressCard.querySelector(".edit-address").addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const addressId = e.target.getAttribute("data-address-id");
+                    console.log("Editing address:", addressId);
+                    fetch(`/get-address/${addressId}`)
+                      .then((response) => response.json())
+                      .then((address) => {
+                        if (address.success && address.addresses) {
+                          const addr = address.addresses[0];
+                          document.querySelector('[name="fullName"]').value = addr.fullName || addr.name || "";
+                          document.querySelector('[name="phone"]').value = addr.phone || "";
+                          document.querySelector('[name="address"]').value = addr.address || "";
+                          document.querySelector('[name="city"]').value = addr.city || "";
+                          document.querySelector('[name="state"]').value = addr.state || "";
+                          document.querySelector('[name="country"]').value = addr.country || "";
+                          document.querySelector('[name="pincode"]').value = addr.pincode || addr.pinCode || "";
+                          document.querySelector('[name="addressType"]').value = addr.addressType || "Home";
+                          document.querySelector('[name="isDefault"]').checked = addr.isDefault || false;
+                          isEditMode = true;
+                          currentAddressId = addressId;
+                          document.querySelector("#address-modal h3").textContent = "Edit Address";
+                          clearErrors();
+                          addressModal.classList.remove("hidden");
+                        } else {
+                          showNotification(address.message || "Failed to load address", false);
+                        }
+                      })
+                      .catch((error) => {
+                        console.error("Error fetching address:", error);
+                        showNotification("Error loading address", false);
+                      });
+                  });
+                  
+                  addressCard.querySelector(".remove-address").addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const addressId = e.target.getAttribute("data-address-id");
+                    Swal.fire({
+                      title: "Remove address?",
+                      text: "Are you sure you want to remove this address?",
+                      icon: "warning",
+                      showCancelButton: true,
+                      confirmButtonColor: "#d33",
+                      cancelButtonColor: "#3085d6",
+                      confirmButtonText: "Yes, remove it",
+                    }).then(async (result) => {
+                      if (result.isConfirmed) {
+                        try {
+                          const response = await fetch(`/remove-address/${addressId}`, {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                          });
+                          const result = await response.json();
+
+                          if (result.success) {
+                            Swal.fire("Removed!", "Address removed successfully.", "success");
+                            e.target.closest(".address-card").remove();
+                            const addressList = document.querySelectorAll(".address-card");
+                            placeOrderBtn.disabled = addressList.length === 0;
+                            if (addressList.length === 0) {
+                              document.getElementById("no-address-message").classList.remove("hidden");
+                              addAddressBtn.click();
+                            }
+                          } else {
+                            Swal.fire("Error", result.message || "Error removing address", "error");
+                          }
+                        } catch (error) {
+                          console.error("Error removing address:", error);
+                          Swal.fire("Error", "Error removing address", "error");
+                        }
+                      }
+                    });
+                  });
+                  
+                  addressCard.addEventListener("click", function (e) {
+                    if (e.target.tagName !== "A") {
+                      document.querySelectorAll(".address-card").forEach((c) => c.classList.remove("selected"));
+                      addressCard.classList.add("selected");
+                      addressCard.querySelector('input[type="radio"]').checked = true;
+                      document.getElementById("address-error").classList.add("hidden");
+                      placeOrderBtn.disabled = false;
                     }
-                  } else {
-                    Swal.fire('Error', result.message || 'Error removing address', 'error');
-                  }
-                } catch (error) {
-                  console.error('Error removing address:', error);
-                  Swal.fire('Error', 'Error removing address', 'error');
+                  });
                 }
+
+                closeModal();
+              } else {
+                console.error("Error response:", result);
+                showNotification(
+                  result.message || `Error ${isEditMode ? "updating" : "saving"} address`,
+                  false
+                );
               }
-            });
-          });
-          addressCard.addEventListener('click', function(e) {
-            if (e.target.tagName !== 'A') {
-              document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
-              addressCard.classList.add('selected');
-              addressCard.querySelector('input[type="radio"]').checked = true;
-              document.getElementById('address-error').classList.add('hidden');
-              placeOrderBtn.disabled = false;
+            } catch (error) {
+              console.error("Fetch error:", error);
+              showNotification(
+                `Error ${isEditMode ? "updating" : "saving"} address: ${error.message}`,
+                false
+              );
+            } finally {
+              saveAddressBtn.disabled = false;
+              saveAddressBtn.textContent = "Save Address";
             }
           });
-        }
 
-        closeModal();
-      } else {
-        console.error('Error response:', result);
-        showNotification(result.message || `Error ${isEditMode ? 'updating' : 'saving'} address`, false);
-      }
-    } catch (error) {
-      console.error('Fetch error:', error);
-      showNotification(`Error ${isEditMode ? 'updating' : 'saving'} address: ${error.message}`, false);
-    } finally {
-      saveAddressBtn.disabled = false;
-      saveAddressBtn.textContent = 'Save Address';
-    }
-  });
+          // Checkout form submission
+          checkoutForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            console.log("Place Order clicked");
 
-  // Checkout form submission
-  checkoutForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    console.log('Place Order clicked');
-    
-    const formData = new FormData(checkoutForm);
-    const paymentMethod = formData.get('paymentMethod');
-    const selectedAddress = formData.get('selectedAddress');
-    const paymentError = document.getElementById('payment-error');
-    const addressError = document.getElementById('address-error');
+            const formData = new FormData(checkoutForm);
+            const paymentMethod = formData.get("paymentMethod");
+            const selectedAddress = formData.get("selectedAddress");
+            const paymentError = document.getElementById("payment-error");
+            const addressError = document.getElementById("address-error");
 
-    paymentError.classList.add('hidden');
-    addressError.classList.add('hidden');
+            paymentError.classList.add("hidden");
+            addressError.classList.add("hidden");
 
-    let isValid = true;
-    if (!selectedAddress) {
-      addressError.classList.remove('hidden');
-      isValid = false;
-    }
-    if (!paymentMethod) {
-      paymentError.classList.remove('hidden');
-      isValid = false;
-    }
-    if (!isValid) {
-      showNotification('Please select a shipping address and payment method', false);
-      return;
-    }
+            let isValid = true;
+            if (!selectedAddress) {
+              addressError.classList.remove("hidden");
+              isValid = false;
+            }
+            if (!paymentMethod) {
+              paymentError.classList.remove("hidden");
+              isValid = false;
+            }
+            if (!isValid) {
+              showNotification("Please select a shipping address and payment method", false);
+              return;
+            }
 
-    placeOrderBtn.disabled = true;
-    placeOrderBtn.textContent = 'Processing...';
+            placeOrderBtn.disabled = true;
+            placeOrderBtn.textContent = "Processing...";
 
-    try {
-      console.log('Sending request to /checkout/place-order', { selectedAddress, paymentMethod });
-      const response = await fetch('/checkout/place-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(formData))
-      });
-      
-      const data = await response.json();
-      console.log('Place order response:', data);
-      
-      if (response.ok && data.success && data.orderId) {
-        showNotification('Order placed successfully!', true);
-        const redirectUrl = `/order-success?orderId=${encodeURIComponent(data.orderId)}&finalAmount=${encodeURIComponent(data.finalAmount || '')}&paymentMethod=${encodeURIComponent(data.paymentMethod || '')}`;
-        console.log('Redirecting to:', redirectUrl);
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 1000);
-      } else {
-        console.error('Place order failed:', data.message);
-        showNotification(data.message || 'Something went wrong', false);
+            try {
+              console.log("Sending request to /checkout/place-order", {
+                selectedAddress,
+                paymentMethod,
+              });
+              const response = await fetch("/checkout/place-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(Object.fromEntries(formData)),
+              });
 
-        // console.log('Redirecting to:', errorUrl);
-        setTimeout(() => {
-          
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Error during order placement:', error);
-      showNotification('An unexpected error occurred. Please try again.', false);
-      const errorUrl = `/order-error?message=Order%20Error&details=${encodeURIComponent(error.message || 'An unexpected error occurred')}&orderId=&finalAmount=`;
-      console.log('Redirecting to:', errorUrl);
-      setTimeout(() => {
-        window.location.href = errorUrl;
-      }, 1000);
-    } finally {
-      placeOrderBtn.disabled = false;
-      placeOrderBtn.textContent = 'Place Order';
-    }
-  });
+              const data = await response.json();
+              console.log("Place order response:", data);
 
-  // Validation function for address form
-  function validateForm(data) {
-    let isValid = true;
-    clearErrors();
+              if (response.ok && data.success && data.orderId) {
+                showNotification("Order placed successfully!", true);
+                const redirectUrl = `/order-success?orderId=${encodeURIComponent(data.orderId)}&finalAmount=${encodeURIComponent(data.finalAmount || "")}&paymentMethod=${encodeURIComponent(data.paymentMethod || "")}`;
+                console.log("Redirecting to:", redirectUrl);
+                setTimeout(() => {
+                  window.location.href = redirectUrl;
+                }, 1000);
+              } else {
+                console.error("Place order failed:", data.message);
+                showNotification(data.message || "Something went wrong", false);
+                setTimeout(() => { }, 1000);
+              }
+            } catch (error) {
+              console.error("Error during order placement:", error);
+              showNotification("An unexpected error occurred. Please try again.", false);
+              const errorUrl = `/order-error?message=Order%20Error&details=${encodeURIComponent(error.message || "An unexpected error occurred")}&orderId=&finalAmount=`;
+              console.log("Redirecting to:", errorUrl);
+              setTimeout(() => {
+                window.location.href = errorUrl;
+              }, 1000);
+            } finally {
+              placeOrderBtn.disabled = false;
+              placeOrderBtn.textContent = "Place Order";
+            }
+          });
 
-    if (!data.fullName || data.fullName.trim() === '') {
-      showError('fullName', 'Full name is required');
-      isValid = false;
-    }
+          // Validation function for address form
+          function validateForm(data) {
+            let isValid = true;
+            clearErrors();
 
-    const phonePattern = /^\d{10}$/;
-    if (!data.phone || !phonePattern.test(data.phone)) {
-      showError('phone', 'Phone number must be exactly 10 digits');
-      isValid = false;
-    } else if (data.phone === '0000000000') {
-      showError('phone', 'Phone number cannot be all zeros');
-      isValid = false;
-    }
+            if (!data.fullName || data.fullName.trim() === "") {
+              showError("fullName", "Full name is required");
+              isValid = false;
+            }
 
-    if (!data.address || data.address.trim() === '') {
-      showError('address', 'Address is required');
-      isValid = false;
-    }
+            const phonePattern = /^\d{10}$/;
+            if (!data.phone || !phonePattern.test(data.phone)) {
+              showError("phone", "Phone number must be exactly 10 digits");
+              isValid = false;
+            } else if (data.phone === "0000000000") {
+              showError("phone", "Phone number cannot be all zeros");
+              isValid = false;
+            }
 
-    if (!data.city || data.city.trim() === '') {
-      showError('city', 'City is required');
-      isValid = false;
-    }
+            if (!data.address || data.address.trim() === "") {
+              showError("address", "Address is required");
+              isValid = false;
+            }
 
-    if (!data.state || data.state.trim() === '') {
-      showError('state', 'State is required');
-      isValid = false;
-    }
+            if (!data.city || data.city.trim() === "") {
+              showError("city", "City is required");
+              isValid = false;
+            }
 
-    if (!data.country || data.country.trim() === '') {
-      showError('country', 'Country is required');
-      isValid = false;
-    }
+            if (!data.state || data.state.trim() === "") {
+              showError("state", "State is required");
+              isValid = false;
+            }
 
-    const pincodePattern = /^\d{6}$/;
-    if (!data.pincode || !pincodePattern.test(data.pincode)) {
-      showError('pincode', 'Pincode must be exactly 6 digits');
-      isValid = false;
-    } else if (data.pincode === '000000') {
-      showError('pincode', 'Pincode cannot be all zeros');
-      isValid = false;
-    }
+            if (!data.country || data.country.trim() === "") {
+              showError("country", "Country is required");
+              isValid = false;
+            }
 
-    if (!data.addressType || data.addressType.trim() === '') {
-      showError('addressType', 'Address type is required');
-      isValid = false;
-    }
+            const pincodePattern = /^\d{6}$/;
+            if (!data.pincode || !pincodePattern.test(data.pincode)) {
+              showError("pincode", "Pincode must be exactly 6 digits");
+              isValid = false;
+            } else if (data.pincode === "000000") {
+              showError("pincode", "Pincode cannot be all zeros");
+              isValid = false;
+            }
 
-    return isValid;
-  }
+            if (!data.addressType || data.addressType.trim() === "") {
+              showError("addressType", "Address type is required");
+              isValid = false;
+            }
 
-  function showError(fieldName, message) {
-    const input = document.querySelector(`[name="${fieldName}"]`);
-    const errorDiv = document.getElementById(`error-${fieldName}`);
-    input.classList.add('error');
-    errorDiv.textContent = message;
-    errorDiv.classList.add('show');
-  }
+            return isValid;
+          }
 
-  function clearErrors() {
-    const inputs = newAddressForm.querySelectorAll('.input-field');
-    const errorDivs = newAddressForm.querySelectorAll('.error-message');
-    inputs.forEach(input => input.classList.remove('error'));
-    errorDivs.forEach(div => {
-      div.textContent = '';
-      div.classList.remove('show');
-    });
-  }
+          function showError(fieldName, message) {
+            const input = document.querySelector(`[name="${fieldName}"]`);
+            const errorDiv = document.getElementById(`error-${fieldName}`);
+            input.classList.add("error");
+            errorDiv.textContent = message;
+            errorDiv.classList.add("show");
+          }
 
-  function showNotification(message, isSuccess = true) {
-    let notificationContainer = document.getElementById('notification-container');
-    if (!notificationContainer) {
-      notificationContainer = document.createElement('div');
-      notificationContainer.id = 'notification-container';
-      notificationContainer.style.cssText = 'position: fixed; top: 100px; right: 20px; z-index: 1000;';
-      document.body.appendChild(notificationContainer);
-    }
+          function clearErrors() {
+            const inputs = newAddressForm.querySelectorAll(".input-field");
+            const errorDivs = newAddressForm.querySelectorAll(".error-message");
+            inputs.forEach((input) => input.classList.remove("error"));
+            errorDivs.forEach((div) => {
+              div.textContent = "";
+              div.classList.remove("show");
+            });
+          }
 
-    const notification = document.createElement('div');
-    notification.className = `text-white px-4 py-2 rounded shadow-lg mb-2 ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`;
-    notification.textContent = message;
-    notification.style.cssText = 'transform: translateX(100%); transition: transform 0.3s ease-out;';
-    
-    notificationContainer.appendChild(notification);
-    notification.offsetWidth;
-    notification.style.transform = 'translateX(0)';
-    
-    setTimeout(() => {
-      notification.style.transform = 'translateX(100%)';
-      setTimeout(() => notification.remove(), 300);
-    }, 5000); 
-  }
-});
-  </script>
+          function showNotification(message, isSuccess = true) {
+            let notificationContainer = document.getElementById("notification-container");
+            if (!notificationContainer) {
+              notificationContainer = document.createElement("div");
+              notificationContainer.id = "notification-container";
+              notificationContainer.style.cssText = "position: fixed; top: 100px; right: 20px; z-index: 1000;";
+              document.body.appendChild(notificationContainer);
+            }
+
+            const notification = document.createElement("div");
+            notification.className = `text-white px-4 py-2 rounded shadow-lg mb-2 ${isSuccess ? "bg-green-500" : "bg-red-500"}`;
+            notification.textContent = message;
+            notification.style.cssText = "transform: translateX(100%); transition: transform 0.3s ease-out;";
+
+            notificationContainer.appendChild(notification);
+            notification.offsetWidth;
+            notification.style.transform = "translateX(0)";
+
+            setTimeout(() => {
+              notification.style.transform = "translateX(100%)";
+              setTimeout(() => notification.remove(), 300);
+            }, 5000);
+          }
+        });
+      </script>
 </body>
+
 </html>

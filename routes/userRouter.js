@@ -106,7 +106,7 @@ router.post('/cart/remove', userAuth, cartController.removeFromCart);
 router.post('/cart/contents', userAuth, cartController.getCartContents);
 router.post('/cart/quantity', userAuth, cartController.getCartQuantity);
 router.post('/cart/summary', userAuth, cartController.getCartSummary);
-router.post('/cart/check-quantity',userAuth,cartController.checkCartQuantity)
+router.post('/cart/check-quantity',userAuth,cartController.getCountInCart)
 
 // Checkout management
 router.get('/checkout', userAuth, checkoutController.getCheckoutPage);

@@ -255,7 +255,7 @@ exports.updateProduct = async (req, res) => {
       const id = req.params.id;
       console.log("product update",id)
 
-      // Validate ObjectId
+   
       if (!mongoose.isValidObjectId(id)) {
         console.error('Invalid product ID:', id);
         return res.status(400).json({
@@ -322,11 +322,11 @@ exports.updateProduct = async (req, res) => {
           message:'Quantity cannot be negative',
         })
       }
-      // Handle images
+  
       let productImages = [...(product.productImages || [])];
 
 
-      // Process existing images
+
       const existingImagesArray = Array.isArray(existingImages)
         ? existingImages
         : existingImages
@@ -338,13 +338,13 @@ exports.updateProduct = async (req, res) => {
         }
       });
 
-      // Process new uploaded images
+
       if (req.files && req.files.length > 0) {
         req.files.forEach((file) => {
           const match = file.originalname.match(/^image(\d+)\.jpg$/);
           if (match) {
             const index = parseInt(match[1]) - 1;
-            // Delete old image if it exists
+     
             if (productImages[index]) {
               const oldImagePath = path.join(
                 __dirname,
@@ -356,13 +356,13 @@ exports.updateProduct = async (req, res) => {
                 fs.unlinkSync(oldImagePath);
               }
             }
-            // Update with new image
+
             productImages[index] = file.filename;
           }
         });
       }
 
-      // Ensure at least 3 images
+
       if (productImages.filter(Boolean).length < 3) {
         console.error('Insufficient images:', productImages);
         return res.status(400).json({
@@ -371,7 +371,6 @@ exports.updateProduct = async (req, res) => {
         });
       }
 
-      // Update product
       const updatedProduct = await Product.findByIdAndUpdate(
         id,
         {

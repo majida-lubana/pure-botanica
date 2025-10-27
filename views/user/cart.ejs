@@ -354,7 +354,13 @@ document.addEventListener('DOMContentLoaded', function () {
           .then((response) => response.json())
           .then((data) => {
             if (data.success) {
+              const maxLimit = 5
               const newQuantity = action === 'increase' ? currentQuantity + 1 : currentQuantity - 1;
+
+              if(newQuantity>maxLimit){
+                showNotification(`You can only add up to ${maxLimit} units of this product.`, false);
+                return
+              }
               if (newQuantity >= 1 && newQuantity <= maxQuantity) {
                 quantityInput.value = newQuantity;
                 const totalPriceEl = quantityInput.closest('.cart-item').querySelector('.total-price');

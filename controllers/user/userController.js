@@ -243,14 +243,14 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user (non-admin) by email
+
     const findUser = await User.findOne({ isAdmin: 0, email }).select('+password');
     
     if (!findUser) {
       return res.render('user/login', {
         message: 'User not found',
         pageTitle: 'Login Page',
-        old: req.body // Repopulate form
+        old: req.body 
       });
     }
 
@@ -258,7 +258,7 @@ exports.login = async (req, res) => {
       return res.render('user/login', {
         message: 'User is blocked by admin',
         pageTitle: 'Login Page',
-        old: req.body // Repopulate form
+        old: req.body
       });
     }
 
@@ -268,11 +268,11 @@ exports.login = async (req, res) => {
       return res.render('user/login', {
         message: 'Incorrect password',
         pageTitle: 'Login Page',
-        old: req.body // Repopulate form
+        old: req.body 
       });
     }
 
-    // Success: Set session and redirect
+
     req.session.user = findUser._id;
     console.log('Login successful, session.user set to:', findUser._id);
     res.redirect('/');
@@ -281,7 +281,7 @@ exports.login = async (req, res) => {
     res.render('user/login', {
       message: 'Login failed, please try again later',
       pageTitle: 'Login Page',
-      old: req.body // Repopulate form
+      old: req.body 
     });
   }
 };

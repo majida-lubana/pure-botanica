@@ -3,30 +3,57 @@ const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema');
 const Order = require('../../models/orderSchema');
 
+const computeOrderStatus = (orderItems) => {
+  const statuses = orderItems.map(i => i.status);
+
+  const allDelivered = statuses.every(s => s === 'delivered');
+  const allCancelled = statuses.every(s => s === 'cancelled');
+  const allReturned   = statuses.every(s => s === 'returned');
+
+  const hasDelivered       = statuses.includes('delivered');
+  const hasCancelled       = statuses.includes('cancelled');
+  const hasReturned        = statuses.includes('returned');
+  const hasReturnRequested = statuses.includes('return requested');
+  const hasReturnRejected  = statuses.includes('return rejected');
+  const hasShipped         = statuses.includes('shipped');
+
+  if (allDelivered)                 return 'delivered';
+  if (allCancelled)                 return 'cancelled';
+  if (allReturned)                  return 'returned';
+  if (hasReturned && !allReturned)  return 'partially_returned';
+  if (hasCancelled && !allCancelled) return 'partially_cancelled';
+  if (hasReturnRequested)           return 'return_requested';
+  if (hasReturnRejected)            return 'return_rejected';
+  if (hasShipped)                   return 'shipped';
+  if (hasDelivered && !allDelivered) return 'processing';
+
+  return 'pending';
+};
 
 async function updateOrderStatus(order, session = null) {
-  const allItemsDone = order.orderItems.every(item =>
-    ['delivered', 'cancelled', 'returned'].includes(item.status)
-  );
-  const newStatus = allItemsDone ? 'completed' : 'processing';
-  
+  const newStatus = computeOrderStatus(order.orderItems);
+
   if (order.status !== newStatus) {
     order.status = newStatus;
-    order.timeline.push({
-      label: `Order ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
-      completed: newStatus === 'completed',
-      current: true,
-      date: new Date(),
-    });
-    
-    // Mark previous timeline steps as not current
-    order.timeline.forEach(step => {
-      if (step !== order.timeline[order.timeline.length - 1]) {
-        step.current = false;
-      }
+
+    const labelExists = order.timeline.some(t =>
+      t.label.toLowerCase().includes(newStatus.toLowerCase())
+    );
+
+    if (!labelExists) {
+      order.timeline.push({
+        label: `Order ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+        completed: ['delivered','cancelled','returned'].includes(newStatus),
+        current: true,
+        date: new Date(),
+      });
+    }
+
+    order.timeline.forEach((step, idx, arr) => {
+      step.current = (idx === arr.length - 1);
     });
   }
-  
+
   await order.save({ session });
 }
 
@@ -39,40 +66,26 @@ exports.loadOrderPage = async (req, res) => {
     if (!user) return res.status(404).send('User not found');
 
     const page = parseInt(req.query.page) || 1;
-    const limit = 5;
+    const limit = 3;
     const skip = (page - 1) * limit;
    
     const filter = { user: userId };
+    
+    if (req.query.search && req.query.search.trim() !== '') {
+      const searchTerm = req.query.search.trim();
+      const searchRegex = { $regex: searchTerm, $options: 'i' };
+
+      const productSearch = { 'orderItems.productName': searchRegex };
+      const statusSearch = { status: searchRegex };
+
+      filter.$or = [productSearch, statusSearch];
+    }
    
     const validStatuses = ['processing', 'completed'];
     if (req.query.status && req.query.status !== '' && validStatuses.includes(req.query.status)) {
       filter.status = req.query.status;
     }
-
-    if (req.query.payment && req.query.payment !== '') {
-      if (req.query.payment === 'Paid') filter.paymentId = { $exists: true };
-      if (req.query.payment === 'Pending') filter.paymentId = { $exists: false };
-    }
-
-    if (req.query.dateRange && req.query.dateRange !== 'all') {
-      const now = new Date();
-      let fromDate;
-      switch (req.query.dateRange) {
-        case '30days':
-          fromDate = new Date(now);
-          fromDate.setDate(now.getDate() - 30);
-          break;
-        case '3months':
-          fromDate = new Date(now);
-          fromDate.setMonth(now.getMonth() - 3);
-          break;
-        case '1year':
-          fromDate = new Date(now);
-          fromDate.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-      filter.createdOn = { $gte: fromDate }; 
-    }
+    
 
     const totalOrders = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalOrders / limit);
@@ -83,8 +96,19 @@ exports.loadOrderPage = async (req, res) => {
         path: 'orderItems.product', 
         select: 'productName productImages',
       })
+      .sort({createdAt:-1})
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean(); 
+
+ 
+    for (const order of orders) {
+      const newStatus = computeOrderStatus(order.orderItems);
+      if (order.status !== newStatus) {
+        order.status = newStatus;
+        await Order.updateOne({ _id: order._id }, { status: newStatus });
+      }
+    }
 
     const message = orders.length === 0 ? 'No orders found for selected filter' : null;
 
@@ -146,7 +170,6 @@ exports.getOrderDetailsPage = async (req, res) => {
       return res.status(404).send('Order not found');
     }
 
-    // Use schema's timeline array
     const timelineSteps = order.timeline.map(step => ({
       title: step.label,
       completed: step.completed,
@@ -154,7 +177,6 @@ exports.getOrderDetailsPage = async (req, res) => {
       date: step.date || null,
     }));
 
-    // Map order data for EJS
     const orderData = {
       _id: order._id,
       orderID: order.orderId,
@@ -200,11 +222,9 @@ exports.getOrderDetailsPage = async (req, res) => {
       message: order.message || '',
     };
 
-    // Log for debugging
     console.log('Mapped orderData.items count:', orderData.items.length);
     console.log('Mapped orderData.items:', JSON.stringify(orderData.items, null, 2));
 
-    // Validate finalAmount
     if (orderData.total < 0) {
       console.warn('Negative final amount detected:', orderData.total);
       orderData.totalWarning = 'Warning: Negative total amount. Please verify order calculations.';
@@ -235,7 +255,7 @@ exports.cancelItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found or unauthorized' });
     }
 
-    const item = order.orderItems.find(item => item.product.toString() === productId);
+    const item = order.orderItems.find(i => i.product.toString() === productId);
     if (!item) {
       return res.status(404).json({ success: false, message: 'Item not found in order' });
     }
@@ -245,13 +265,7 @@ exports.cancelItem = async (req, res) => {
     }
 
     item.status = 'cancelled';
-    const product = await Product.findById(item.product);
-    if (product) {
-      product.quantity += item.quantity;
-      await product.save();
-    } else {
-      console.warn(`Product ${item.product} not found for quantity update`);
-    }
+    await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
 
     order.timeline.push({
       label: `Item ${item.productName} Cancelled`,
@@ -264,7 +278,12 @@ exports.cancelItem = async (req, res) => {
     await updateOrderStatus(order);
     await order.save();
 
-    res.json({ success: true, message: 'Item cancelled successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Item cancelled successfully', 
+      orderStatus: order.status 
+    });
+
   } catch (error) {
     console.error('Error cancelling item:', error);
     res.status(500).json({ success: false, message: `Failed to cancel item: ${error.message}` });
@@ -272,24 +291,20 @@ exports.cancelItem = async (req, res) => {
 };
 
 exports.returnItem = async (req, res) => {
-  console.log("Return request hit");
+  console.log("Return request initiated");
 
   try {
     const { orderId, productId, reason } = req.body;
-
-    // Find the order
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Find the item inside the order
     const item = order.orderItems.find(item => item.product.toString() === productId);
     if (!item || item.status !== 'delivered') {
       return res.status(400).json({ success: false, message: 'Item cannot be returned' });
     }
 
-    // Check if within return period (7 days)
     const RETURN_EXPIRY_DAYS = 7;
     const deliveryDate = item.deliveryDate ? new Date(item.deliveryDate) : new Date(order.createdOn);
     const expiryDate = new Date(deliveryDate);
@@ -299,10 +314,7 @@ exports.returnItem = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Return period has expired' });
     }
 
-    // Update item status
-    item.status = 'returned';
-
-    // Add to order timeline
+    item.status = 'return requested';
     order.timeline.push({
       label: `Return Requested for ${item.productName}`,
       completed: true,
@@ -311,13 +323,17 @@ exports.returnItem = async (req, res) => {
       notes: `Reason: ${reason}`,
     });
 
-    // Save the order
-    await order.save();
+    await updateOrderStatus(order);  
+    await order.save();              
 
-    res.json({ success: true, message: 'Return request submitted successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Return request submitted successfully',
+      orderStatus: order.status   
+    });
+
   } catch (error) {
     console.error('Error requesting return:', error);
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
-

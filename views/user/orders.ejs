@@ -243,6 +243,30 @@
             color: var(--pending);
         }
 
+.status-returned {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+.status-cancelled {
+    background-color: rgba(192, 57, 43, 0.1);
+    color: #c0392b;
+}
+.status-return-requested {
+    background-color: rgba(241, 196, 15, 0.1);
+    color: #f39c12;
+}
+.status-shipped {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: #2980b9;
+}
+.status-partially-returned {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+.status-partially-cancelled {
+    background-color: rgba(192, 57, 43, 0.1);
+    color: #c0392b;
+}
         .payment-badge {
             font-size: 0.75rem;
             font-weight: 500;
@@ -542,23 +566,24 @@
                 <div class="page-header">
                     <h2 class="page-title">My Orders</h2>
                     <div class="search-container">
-                        <input 
-                            type="text" 
-                            id="orderSearch" 
-                            class="form-control" 
-                            placeholder="Search orders by product or status..." 
-                            style="max-width: 300px; border-radius: var(--border-radius);"
-                        >
-                        <button 
-                            id="searchBtn" 
-                            class="view-details-btn ms-2"
-                        >
-                            <i class="fas fa-search"></i> Search
-                        </button>
-                    </div>
+    <input 
+    type="text" 
+    id="orderSearch" 
+    class="form-control" 
+    placeholder="Search orders by product or status..." 
+    value="<%= filters.search || '' %>" 
+    style="max-width: 300px; border-radius: var(--border-radius);"
+>
+    <button id="searchBtn" class="view-details-btn ms-2">
+        Search
+    </button>
+    <button id="clearSearchBtn" class="view-details-btn ms-1" style="background-color: #95a5a6;">
+        Clear
+    </button>
+</div>
                 </div>
                 
-                <div class="filter-container">
+                <!-- <div class="filter-container">
                     <select id="statusFilter" class="filter-select">
                         <option value="">All Statuses</option>
                         <option value="processing">Processing</option>
@@ -570,7 +595,7 @@
                         <option value="last90">Last 90 Days</option>
                         <option value="lastYear">Last Year</option>
                     </select>
-                </div>
+                </div> -->
                 
                 <% if (orders.length === 0) { %>
                     <div class="empty-state">
@@ -587,22 +612,26 @@
                 <% } else { %>
                     <div class="order-grid" id="orderGrid">
                         <% orders.forEach(order => { %>
-                            <div class="order-card" data-product="<%= order.orderItems[0]?.productName?.toLowerCase() || '' %>" data-status="<%= order.status.toLowerCase() %>" data-date="<%= order.createdAt.toISOString() %>">
-                                <div class="order-header">
-                                    <div class="order-id-container">
-                                        <span class="order-date">
-                                            <i class="far fa-calendar-alt"></i>
-                                            <%= order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
-                                        </span>
-                                    </div>
-                                    <div class="payment-status-container">
-                                        <span class="payment-badge <%= order.paymentStatus === 'Pending' ? 'pending' : 'completed' %>">
-                                            <i class="<%= order.paymentStatus === 'Pending' ? 'fas fa-hourglass-half' : 'fas fa-check-circle' %>"></i>
-                                            <%= order.paymentStatus %>
-                                        </span>
-                                    </div>
-                                </div>
-
+    <div class="order-card" 
+         data-order-id="<%= order._id %>"              
+         data-product="<%= order.orderItems[0]?.productName?.toLowerCase() || '' %>" 
+         data-status="<%= order.status.toLowerCase() %>" 
+         data-date="<%= order.createdAt.toISOString() %>">
+        
+        <div class="order-header">
+            <div class="order-id-container">
+                <span class="order-date">
+                    <i class="far fa-calendar-alt"></i>
+                    <%= order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+                </span>
+            </div>
+            <!-- <div class="payment-status-container">
+                <span class="payment-badge <%= order.paymentStatus === 'Pending' ? 'pending' : 'completed' %>">
+                    <i class="<%= order.paymentStatus === 'Pending' ? 'fas fa-hourglass-half' : 'fas fa-check-circle' %>"></i>
+                    <%= order.paymentStatus %>
+                </span>
+            </div> -->
+        </div>
                                 <div class="order-body">
                                     <div class="product-image-container">
                                         <img
@@ -625,11 +654,31 @@
 
                                 <div class="order-footer">
                                     <div class="status-payment-container">
-                                        <span class="status-badge status-<%= order.status === 'completed' ? 'completed' : 'processing' %>">
-                                            <i class="<%= order.status === 'completed' ? 'fas fa-check-circle' : 'fas fa-cogs' %>"></i>
-                                            <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
-                                        </span>
-                                    </div>
+    <span class="status-badge 
+        <%= 
+          ['delivered', 'completed'].includes(order.status) ? 'status-completed' :
+          ['returned', 'partially_returned'].includes(order.status) ? 'status-returned' :
+          ['cancelled', 'partially_cancelled'].includes(order.status) ? 'status-cancelled' :
+          ['return_requested', 'return_requested'].includes(order.status) ? 'status-return-requested' :
+          ['shipped'].includes(order.status) ? 'status-shipped' :
+          'status-processing'
+        %>">
+        <i class="<%= 
+          ['delivered', 'completed'].includes(order.status) ? 'fas fa-check-circle' :
+          ['returned', 'partially_returned'].includes(order.status) ? 'fas fa-undo' :
+          ['cancelled', 'partially_cancelled'].includes(order.status) ? 'fas fa-ban' :
+          ['return_requested'].includes(order.status) ? 'fas fa-clock' :
+          ['shipped'].includes(order.status) ? 'fas fa-truck' :
+          'fas fa-cogs'
+        %>"></i>
+        <%= 
+          order.status === 'partially_returned' ? 'Partially Returned' :
+          order.status === 'partially_cancelled' ? 'Partially Cancelled' :
+          order.status === 'return_requested' ? 'Return Requested' :
+          order.status.charAt(0).toUpperCase() + order.status.slice(1)
+        %>
+    </span>
+</div>
 
                                     <div class="price-actions-container">
                                         <span class="order-amount">₹<%= order.finalAmount.toFixed(2) %></span>
@@ -662,193 +711,171 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Search and filter elements
-            const searchInput = document.getElementById('orderSearch');
-            const searchBtn = document.getElementById('searchBtn');
-            const statusFilter = document.getElementById('statusFilter');
-            const timeFilter = document.getElementById('timeFilter');
-            const orderGrid = document.getElementById('orderGrid');
-            const orderCards = document.querySelectorAll('.order-card');
-            const prevPageBtn = document.getElementById('prevPage');
-            const nextPageBtn = document.getElementById('nextPage');
-            const pageButtons = document.querySelectorAll('.pagination-btn[data-page]');
+   <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('orderSearch');
+    const searchBtn = document.getElementById('searchBtn');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const orderGrid = document.getElementById('orderGrid');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const pageButtons = document.querySelectorAll('.pagination-btn[data-page]');
 
-            function applyFilters() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedStatus = statusFilter.value.toLowerCase();
-                const selectedTime = timeFilter.value;
+    // ── FETCH ORDERS FROM SERVER ──
+    async function fetchOrders(page = 1, search = '') {
+        const url = new URL('/orders', window.location.origin);
+        url.searchParams.set('page', page);
+        if (search) url.searchParams.set('search', search);
 
-                orderCards.forEach(card => {
-                    const productName = card.dataset.product;
-                    const status = card.dataset.status;
-                    const orderDate = new Date(card.dataset.date);
-                    const now = new Date();
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network error');
+            const html = await response.text();
 
-                    // Status filter
-                    const matchesStatus = !selectedStatus || status === selectedStatus;
+            // Parse HTML and extract only the order grid + pagination
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newGrid = doc.querySelector('#orderGrid');
+            const newPagination = doc.querySelector('.pagination-container');
 
-                    // Time filter
-                    let matchesTime = true;
-                    if (selectedTime) {
-                        const daysDiff = (now - orderDate) / (1000 * 60 * 60 * 24);
-                        if (selectedTime === 'last30' && daysDiff > 30) {
-                            matchesTime = false;
-                        } else if (selectedTime === 'last90' && daysDiff > 90) {
-                            matchesTime = false;
-                        } else if (selectedTime === 'lastYear' && daysDiff > 365) {
-                            matchesTime = false;
+            if (newGrid) orderGrid.innerHTML = newGrid.innerHTML;
+            if (newPagination) {
+                document.querySelector('.pagination-container').outerHTML = newPagination.outerHTML;
+            }
+
+            // Re-attach event listeners
+            attachPaginationListeners();
+            applyLiveSearch(); // Re-apply live search on new cards
+        } catch (err) {
+            console.error('Fetch error:', err);
+            Swal.fire('Error', 'Failed to load orders', 'error');
+        }
+    }
+
+    // ── LIVE SEARCH (Client-side) ──
+    function applyLiveSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.order-card');
+
+        cards.forEach(card => {
+            const product = (card.dataset.product || '').toLowerCase();
+            const status = (card.dataset.status || '').toLowerCase();
+            const matches = !query || product.includes(query) || status.includes(query);
+            card.style.display = matches ? 'block' : 'none';
+        });
+    }
+
+    // ── RE-ATTACH PAGINATION LISTENERS AFTER FETCH ──
+    function attachPaginationListeners() {
+        const newPrev = document.getElementById('prevPage');
+        const newNext = document.getElementById('nextPage');
+        const newPageBtns = document.querySelectorAll('.pagination-btn[data-page]');
+
+        if (newPrev) newPrev.onclick = () => {
+            const page = parseInt(newPrev.dataset.page || '<%= currentPage %>') - 1;
+            if (page >= 1) fetchOrders(page, searchInput.value.trim());
+        };
+        if (newNext) newNext.onclick = () => {
+            const page = parseInt(newNext.dataset.page || '<%= currentPage %>') + 1;
+            fetchOrders(page, searchInput.value.trim());
+        };
+        newPageBtns.forEach(btn => {
+            btn.onclick = () => fetchOrders(btn.dataset.page, searchInput.value.trim());
+        });
+    }
+
+    // ── EVENT LISTENERS ──
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            fetchOrders(1, searchInput.value.trim());
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            fetchOrders(1, '');
+        });
+    }
+
+    searchInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            fetchOrders(1, searchInput.value.trim());
+        }
+    });
+
+    // Live search while typing
+    searchInput.addEventListener('input', applyLiveSearch);
+
+    // Initial pagination
+    attachPaginationListeners();
+
+    // Apply live search on load
+    applyLiveSearch();
+
+    // ────── CANCEL / RETURN (Keep existing fetch) ──────
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+    if (confirmCancelBtn) {
+        confirmCancelBtn.addEventListener('click', async () => {
+            const cancelForm = document.getElementById('cancelForm');
+            const orderId = document.getElementById('orderId').value;
+            const productId = document.getElementById('productId').value;
+            const actionType = document.getElementById('actionType').value;
+            const reason = document.getElementById('cancelReason').value === 'Other'
+                ? document.getElementById('otherReason').value
+                : document.getElementById('cancelReason').value;
+
+            if (!cancelForm.checkValidity()) return cancelForm.reportValidity();
+
+            const endpoint = actionType === 'cancel'
+                ? `/orders/${orderId}/cancel-item`
+                : `/orders/${orderId}/return`;
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, productId, reason })
+                });
+                const result = await res.json();
+
+                const modal = document.getElementById('cancelModal');
+                bootstrap.Modal.getInstance(modal).hide();
+
+                if (result.success) {
+                    Swal.fire('Success', result.message, 'success').then(() => {
+                        // Update badge
+                        const card = document.querySelector(`[data-order-id="${orderId}"]`);
+                        if (card && result.orderStatus) {
+                            const badge = card.querySelector('.status-badge');
+                            const status = result.orderStatus.toLowerCase();
+                            const displayText = 
+                                status === 'partially_returned' ? 'Partially Returned' :
+                                status === 'partially_cancelled' ? 'Partially Cancelled' :
+                                status === 'return_requested' ? 'Return Requested' :
+                                status.charAt(0).toUpperCase() + status.slice(1);
+
+                            badge.textContent = displayText;
+                            badge.className = 'status-badge ' + 
+                                (status === 'delivered' || status === 'completed' ? 'status-completed' :
+                                 ['returned', 'partially_returned'].includes(status) ? 'status-returned' :
+                                 ['cancelled', 'partially_cancelled'].includes(status) ? 'status-cancelled' :
+                                 status === 'return_requested' ? 'status-return-requested' :
+                                 status === 'shipped' ? 'status-shipped' : 'status-processing');
+                            card.dataset.status = status;
+                            applyLiveSearch();
                         }
-                    }
-
-                    // Search filter
-                    const matchesSearch = !query || productName.includes(query) || status.includes(query);
-
-                    card.style.display = matchesStatus && matchesTime && matchesSearch ? 'block' : 'none';
-                });
-            }
-
-            function updateURLParams(page) {
-                const url = new URL(window.location);
-                url.searchParams.set('page', page);
-                if (searchInput.value) url.searchParams.set('search', searchInput.value);
-                if (statusFilter.value) url.searchParams.set('status', statusFilter.value);
-                if (timeFilter.value) url.searchParams.set('dateRange', timeFilter.value);
-                window.location.href = url.toString();
-            }
-
-            if (searchBtn && orderGrid) {
-                // Search button click
-                searchBtn.addEventListener('click', () => {
-                    updateURLParams(1);
-                });
-
-                // Status and time filter change
-                statusFilter.addEventListener('change', () => updateURLParams(1));
-                timeFilter.addEventListener('change', () => updateURLParams(1));
-
-                // Allow pressing Enter to trigger search
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        updateURLParams(1);
-                    }
-                });
-
-                // Clear filters when search input is cleared
-                searchInput.addEventListener('input', () => {
-                    if (!searchInput.value.trim()) {
-                        updateURLParams(1);
-                    }
-                });
-
-                // Pagination button clicks
-                if (prevPageBtn) {
-                    prevPageBtn.addEventListener('click', () => {
-                        const currentPage = parseInt('<%= currentPage %>');
-                        if (currentPage > 1) updateURLParams(currentPage - 1);
                     });
+                } else {
+                    Swal.fire('Error', result.message || 'Failed', 'error');
                 }
-
-                if (nextPageBtn) {
-                    nextPageBtn.addEventListener('click', () => {
-                        const currentPage = parseInt('<%= currentPage %>');
-                        const totalPages = parseInt('<%= totalPages %>');
-                        if (currentPage < totalPages) updateURLParams(currentPage + 1);
-                    });
-                }
-
-                pageButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const page = parseInt(button.dataset.page);
-                        updateURLParams(page);
-                    });
-                });
-            }
-
-            // Existing cancel/return form logic
-            const confirmCancelBtn = document.getElementById('confirmCancelBtn');
-            
-            if (confirmCancelBtn) {
-                confirmCancelBtn.addEventListener('click', () => {
-                    const cancelForm = document.getElementById('cancelForm');
-                    const orderIdField = document.getElementById('orderId');
-                    const productIdField = document.getElementById('productId');
-                    const actionTypeField = document.getElementById('actionType');
-                    const cancelReasonSelect = document.getElementById('cancelReason');
-                    const otherReasonTextarea = document.getElementById('otherReason');
-                    const modal = document.getElementById('cancelModal');
-                    
-                    if (!cancelForm.checkValidity()) {
-                        cancelForm.reportValidity();
-                        return;
-                    }
-
-                    const formData = {
-                        orderId: orderIdField.value,
-                        productId: productIdField.value,
-                        actionType: actionTypeField.value,
-                        reason: cancelReasonSelect.value === 'Other' ? otherReasonTextarea.value : cancelReasonSelect.value
-                    };
-                    
-                    console.log('Submitting form data:', formData);
-
-                    let endpoint;
-                    if (formData.actionType === 'cancel') {
-                        endpoint = `/user/cancel-product/${formData.orderId}/${formData.productId}`;
-                    } else {
-                        endpoint = `/user/return-product`;
-                    }
-
-                    fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            cancelReason: formData.reason,
-                            returnReason: formData.reason,
-                            orderId: formData.orderId,
-                            productId: formData.productId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        console.log('Server response:', result);
-                        const modalInstance = bootstrap.Modal.getInstance(modal);
-                        modalInstance.hide();
-                        
-                        if (result.success) {
-                            Swal.fire({
-                                title: 'Success',
-                                text: result.message,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: result.message || 'Something went wrong. Please try again.',
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        const modalInstance = bootstrap.Modal.getInstance(modal);
-                        modalInstance.hide();
-                        
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'An unexpected error occurred. Please try again later.',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    });
-                });
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'Network error', 'error');
             }
         });
-    </script>
+    }
+});
+</script>
 </body>
 </html>

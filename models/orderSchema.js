@@ -48,7 +48,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ['ordered', 'shipped', 'delivered', 'cancelled', ,'return requested','return rejected','returned'],
+      enum: ['ordered', 'shipped', 'delivered', 'cancelled','return requested','return rejected','returned'],
       default: 'ordered'
     },
     productName: {
@@ -86,10 +86,24 @@ const orderSchema = new mongoose.Schema({
     type: Date
   },
   status: {
-    type: String,
-    required: true,
-    enum: ['processing','completed']
-  },
+  type: String,
+  required: true,
+  enum: [
+    'pending',
+    'processing',
+    'shipped',
+    'delivered',
+    'cancelled',
+    'returned',
+    'partially_returned',
+    'partially_cancelled',
+    'return_requested',
+    'return_rejected',
+    'return_approved',
+    'payment_failed'
+  ],
+  default: 'pending'
+},
   createdOn: {
     type: Date,
     default: Date.now,
