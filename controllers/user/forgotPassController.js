@@ -77,7 +77,6 @@ exports.forgotVerifyOtp = async (req, res) => {
     }
 };
 
-// forgotPassController.js
 
 exports.forgotResendOtp = async (req, res) => {
     try {

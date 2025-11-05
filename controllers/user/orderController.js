@@ -177,7 +177,7 @@ exports.getOrderDetailsPage = async (req, res) => {
       return res.status(404).send('Order not found');
     }
 
-    // === RECALCULATE PRICING USING UTILITY ===
+
     let recalculatedSubtotal = 0;
     let originalSubtotal = 0;
 
@@ -198,19 +198,18 @@ exports.getOrderDetailsPage = async (req, res) => {
       recalculatedSubtotal += itemTotal;
       originalSubtotal += itemOriginal;
 
-      // FIX: Construct image path properly
-      let imagePath = '/images/placeholder.jpg'; // default fallback
-      
+   
+      let imagePath = '/images/placeholder.jpg'; 
       if (item.productImage) {
-        // If productImage already has full path
+       
         if (item.productImage.startsWith('/uploads') || item.productImage.startsWith('http')) {
           imagePath = item.productImage;
         } else {
-          // If it's just a filename, construct the full path
+  
           imagePath = `/uploads/product-images/${item.productImage}`;
         }
       } else if (product?.productImages?.[0]) {
-        // Fallback to product's first image
+
         imagePath = `/uploads/product-images/${product.productImages[0]}`;
       }
 
@@ -263,7 +262,7 @@ exports.getOrderDetailsPage = async (req, res) => {
       items,
       timeline: timelineSteps,
 
-      // === CORRECT BREAKDOWN ===
+ 
       originalSubtotal: Number(originalSubtotal.toFixed(2)),
       offerDiscount,
       couponApplied: order.couponApplied || false,

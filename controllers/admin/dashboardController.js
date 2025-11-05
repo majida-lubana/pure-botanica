@@ -1,4 +1,4 @@
-// dashboardController.js
+
 const Order = require('../../models/orderSchema');
 const User = require('../../models/userSchema');
 const pdfkit = require('pdfkit');
@@ -14,14 +14,14 @@ exports.loadSalesReport = async (req, res) => {
 
   try {
     const { period, startDate, endDate, page = 1 } = req.query;
-    const limit = 10; // Items per page
+    const limit = 10; 
     const skip = (page - 1) * limit;
 
     let filter = { status: 'delivered' };
     let fromDate, toDate = new Date();
     let periodLabel = '';
 
-    // Calculate date range based on period
+ 
     if (period === 'daily') {
       fromDate = moment().startOf('day').toDate();
       toDate = moment().endOf('day').toDate();
@@ -40,7 +40,7 @@ exports.loadSalesReport = async (req, res) => {
       toDate = moment(endDate).endOf('day').toDate();
       periodLabel = `${moment(startDate).format('MMM DD, YYYY')} - ${moment(endDate).format('MMM DD, YYYY')}`;
     } else {
-      // Default view - no data until filter is applied
+     
       return res.render('admin/sales-report', {
         pageTitle: 'Sales Report',
         currentPage: 'sales-report',
@@ -53,18 +53,18 @@ exports.loadSalesReport = async (req, res) => {
 
     filter.createdOn = { $gte: fromDate, $lte: toDate };
 
-    // Get total count for pagination
+  
     const totalOrders = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalOrders / limit);
 
-    // Fetch paginated orders
+ 
     const orders = await Order.find(filter)
       .populate('user', 'name email')
       .sort({ createdOn: -1 })
       .skip(skip)
       .limit(limit);
 
-    // Calculate aggregates for all orders (not just current page)
+   
     const allOrders = await Order.find(filter);
     const totalAmount = allOrders.reduce((sum, order) => sum + order.finalAmount, 0);
     const totalDiscount = allOrders.reduce((sum, order) => sum + (order.discount || 0) + (order.couponDiscount || 0), 0);
@@ -79,7 +79,7 @@ exports.loadSalesReport = async (req, res) => {
       periodLabel
     };
 
-    // Build query string for download links and pagination
+
     const queryParams = { period, startDate, endDate };
     const queryString = new URLSearchParams(
       Object.fromEntries(Object.entries(queryParams).filter(([_, v]) => v))
@@ -189,17 +189,17 @@ async function generatePDFReport(res, orders, stats) {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   doc.pipe(res);
 
-  // Header
+
   doc.fontSize(24).fillColor('#1a202c').text('Pure Botanica', { align: 'center' });
   doc.fontSize(20).fillColor('#2d3748').text('Sales Report', { align: 'center' });
   doc.moveDown();
 
-  // Period info
+
   doc.fontSize(12).fillColor('#4a5568').text(`Period: ${stats.periodLabel}`, { align: 'center' });
   doc.text(`Generated on: ${moment().format('MMMM DD, YYYY HH:mm')}`, { align: 'center' });
   doc.moveDown(2);
 
-  // Summary section
+
   doc.fontSize(14).fillColor('#1a202c').text('Summary', { underline: true });
   doc.moveDown(0.5);
   doc.fontSize(11).fillColor('#2d3748');
@@ -209,11 +209,10 @@ async function generatePDFReport(res, orders, stats) {
   doc.text(`Average Order Value: ₹${(stats.totalAmount / stats.totalOrders || 0).toFixed(2)}`);
   doc.moveDown(2);
 
-  // Table header
   doc.fontSize(14).fillColor('#1a202c').text('Order Details', { underline: true });
   doc.moveDown(0.5);
 
-  // Table
+
   const tableTop = doc.y;
   const colWidths = [80, 70, 100, 80, 80, 80];
   const headers = ['Order ID', 'Date', 'Customer', 'Amount', 'Discount', 'Final'];
@@ -252,7 +251,7 @@ async function generatePDFReport(res, orders, stats) {
     y += 20;
   });
 
-  // Footer
+
   doc.fontSize(8).fillColor('#718096').text(
     'This is a computer-generated report. No signature required.',
     50,
@@ -263,25 +262,25 @@ async function generatePDFReport(res, orders, stats) {
   doc.end();
 }
 
-// Excel Generation Helper
+
 async function generateExcelReport(res, orders, stats) {
   const workbook = new exceljs.Workbook();
   const sheet = workbook.addWorksheet('Sales Report');
 
-  // Title
+
   sheet.mergeCells('A1:H1');
   sheet.getCell('A1').value = 'Pure Botanica - Sales Report';
   sheet.getCell('A1').font = { size: 16, bold: true };
   sheet.getCell('A1').alignment = { horizontal: 'center' };
 
-  // Period
+
   sheet.mergeCells('A2:H2');
   sheet.getCell('A2').value = `Period: ${stats.periodLabel}`;
   sheet.getCell('A2').alignment = { horizontal: 'center' };
 
   sheet.addRow([]);
 
-  // Summary
+
   sheet.addRow(['Summary']);
   sheet.addRow(['Total Orders', stats.totalOrders]);
   sheet.addRow(['Total Revenue', `₹${stats.totalAmount.toFixed(2)}`]);
@@ -290,7 +289,7 @@ async function generateExcelReport(res, orders, stats) {
 
   sheet.addRow([]);
 
-  // Table headers
+
   const headerRow = sheet.addRow([
     'Order ID',
     'Date',
@@ -308,7 +307,6 @@ async function generateExcelReport(res, orders, stats) {
     fgColor: { argb: 'FFE2E8F0' }
   };
 
-  // Data rows
   orders.forEach(order => {
     sheet.addRow([
       order.orderId || 'N/A',
@@ -322,7 +320,7 @@ async function generateExcelReport(res, orders, stats) {
     ]);
   });
 
-  // Auto-size columns
+
   sheet.columns.forEach(column => {
     column.width = 15;
   });

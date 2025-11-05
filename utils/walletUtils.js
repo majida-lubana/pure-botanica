@@ -1,9 +1,9 @@
-// utils/walletUtils.js
+
 const Wallet = require('../models/walletSchema');
 const Transaction = require('../models/transactionSchema');
 
 const creditWallet = async (userId, amount, orderId = null, description = '') => {
-  // Find or create wallet
+ 
   let wallet = await Wallet.findOne({ userId });
   if (!wallet) {
     wallet = new Wallet({ userId, balance: 0 });
@@ -12,7 +12,7 @@ const creditWallet = async (userId, amount, orderId = null, description = '') =>
   wallet.balance += amount;
   await wallet.save();
 
-  // Create transaction
+
   await Transaction.create({
     userId,
     orderId,

@@ -1,4 +1,4 @@
-// controllers/user/walletController.js
+
 const Wallet = require("../../models/walletSchema");
 const Transaction = require("../../models/transactionSchema");
 const { creditWallet } = require('../../utils/walletUtils');
@@ -66,21 +66,3 @@ exports.toggleDefault = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
-
-// // Called when user cancels order
-// exports.refundCancelledOrder = async (order) => {
-//   const amount = order.totalAmount || order.paidAmount;
-//   await creditWallet(order.userId, amount, order._id, `Refund - Cancelled Order #${order._id}`);
-// };
-
-// // Called when user requests return
-// exports.createReturnRefundRequest = async (order, returnedAmount) => {
-//   await Transaction.create({
-//     userId: order.userId,
-//     orderId: order._id,
-//     amount: returnedAmount,
-//     type: 'refund',
-//     status: 'pending',
-//     description: `Return Request - Order #${order._id}`
-//   });
-// };

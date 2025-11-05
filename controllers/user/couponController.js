@@ -1,7 +1,7 @@
 const Coupon = require('../../models/couponSchema');
 const Order = require('../../models/orderSchema');
 
-// Apply coupon in checkout
+
 exports.applyCoupon = async (req, res) => {
     try {
         const { couponCode, cartTotal } = req.body;
@@ -15,7 +15,7 @@ exports.applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon code and cart total are required' });
         }
 
-        // Find coupon
+  
         const coupon = await Coupon.findOne({ 
             couponCode: couponCode.toUpperCase(),
             isListed: true 
@@ -25,7 +25,7 @@ exports.applyCoupon = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invalid coupon code' });
         }
 
-        // Check date validity
+
         const currentDate = new Date();
         const startDate = new Date(coupon.startDate);
         const expireDate = new Date(coupon.expireOn);
@@ -41,7 +41,6 @@ exports.applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon has expired' });
         }
 
-        // Check minimum order value
         if (cartTotal < coupon.minimumPrice) {
             return res.status(400).json({ 
                 success: false, 
@@ -49,7 +48,7 @@ exports.applyCoupon = async (req, res) => {
             });
         }
 
-        // Check if user has already used this coupon
+
         const userUsedCoupon = await Order.findOne({
             user: userId,
             couponCode: coupon.couponCode,
@@ -60,7 +59,7 @@ exports.applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'You have already used this coupon' });
         }
 
-        // Check usage limit
+
         const totalUsed = await Order.countDocuments({
             couponCode: coupon.couponCode,
             status: { $nin: ['cancelled', 'payment_failed'] }
@@ -70,7 +69,7 @@ exports.applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon usage limit exceeded' });
         }
 
-        // Calculate discount
+     
         let discountAmount = 0;
         if (coupon.discountType === 'percentage') {
             discountAmount = (cartTotal * coupon.offerPrice) / 100;
@@ -78,7 +77,7 @@ exports.applyCoupon = async (req, res) => {
             discountAmount = coupon.offerPrice;
         }
 
-        // Ensure discount doesn't exceed cart total
+   
         discountAmount = Math.min(discountAmount, cartTotal);
 
         res.json({
@@ -98,7 +97,6 @@ exports.applyCoupon = async (req, res) => {
     }
 };
 
-// Get available coupons for user
 exports.getAvailableCoupons = async (req, res) => {
     try {
         const userId = req.user?._id;
@@ -110,21 +108,21 @@ exports.getAvailableCoupons = async (req, res) => {
 
         const currentDate = new Date();
         
-        // Get all active coupons
+  
         const coupons = await Coupon.find({
             isListed: true,
             startDate: { $lte: currentDate },
             expireOn: { $gte: currentDate }
         }).sort({ createdOn: -1 });
 
-        // Get user's used coupons
+     
         const usedCoupons = await Order.find({
             user: userId,
             couponCode: { $exists: true, $ne: null },
             status: { $nin: ['cancelled', 'payment_failed'] }
         }).distinct('couponCode');
 
-        // Filter and prepare coupons
+    
         const availableCoupons = [];
         
         for (const coupon of coupons) {
@@ -163,27 +161,26 @@ exports.getAvailableCoupons = async (req, res) => {
     }
 };
 
-// Get coupons page for user
+
 exports.getCouponsPage = async (req, res) => {
     try {
         const userId = req.user?._id;
         const currentDate = new Date();
         
-        // Get all active coupons
+
         const coupons = await Coupon.find({
             isListed: true,
             startDate: { $lte: currentDate },
             expireOn: { $gte: currentDate }
         }).sort({ createdOn: -1 });
 
-        // Get user's used coupons
         const usedCoupons = userId ? await Order.find({
             user: userId,
             couponCode: { $exists: true, $ne: null },
             status: { $nin: ['cancelled', 'payment_failed'] }
         }).distinct('couponCode') : [];
 
-        // Prepare coupons with usage info
+
         const couponData = [];
         
         for (const coupon of coupons) {

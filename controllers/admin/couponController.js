@@ -1,7 +1,7 @@
 const Coupon = require('../../models/couponSchema');
 const mongoose = require('mongoose');
 
-// Load coupon management page
+
 exports.getCouponPage = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -48,7 +48,7 @@ exports.getCouponPage = async (req, res) => {
     }
 };
 
-// Add new coupon
+
 exports.addCoupon = async (req, res) => {
     try {
         const {
@@ -65,7 +65,7 @@ exports.addCoupon = async (req, res) => {
 
         console.log('addCoupon raw input:', { startDate, expireOn });
 
-        // === VALIDATION ===
+    
         const errors = [];
         
         if (!name || name.trim().length < 3) errors.push('Name too short');
@@ -79,9 +79,9 @@ exports.addCoupon = async (req, res) => {
         if (isNaN(startDateObj)) errors.push('Invalid start date');
         if (isNaN(expireDateObj)) errors.push('Invalid expire date');
 
-        // --- Allow start date = today ---
+    
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // local midnight
+        today.setHours(0, 0, 0, 0); 
 
         if (startDateObj < today) {
             errors.push('Start date cannot be in the past');
@@ -106,14 +106,13 @@ exports.addCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: errors.join(', ') });
         }
 
-        // === CHECK DUPLICATE ===
+     
         const code = couponCode.trim().toUpperCase();
         const existing = await Coupon.findOne({ couponCode: code });
         if (existing) {
             return res.status(400).json({ success: false, message: 'Coupon code already exists' });
         }
 
-        // === SAVE ===
         const newCoupon = new Coupon({
             name: name.trim(),
             couponCode: code,
@@ -143,7 +142,7 @@ exports.addCoupon = async (req, res) => {
     }
 };
 
-// Get coupon for editing
+
 exports.getCouponById = async (req, res) => {
     try {
         const coupon = await Coupon.findById(req.params.id);
@@ -157,7 +156,7 @@ exports.getCouponById = async (req, res) => {
     }
 };
 
-// Update coupon
+
 exports.updateCoupon = async (req, res) => {
     try {
         const couponId = req.params.id;
@@ -173,7 +172,7 @@ exports.updateCoupon = async (req, res) => {
             discountType
         } = req.body;
 
-        // Validation (same as add)
+    
         const errors = [];
         
         if (!name || name.trim().length < 3) {
@@ -211,7 +210,7 @@ exports.updateCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: errors.join(', ') });
         }
 
-        // Check if coupon code already exists (excluding current coupon)
+   
         const existingCoupon = await Coupon.findOne({ 
             couponCode: couponCode.trim().toUpperCase(),
             _id: { $ne: couponId }
@@ -240,7 +239,7 @@ exports.updateCoupon = async (req, res) => {
     }
 };
 
-// Toggle coupon status
+
 exports.toggleCouponStatus = async (req, res) => {
     try {
         const coupon = await Coupon.findById(req.params.id);
@@ -262,7 +261,7 @@ exports.toggleCouponStatus = async (req, res) => {
     }
 };
 
-// Delete coupon
+
 exports.deleteCoupon = async (req, res) => {
     try {
         const coupon = await Coupon.findById(req.params.id);

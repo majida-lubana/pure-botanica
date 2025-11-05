@@ -1,4 +1,4 @@
-// const { name } = require('ejs');
+
 const Category = require('../../models/categorySchema')
 const Product = require('../../models/productSchema')
 const mongoose = require('mongoose')
@@ -159,13 +159,13 @@ exports.editCategory = async (req, res) => {
     }
 };
 
-// admin/categoryController.js  (add at the bottom)
+
 
 exports.addCategoryOffer = async (req, res) => {
   try {
     const { categoryId, offerPercent, startDate, endDate } = req.body;
 
-    // ---------- 1. Basic validation ----------
+
     if (!categoryId || !offerPercent || !startDate || !endDate) {
       return res.status(400).json({ success: false, message: 'All fields required' });
     }
@@ -186,21 +186,20 @@ exports.addCategoryOffer = async (req, res) => {
       return res.status(400).json({ success: false, message: 'End date must be after start date' });
     }
 
-    // ---------- 2. Category existence ----------
+
     const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(404).json({ success: false, message: 'Category not found' });
     }
 
-    // ---------- 3. Save offer ----------
     category.categoryOffer = offer;
     category.offerStart    = start;
     category.offerEnd      = end;
-    category.offerActive   = true;          // will be toggled automatically on product load
+    category.offerActive   = true;         
 
     await category.save();
 
-    // ---------- 4. Response ----------
+   
     res.json({
       success: true,
       message: 'Offer added successfully',
@@ -217,9 +216,7 @@ exports.addCategoryOffer = async (req, res) => {
   }
 };
 
-// ────────────────────────────────────────────────────────
-//  REMOVE CATEGORY OFFER
-// ────────────────────────────────────────────────────────
+
 exports.removeCategoryOffer = async (req, res) => {
   try {
     const { categoryId } = req.body;

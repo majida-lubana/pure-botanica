@@ -57,9 +57,7 @@ async function updateOrderStatus(order, session = null) {
   await order.save({ session });
 }
 
-// ==========================================
-// PLACE ORDER - WITH REFERRAL PROCESSING
-// ==========================================
+
 exports.placeOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -67,7 +65,7 @@ exports.placeOrder = async (req, res) => {
   try {
     const userId = req.session.user || req.user._id;
     
-    // Your existing order creation logic here
+
     const {
       orderItems,
       address,
@@ -76,10 +74,10 @@ exports.placeOrder = async (req, res) => {
       discount,
       couponDiscount,
       finalAmount,
-      // ... other fields
+ 
     } = req.body;
 
-    // Create the order
+
     const newOrder = await Order.create([{
       user: userId,
       orderItems: orderItems,
@@ -91,12 +89,11 @@ exports.placeOrder = async (req, res) => {
       finalAmount: finalAmount,
       status: 'pending',
       paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
-      // ... other order fields
+
     }], { session });
 
     const order = newOrder[0];
 
-    // Update product quantities
     for (const item of orderItems) {
       await Product.findByIdAndUpdate(
         item.product,
@@ -105,15 +102,15 @@ exports.placeOrder = async (req, res) => {
       );
     }
 
-    // ✅ CHECK IF THIS IS USER'S FIRST ORDER (ANY STATUS)
+
     const previousOrdersCount = await Order.countDocuments({
       user: userId,
-      _id: { $ne: order._id } // Exclude current order
+      _id: { $ne: order._id } 
     });
 
     console.log(`User ${userId} has ${previousOrdersCount} previous orders`);
 
-    // ✅ IF FIRST ORDER EVER, PROCESS REFERRAL REWARD IMMEDIATELY
+
     if (previousOrdersCount === 0) {
       console.log('🎉 First order detected! Processing referral reward...');
       try {
@@ -121,7 +118,7 @@ exports.placeOrder = async (req, res) => {
         console.log('✅ Referral reward processed successfully');
       } catch (referralError) {
         console.error('⚠️ Referral reward processing failed (non-critical):', referralError);
-        // Don't fail the order if referral processing fails
+
       }
     }
 
@@ -147,9 +144,7 @@ exports.placeOrder = async (req, res) => {
   }
 };
 
-// ==========================================
-// UPDATE ORDER STATUS - WITH REFERRAL ON DELIVERY
-// ==========================================
+
 exports.updateOrderStatus = async (req, res) => {
   console.log('updateOrderStatus hit', req.params, req.body);
   
@@ -190,9 +185,7 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-// ==========================================
-// RENDER ORDER MANAGE
-// ==========================================
+
 exports.renderOrderManage = async (req, res) => {
   try {
     let page = parseInt(req.query.page) || 1;
@@ -238,9 +231,7 @@ exports.renderOrderManage = async (req, res) => {
   }
 };
 
-// ==========================================
-// RENDER ORDER DETAILS
-// ==========================================
+
 exports.renderOrderDetails = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
@@ -288,9 +279,6 @@ exports.renderOrderDetails = async (req, res) => {
   }
 };
 
-// ==========================================
-// GET ORDER BY ID
-// ==========================================
 exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
@@ -335,9 +323,7 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-// ==========================================
-// VERIFY RETURN
-// ==========================================
+
 exports.verifyReturn = async (req, res) => {
   console.log("verifyReturn hit");
   console.log("Params:", req.params);

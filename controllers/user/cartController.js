@@ -4,10 +4,10 @@ const User = require('../../models/userSchema');
 const mongoose = require('mongoose');
 const { calculatePricing } = require('../../utils/calculatePricing');
 
-// Helper: Calculate totals using new pricing structure
+
 const calculateTotals = (items) => {
-  let subtotal = 0;         // after offer (displayPrice * qty)
-  let originalSubtotal = 0; // before offer (originalPrice * qty)
+  let subtotal = 0;       
+  let originalSubtotal = 0; 
 
   items.forEach(item => {
     const p = item.productId;
@@ -63,7 +63,7 @@ exports.getCartPage = async (req, res) => {
     if (cart && cart.items && cart.items.length > 0) {
       let cartUpdated = false;
 
-      // Filter invalid/out-of-stock/blocked products
+
       cart.items = cart.items.filter(item => {
         const p = item.productId;
         return (
@@ -75,7 +75,7 @@ exports.getCartPage = async (req, res) => {
         );
       });
 
-      // Adjust quantity based on stock and remove zero-stock items
+
       cart.items = cart.items.map(item => {
         const p = item.productId;
         if (!p) return item;
@@ -96,7 +96,7 @@ exports.getCartPage = async (req, res) => {
       cart.items = cart.items.reverse();
       paginatedItems = cart.items.slice(skip, skip + limit);
 
-      // === NEW PRICING LOGIC USING calculatePricing() ===
+  
       cart.items.forEach(item => {
         if (item.productId) {
           item.productId.pricing = calculatePricing(item.productId);
@@ -224,7 +224,7 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    // Apply pricing
+
     const pricing = calculatePricing(product);
     const itemPrice = pricing.displayPrice;
 
@@ -301,7 +301,7 @@ exports.updateCartQuantity = async (req, res) => {
     cartItem.quantity = newQty;
     await cart.save();
 
-    // === Recalculate pricing for all items ===
+    
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -341,7 +341,7 @@ exports.removeFromCart = async (req, res) => {
     cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
     await cart.save();
 
-    // === Recalculate pricing ===
+    
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -377,7 +377,7 @@ exports.getCartContents = async (req, res) => {
       return res.send('<p class="text-gray-500">Your cart is empty</p>');
     }
 
-    // === Apply pricing ===
+
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -434,7 +434,7 @@ exports.getCartSummary = async (req, res) => {
 
     cart.items = cart.items.filter(item => item.productId);
 
-    // === Apply pricing ===
+   
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);

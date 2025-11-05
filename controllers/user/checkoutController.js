@@ -19,10 +19,10 @@ const razorpay = new Razorpay({
 
 console.log("Razorpay initialized with key:", process.env.RAZORPAY_KEY_ID);
 
-// === NEW: Calculate totals using calculatePricing() ===
+
 const calculateTotals = (items) => {
-  let subtotal = 0;           // after offers
-  let originalSubtotal = 0;   // before offers
+  let subtotal = 0;          
+  let originalSubtotal = 0;  
 
   items.forEach(item => {
     const p = item.productId;
@@ -68,7 +68,7 @@ exports.getCheckoutPage = async (req, res) => {
       return res.redirect('/cart');
     }
 
-    // Filter invalid/out-of-stock/blocked products
+
     let cartUpdated = false;
 
     cart.items = cart.items.filter(item => {
@@ -98,7 +98,7 @@ exports.getCheckoutPage = async (req, res) => {
       return item;
     }).filter(item => item !== null);
 
-    // === APPLY NEW PRICING LOGIC ===
+   
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -109,7 +109,7 @@ exports.getCheckoutPage = async (req, res) => {
       await cart.save();
     }
 
-    // Calculate totals
+
     const totals = calculateTotals(cart.items);
     const { subtotal, originalSubtotal, offerDiscount, shippingCost, tax, total } = totals;
 
@@ -398,7 +398,7 @@ exports.placeOrder = async (req, res) => {
 
     if (!userId) return res.status(401).json({ success: false, message: 'Please login' });
 
-    // CART & ADDRESS
+
     const cart = await Cart.findOne({ userId }).populate({
       path: 'items.productId',
       populate: { path: 'category' }
@@ -414,7 +414,7 @@ exports.placeOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Address not found' });
     }
 
-    // STOCK VALIDATION
+
     for (const item of cart.items) {
       const p = item.productId;
       if (!p) return res.status(400).json({ success: false, message: 'Product missing' });
@@ -430,7 +430,7 @@ exports.placeOrder = async (req, res) => {
       }
     }
 
-    // === APPLY PRICING LOGIC ===
+  
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -440,7 +440,7 @@ exports.placeOrder = async (req, res) => {
     const totals = calculateTotals(cart.items);
     const { subtotal, originalSubtotal, offerDiscount, shippingCost, tax } = totals;
 
-    // COUPON LOGIC
+ 
     let couponDiscount = 0;
     let appliedCoupon = null;
 
@@ -487,7 +487,7 @@ exports.placeOrder = async (req, res) => {
 
     console.log('[placeOrder] Calculations:', { subtotal, offerDiscount, couponDiscount, shippingCost, tax, finalAmount });
 
-    // SNAPSHOTS
+
     const addressSnapshot = {
       fullName: address.name,
       address: address.address,
@@ -509,7 +509,7 @@ exports.placeOrder = async (req, res) => {
       productImage: i.productId.productImages?.[0] || i.productId.productImage,
     }));
 
-    // RAZORPAY
+ 
     if (paymentMethod === 'razorpay') {
       const receipt = `o_${uuidv4().slice(0, 35)}`;
       const razorpayOrder = await razorpay.orders.create({
@@ -551,7 +551,7 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    // WALLET PAYMENT
+ 
     if (paymentMethod === 'wallet') {
       console.log('[Wallet] Fetching for user:', userId);
 
@@ -625,7 +625,7 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    // COD / OTHER
+
     const order = new Order({
       user: userId,
       orderItems,

@@ -1,4 +1,4 @@
-// utils/report.js
+
 const moment = require('moment');
 
 const TODAY = () => {
@@ -59,7 +59,6 @@ exports.buildCompareFilter = (dateFilter, compareWith) => {
     return { createdAt: setRange(prevStart, prevEnd) };
   }
 
-  // prevYear
   const prevStart = new Date(start);
   prevStart.setFullYear(start.getFullYear() - 1);
   const prevEnd = new Date(end);

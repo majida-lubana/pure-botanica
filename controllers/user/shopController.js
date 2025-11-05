@@ -82,7 +82,7 @@ exports.loadShopPage = async (req, res) => {
     const skinTypeOptions = ["Oily","Dry","Combination","Sensitive","Normal","All Skin Types"];
     const skinConcernOptions = ["Acne","Dryness","Oiliness","Aging","Pigmentation","Sensitivity"];
 
-    // ----- Wishlist -----
+
     let wishlistProductIds = [];
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
@@ -182,7 +182,7 @@ exports.getProductsApi = async (req, res) => {
       .limit(limitNum)
       .lean();
 
-    // ---- Add pricing & wishlist flag ----
+   
     let wishlistIds = [];
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
@@ -247,39 +247,30 @@ exports.loadProductPage = async (req, res) => {
       });
     }
 
-    // ===== OFFER CALCULATION =====
+ 
     let offerPercent = 0;
     let appliedOfferName = null;
 
-    // Check product-level offer (assuming field: productOffer as %)
+
     if (product.productOffer && product.productOffer > 0) {
       offerPercent = product.productOffer;
       appliedOfferName = "Product Offer";
     }
 
-    // Optional: Add category offer later
-    // if (!offerPercent && product.category?.categoryOffer > 0) {
-    //   offerPercent = product.category.categoryOffer;
-    //   appliedOfferName = "Category Offer";
-    // }
-
-    // Base price (use salePrice if set, else regularPrice)
     const basePrice = product.salePrice && product.salePrice < product.regularPrice
       ? product.salePrice
       : product.regularPrice;
 
-    // Final calculations
+ 
     const discountAmount = (basePrice * offerPercent) / 100;
     const finalPrice = basePrice - discountAmount;
 
-    // Attach pricing object for EJS
     product.pricing = calculatePricing(product);
 
    const discountsApplied = product.pricing.isOnOffer
   ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
   : "";
 
-    // ===== RELATED PRODUCTS (with same offer logic) =====
     const relatedProducts = await Product.find({
       category: product.category._id,
       _id: { $ne: productId },
@@ -291,7 +282,7 @@ exports.loadProductPage = async (req, res) => {
       .limit(4)
       .lean();
 
-    // Apply same pricing logic to each related product
+
 relatedProducts.forEach(rel => {
   rel.pricing = calculatePricing(rel);
 });

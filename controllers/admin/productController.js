@@ -191,7 +191,7 @@ exports.unblockProduct = async (req, res) => {
 };
 
 
-// Add Product Offer
+
 exports.addProductOffer = async (req, res) => {
   try {
     const productId = req.params.id;
@@ -359,7 +359,7 @@ exports.addProductOffer = async (req, res) => {
   }
 };
 
-// Remove Product Offer
+
 exports.removeProductOffer = async (req, res) => {
   try {
     const productId = req.params.id;
@@ -367,21 +367,21 @@ exports.removeProductOffer = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product ID' });
     }
 
-    // Get the product
+
     const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    // Remove offer (set to 0)
+   
     product.productOffer = 0;
     await product.save();
 
-    // Reset price to original salePrice
+  
     const originalPrice = product.salePrice;
 
-    // Update all cart items that contain this product
+  
     const carts = await Cart.find({ 'items.productId': productId });
     
     for (const cart of carts) {

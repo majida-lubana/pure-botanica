@@ -99,7 +99,7 @@ exports.pageNotFound = async (req,res)=>{
     }
 }
 
-// Add this to your userController.js signup function
+
 
 exports.signup = async (req, res) => {
   try {
@@ -114,7 +114,7 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Validate referral code if provided
+  
     if (referralCode) {
       const referrer = await User.findOne({ 
         referralCode: referralCode.toUpperCase() 
@@ -126,7 +126,7 @@ exports.signup = async (req, res) => {
           message: 'Invalid referral code'
         });
       }
-      // Store referral code in session
+
       req.session.referralCode = referralCode.toUpperCase();
     }
 
@@ -188,7 +188,7 @@ exports.verifyOtp = async (req, res) => {
       await saveUserData.save();
       req.session.user = saveUserData._id;
 
-      // ✅ FIX: Process referral SIGNUP (not reward) if referral code exists
+  
       if (req.session.referralCode) {
         await referralController.processReferralSignup(
           saveUserData._id,
@@ -314,39 +314,7 @@ exports.login = async (req, res) => {
 };
 
 
-// exports.resendOtp = async (req, res) => {
-//     try {
-//         const email = req.session.email;
-//         if (!email) {
-//             return res.json({
-//                 success: false,
-//                 message: 'Session expired. Please start the password reset process again.'
-//             });
-//         }
 
-//         const findUser = await User.findOne({ email });
-//         if (!findUser) {
-//             return res.json({
-//                 success: false,
-//                 message: 'User with this email does not exist'
-//             });
-//         }
-
-//         const otp = generateOtp();
-//         const emailSent = await exports.sendVerificationEmail(email, otp);
-
-//         if (emailSent) {
-//             req.session.userOtp = otp;
-//             req.session.otpTimestamp = Date.now();
-//             res.json({ success: true, message: 'OTP resent successfully. Please check your email.' });
-//         } else {
-//             res.json({ success: false, message: 'Failed to resend OTP. Please try again.' });
-//         }
-//     } catch (error) {
-//         console.error('Error resending OTP:', error);
-//         res.json({ success: false, message: 'Something went wrong. Please try again.' });
-//     }
-// };
 
 exports.logout = async(req,res)=>{
   try{
