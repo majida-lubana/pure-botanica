@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Referral – Pure Botanica</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary-color: #1a3c34;
+      --secondary-color: #e0ecf8;
+      --dark-text: #1a3c34;
+      --light-text: #5f8b88;
+      --success: #2ecc71;
+      --warning: #f1c40f;
+      --danger: #e74c3c;
+      --border-radius: 8px;
+      --shadow: 0 4px 6px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.15);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.15), 0 4px 6px -2px rgba(0,0,0,.1);
+      --header-height: 70px;
+    }
+    body {
+      background:#f8f9fa;
+      font-family:'Inter','Segoe UI',Arial,sans-serif;
+      color:var(--dark-text);
+      line-height:1.6;
+      margin:0;
+      padding-top:var(--header-height);
+    }
+    .container {max-width:100%; padding:0; margin:0; width:100vw;}
+    .grid {display:grid; grid-template-columns:auto 1fr; gap:0; width:100%;}
+    .partial .sidebar {
+      margin-left:-85px;
+      position:sticky;
+      top:var(--header-height);
+      align-self:start;
+      height:calc(100vh - var(--header-height));
+      overflow-y:auto;
+      z-index:10;
+    }
+    .content {
+      background:#fff;
+      border-radius:var(--border-radius);
+      box-shadow:0 2px 10px rgba(0,0,0,.05);
+      padding:40px;
+      width:100%;
+      max-width:none;
+      margin-left:-10px;
+      padding-top:calc(40px + var(--header-height));
+    }
+    .page-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:3rem;
+      padding-bottom:1.5rem;
+      border-bottom:1px solid rgba(26,60,52,.2);
+    }
+    .page-title {font-size:1.75rem; font-weight:700; color:var(--dark-text); margin:0;}
+    .referral-card {
+      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color:#fff;
+      border-radius:var(--border-radius);
+      padding:2rem;
+      text-align:center;
+      box-shadow:var(--shadow);
+      margin-bottom:2rem;
+    }
+    .referral-card h4 {margin:0 0 .5rem; font-size:1.1rem; opacity:.9;}
+    .referral-code {
+      font-size:2.2rem;
+      font-weight:700;
+      letter-spacing:.1em;
+      margin:.5rem 0;
+      background:rgba(255,255,255,.1);
+      padding:1rem;
+      border-radius:8px;
+      display:inline-block;
+    }
+    .copy-btn {
+      background:rgba(255,255,255,.2);
+      border:1px solid rgba(255,255,255,.4);
+      color:#fff;
+      padding:.5rem 1.2rem;
+      border-radius:2rem;
+      font-size:.9rem;
+      cursor:pointer;
+      transition:.2s;
+      margin-top:1rem;
+    }
+    .copy-btn:hover {background:rgba(255,255,255,.3);}
+    .stats-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:1.5rem;
+      margin-bottom:2rem;
+    }
+    .stat-card {
+      background:#fff;
+      border-radius:var(--border-radius);
+      box-shadow:var(--shadow);
+      padding:1.5rem;
+      text-align:center;
+      transition:transform .2s,box-shadow .2s;
+    }
+    .stat-card:hover {transform:translateY(-2px); box-shadow:var(--shadow-lg);}
+    .stat-card .icon {font-size:1.8rem; color:var(--primary-color); margin-bottom:.5rem;}
+    .stat-card .value {font-size:1.5rem; font-weight:700; color:var(--dark-text);}
+    .stat-card .label {font-size:.85rem; color:var(--light-text);}
+    .history-table {width:100%; border-collapse:collapse; margin-top:1rem;}
+    .history-table th {
+      background:var(--secondary-color);
+      color:var(--dark-text);
+      padding:.75rem 1rem;
+      text-align:left;
+      font-weight:600;
+      font-size:.9rem;
+    }
+    .history-table td {padding:.75rem 1rem; border-bottom:1px solid rgba(26,60,52,.1);}
+    .history-table tr:hover {background:rgba(224,236,248,.3);}
+    .status-badge {
+      padding:.35rem .75rem;
+      border-radius:2rem;
+      font-size:.75rem;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+    }
+    .status-badge i {font-size:.7rem;}
+    .status-pending {background:rgba(241,196,15,.1); color:#e67e22;}
+    .status-completed {background:rgba(46,204,113,.1); color:var(--success);}
+    .share-buttons {
+      display:flex;
+      flex-wrap:wrap;
+      gap:.75rem;
+      justify-content:center;
+      margin-top:1.5rem;
+    }
+    .share-btn {
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.6rem 1rem;
+      border-radius:2rem;
+      font-size:.9rem;
+      font-weight:600;
+      text-decoration:none;
+      transition:.2s;
+    }
+    .share-btn.whatsapp {background:#25d366; color:#fff;}
+    .share-btn.email {background:#ea4335; color:#fff;}
+    .share-btn.facebook {background:#1877f2; color:#fff;}
+    .share-btn.twitter {background:#1da1f2; color:#fff;}
+    .share-btn:hover {opacity:.9; transform:scale(1.03);}
+    .empty-state {
+      text-align:center;
+      padding:3rem 1rem;
+      color:var(--light-text);
+    }
+    .empty-state i {font-size:3rem; margin-bottom:1rem; opacity:.5;}
+    @media (max-width:767px){
+      .partial .sidebar {margin-left:0;}
+      .content {margin-left:0; padding:1.5rem; padding-top:calc(1.5rem + var(--header-height));}
+      .page-header {flex-direction:column; align-items:flex-start; gap:1rem;}
+      .referral-code {font-size:1.8rem;}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="partial">
+    <%- include("../../views/partials/user/header") %>
+  </div>
+
+  <div class="container">
+    <div class="grid">
+      <!-- Sidebar -->
+      <div class="partial">
+        <%- include("../../views/partials/user/sidebar") %>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content">
+        <div class="page-header">
+          <h2 class="page-title">Invite Friends & Earn</h2>
+        </div>
+
+        <!-- Referral Card -->
+        <div class="referral-card">
+          <h4>Your Referral Code</h4>
+          <div class="referral-code" id="refCode"><%= referral.code %></div>
+          <button class="copy-btn" id="copyBtn">
+            <i class="fas fa-copy"></i> Copy Code
+          </button>
+          <p class="mt-3 mb-0 small opacity-75">
+            Share this code – your friend gets <strong>₹100 off</strong> on first order, 
+            you get <strong>₹100 wallet credit</strong> when they complete a purchase.
+          </p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="icon"><i class="fas fa-users"></i></div>
+            <div class="value"><%= referral.invitedCount %></div>
+            <div class="label">Friends Invited</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon"><i class="fas fa-gift"></i></div>
+            <div class="value">₹<%= referral.earned %></div>
+            <div class="label">Earned So Far</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon"><i class="fas fa-clock"></i></div>
+            <div class="value"><%= referral.pendingCount %></div>
+            <div class="label">Pending Credits</div>
+          </div>
+        </div>
+
+        <!-- Share Buttons
+        <div class="share-buttons">
+          <a href="https://api.whatsapp.com/send?text=Use my code <%= referral.code %> and get ₹100 off your first order at Pure Botanica! 🌿 <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
+             target="_blank" class="share-btn whatsapp">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </a>
+          <a href="mailto:?subject=Get ₹100 off at Pure Botanica!&body=Hi! Use my referral code <%= referral.code %> when you sign up and get ₹100 off your first order.%0A%0ASign up here: <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
+             class="share-btn email">
+            <i class="fas fa-envelope"></i> Email
+          </a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u=<%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
+             target="_blank" class="share-btn facebook">
+            <i class="fab fa-facebook-f"></i> Facebook
+          </a>
+          <a href="https://twitter.com/intent/tweet?text=Get ₹100 off your first order at Pure Botanica with my code <%= referral.code %>! 🌿 <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
+             target="_blank" class="share-btn twitter">
+            <i class="fab fa-twitter"></i> Twitter
+          </a>
+        </div> -->
+
+        <!-- Referral History -->
+        <h5 class="mt-5 mb-3">Referral History</h5>
+        <% if (referral.history.length === 0) { %>
+          <div class="empty-state">
+            <i class="fas fa-user-friends"></i>
+            <p>No referrals yet. Invite friends and watch the credits roll in!</p>
+          </div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Friend</th>
+                  <th>Date Invited</th>
+                  <th>Status</th>
+                  <th>Earned</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% referral.history.forEach(h => { %>
+                  <tr>
+                    <td>
+                      <strong><%= h.friendName || 'User' %></strong><br>
+                      <small class="text-muted"><%= h.friendEmail %></small>
+                    </td>
+                    <td>
+                      <%= new Date(h.invitedAt).toLocaleDateString('en-IN', {
+                        day:'2-digit',
+                        month:'short',
+                        year:'numeric'
+                      }) %>
+                    </td>
+                    <td>
+                      <span class="status-badge <%= h.status === 'completed' ? 'status-completed' : 'status-pending' %>">
+                        <i class="<%= h.status === 'completed' ? 'fas fa-check-circle' : 'fas fa-clock' %>"></i>
+                        <%= h.status.charAt(0).toUpperCase() + h.status.slice(1) %>
+                      </span>
+                    </td>
+                    <td class="fw-bold <%= h.status === 'completed' ? 'text-success' : '' %>">
+                      <%= h.status === 'completed' ? '+₹100' : '—' %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+
+        <!-- Info Boxes -->
+        <div class="row mt-5">
+          <div class="col-md-6 mb-3">
+            <div class="p-3 bg-light rounded shadow-sm">
+              <h6><i class="fas fa-info-circle text-primary"></i> How It Works</h6>
+              <ul class="small text-muted mb-0">
+                <li>Share your code with friends</li>
+                <li>They get ₹100 off on signup</li>
+                <li>You get ₹100 when they place first order</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="p-3 bg-light rounded shadow-sm">
+              <h6><i class="fas fa-gift text-success"></i> Benefits</h6>
+              <ul class="small text-muted mb-0">
+                <li>Unlimited referrals</li>
+                <li>Instant wallet credits</li>
+                <li>Use for any purchase</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="partial">
+    <%- include("../../views/partials/user/footer") %>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Copy referral code to clipboard
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const code = document.getElementById('refCode').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.style.background = 'rgba(46, 204, 113, 0.3)';
+        setTimeout(() => {
+          btn.innerHTML = original;
+          btn.style.background = 'rgba(255,255,255,.2)';
+        }, 2000);
+      }).catch(err => {
+        alert('Failed to copy code: ' + err);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -35,10 +35,16 @@ exports.signupSchema = z.object({
     .regex(/[@$!%*?&]/, "Must contain at least one special character"),
   
   confirmPassword: z.string()
-    .min(1, "Confirm password is required")
-}).refine((data)=>data.password === data.confirmPassword,{
-  message:"Passwords do not match",
-  path:[["confirmPassword"]]
+    .min(1, "Confirm password is required"),
+    referralCode: z.string()
+    .min(6, "Referral code must be at least 6 characters")
+    .max(10, "Referral code must not exceed 10 characters")
+    .regex(/^[A-Z0-9]+$/, "Referral code must contain only uppercase letters and numbers")
+    .optional()
+    .or(z.literal(''))
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
 })
 
 
@@ -56,12 +62,12 @@ exports.forgotPasswordSchema = z.object({
     .toLowerCase()
 })
 
-exports.resetPasswordSchema = z.object({
-  password:passwordSchema,
-  confirmPassword: z.string()
-    .min(1,'confirm password is required'),
-    token: z.string().min(1,'Reset token is required'),
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+// exports.resetPasswordSchema = z.object({
+//   password:passwordSchema,
+//   confirmPassword: z.string()
+//     .min(1,'confirm password is required'),
+//     token: z.string().min(1,'Reset token is required'),
+// }).refine((data) => data.password === data.confirmPassword, {
+//     message: "Passwords do not match",
+//     path: ["confirmPassword"],
+//   });

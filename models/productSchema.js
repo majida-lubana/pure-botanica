@@ -29,11 +29,13 @@ const productSchema = new mongoose.Schema({
   },
   productOffer: {
     type: Number,
-    default: 0
+    default: 0,
+    min: [0, 'Offer cannot be negative'],
+    max: [100, 'Offer cannot exceed 100%']
   },
   quantity: {
     type: Number,
-     min:[0,'Quantity cannot be negative']
+    min: [0, 'Quantity cannot be negative']
   },
   skinType: {
     type: String,
@@ -82,6 +84,17 @@ const productSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
+
+// === ADD VIRTUAL HERE ===
+productSchema.virtual('finalPrice').get(function () {
+  const offerPrice = this.regularPrice - (this.regularPrice * (this.productOffer || 0) / 100);
+  return Math.min(this.regularPrice, this.salePrice || this.regularPrice, offerPrice).toFixed(2);
+});
+
+// Enable virtuals in JSON output
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
+// =========================
 
 const Product = mongoose.model("Product", productSchema);
 module.exports = Product;

@@ -362,7 +362,7 @@
         </td>
         <td class="table-cell font-medium"><%= order.user ? order.user.name : 'Unknown User' %></td>
        <td class="table-cell">
-  <small>Raw: <%= order.status %></small><br>
+  <!-- <small>Raw: <%= order.status %></small><br> -->
   <span class="status-badge status-<%= order.status.toLowerCase().replace(/ /g, '_') %>">
     <%= order.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') %>
   </span>

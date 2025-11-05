@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Error</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .error-container {
+      background: white;
+      padding: 40px 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      color: #e74c3c;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #2c3e50;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #7f8c8d;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .retry-btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    }
+
+    .retry-btn:hover {
+      background-color: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+    }
+
+    .retry-btn:active {
+      transform: translateY(0);
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      font-size: 13px;
+      color: #95a5a6;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h1>Payment Failed</h1>
+    <p>We're sorry, but there was an error processing your payment. Please check your details and try again.</p>
+    <button class="retry-btn" onclick="retryPayment()">
+      Retry Payment
+    </button>
+    <div class="footer-note">
+      Need help? <a href="#" style="color: #3498db; text-decoration: none;">Contact Support</a>
+    </div>
+  </div>
+
+  <script>
+    function retryPayment() {
+      // Replace with your actual retry logic
+      alert("Redirecting to payment page...");
+      // window.location.href = "/checkout";
+    }
+  </script>
+</body>
+</html>

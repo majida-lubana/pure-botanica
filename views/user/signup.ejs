@@ -10,7 +10,7 @@
     .error-message { color: red; font-size: 0.75rem; margin-top: 0.25rem; }
     .password-container { position: relative; }
     .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; }
-    .password-input { padding-right: 2.5rem; } /* Added to prevent text overlap with icon */
+    .password-input { padding-right: 2.5rem; } /* Prevent text overlap with icon */
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-10 relative">
@@ -67,6 +67,23 @@
         <% } %>
         <div id="error3" class="error-message"></div>
       </div>
+
+      <!-- Referral Code Field (Optional) -->
+      <div>
+        <input
+          class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black"
+          placeholder="Referral Code (optional)"
+          type="text"
+          name="referralCode"
+          id="referralCode"
+          value="<%= old.referralCode || '' %>"
+        />
+        <% if (errors.referralCode) { %>
+          <div class="error-message"><%= errors.referralCode %></div>
+        <% } %>
+        <div id="errorReferral" class="error-message"></div>
+      </div>
+
       <div class="password-container">
         <input
           class="w-full bg-gray-50 border border-gray-200 text-xs text-gray-600 rounded-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black password-input"
@@ -97,14 +114,17 @@
         <% } %>
         <div id="error5" class="error-message"></div>
       </div>
+
       <% if (locals.message && message.length > 0) { %>
         <div class="error-message text-red-500 mb-4"><%= message %></div>
       <% } %>
+
       <div class="flex items-center space-x-2">
         <button class="bg-black text-white text-xs px-4 py-1 rounded-sm" type="submit">SIGN UP</button>
         <label class="text-gray-600 text-xs select-none">I agree to the privacy policy</label>
       </div>
     </form>
+
     <div class="flex items-center my-4 text-xs text-gray-500">
       <div class="flex-grow border-t border-gray-300"></div>
       <span class="mx-3 whitespace-nowrap">or sign in with</span>
@@ -119,6 +139,7 @@
       </button>
     </div>
   </div>
+
   <script>
     const togglePassword = document.getElementById('togglePassword');
     const password = document.getElementById('password');
@@ -140,4 +161,4 @@
     });
   </script>
 </body>
-</html>
+</html>-

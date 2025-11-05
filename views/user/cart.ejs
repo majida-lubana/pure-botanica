@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,12 +29,13 @@
       -webkit-appearance: none; 
       margin: 0; 
     }
-    .discount-badge {
-      background-color: #10b981;
+    .offer-badge {
+      background: #ef4444;
       color: white;
-      padding: 2px 8px;
-      border-radius: 4px;
       font-size: 0.75rem;
+      font-weight: bold;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
     }
   </style>
 </head>
@@ -46,408 +46,251 @@
     <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Shopping Cart</h1>
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Cart Items Section -->
+      <!-- Cart Items -->
       <div class="lg:col-span-2">
         <% if (cart && cart.items && cart.items.length > 0) { %>
           <div class="bg-white rounded-lg shadow overflow-hidden" id="cart-items">
-              <!-- Cart Header -->
-              <div class="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b">
-                <div class="md:col-span-6">
-                  <span class="font-semibold text-gray-700">Product</span>
-                </div>
-                <div class="md:col-span-2 text-center">
-                  <span class="font-semibold text-gray-700">Price</span>
-                </div>
-                <div class="md:col-span-2 text-center">
-                  <span class="font-semibold text-gray-700">Quantity</span>
-                </div>
-                <div class="md:col-span-2 text-right">
-                  <span class="font-semibold text-gray-700">Total</span>
+            <div class="hidden md:grid md:grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b">
+              <div class="md:col-span-6"><span class="font-semibold text-gray-700">Product</span></div>
+              <div class="md:col-span-2 text-center"><span class="font-semibold text-gray-700">Price</span></div>
+              <div class="md:col-span-2 text-center"><span class="font-semibold text-gray-700">Quantity</span></div>
+              <div class="md:col-span-2 text-right"><span class="font-semibold text-gray-700">Total</span></div>
+            </div>
+            
+            <% cart.items.forEach((item) => { %>
+              <div class="border-b last:border-b-0 cart-item" data-product-id="<%= item.productId._id %>">
+                <div class="md:grid md:grid-cols-12 gap-4 p-4 flex flex-wrap">
+                  <!-- Image + Name -->
+                  <div class="md:col-span-6 flex items-center space-x-4 mb-4 md:mb-0 w-full md:w-auto">
+                    <div class="w-20 h-20 flex-shrink-0">
+                      <img 
+                        src="/Uploads/product-images/<%= item.productId.productImages?.[0] || '' %>" 
+                        alt="<%= item.productId.productName %>" 
+                        class="w-full h-full object-cover rounded"
+                        onerror="this.src='/images/placeholder.jpg'"
+                      >
+                    </div>
+                    <div>
+                      <h3 class="font-medium text-gray-800"><%= item.productId.productName %></h3>
+                      <p class="text-sm text-gray-500 mt-1 hidden md:block">
+                        <%= item.productId.description?.substring(0, 40) + '...' || '' %>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <!-- Price with Offer -->
+                  <div class="md:col-span-2 flex md:justify-center items-center mb-4 md:mb-0 w-1/2 md:w-auto">
+                    <div class="md:text-center">
+                      <div class="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                        <span class="text-2xl font-bold text-green-600">
+                          ₹<%= item.productId.pricing.displayPrice.toFixed(2) %>
+                        </span>
+                        <% if (item.productId.pricing.savings > 0) { %>
+                          <span class="text-sm line-through text-gray-500">
+                            ₹<%= item.productId.pricing.originalPrice.toFixed(2) %>
+                          </span>
+                          <span class="offer-badge"><%= item.productId.pricing.discountPercentage %>%</span>
+                        <% } %>
+                      </div>
+                      <% if (item.productId.pricing.savings > 0) { %>
+                        <p class="text-xs text-gray-600 mt-1">Save ₹<%= item.productId.pricing.savings.toFixed(2) %></p>
+                      <% } %>
+                    </div>
+                  </div>
+                  
+                  <!-- Quantity -->
+                  <div class="md:col-span-2 flex md:justify-center items-center mb-4 md:mb-0 w-1/2 md:w-auto">
+                    <div class="flex items-center border rounded">
+                      <button data-action="decrease" data-product-id="<%= item.productId._id %>" class="px-2 py-1 text-gray-600 hover:bg-gray-100 update-quantity-btn">-</button>
+                      <input type="number" value="<%= item.quantity %>" min="1" max="<%= item.productId.quantity %>" class="quantity-input text-center w-10" readonly>
+                      <button data-action="increase" data-product-id="<%= item.productId._id %>" class="px-2 py-1 text-gray-600 hover:bg-gray-100 update-quantity-btn">+</button>
+                    </div>
+                  </div>
+                  
+                  <!-- Total -->
+                  <div class="md:col-span-2 flex md:justify-end items-center w-full md:w-auto justify-between">
+                    <span 
+                      class="text-gray-900 font-medium total-price md:text-right"
+                      data-sale-price="<%= item.productId.pricing.displayPrice.toFixed(2) %>"
+                      data-original-price="<%= item.productId.pricing.originalPrice.toFixed(2) %>"
+                    >
+                      ₹<%= (item.productId.pricing.displayPrice * item.quantity).toFixed(2) %>
+                    </span>
+                    <form action="/cart/remove" method="POST" class="remove-form ml-4">
+                      <input type="hidden" name="productId" value="<%= item.productId._id %>">
+                      <button type="submit" class="text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </form>
+                  </div>
                 </div>
               </div>
-              
-<% cart.items.forEach((item, index) => { %>
-  <div class="border-b last:border-b-0 cart-item" data-product-id="<%= item.productId._id %>">
-    <div class="md:grid md:grid-cols-12 gap-4 p-4 flex flex-wrap">
-      <!-- Product Information -->
-      <div class="md:col-span-6 flex items-center space-x-4 mb-4 md:mb-0 w-full md:w-auto">
-        <div class="w-20 h-20 flex-shrink-0">
-          <% if (item.productId.productImages && item.productId.productImages.length > 0) { %>
-            <img 
-              src="/Uploads/product-images/<%= item.productId.productImages[0] %>" 
-              alt="<%= item.productId.productName %>" 
-              class="w-full h-full object-cover rounded"
-              onerror="this.src='/images/placeholder.jpg'"
-            >
-          <% } else { %>
-            <img 
-              src="/images/placeholder.jpg" 
-              alt="No Image" 
-              class="w-full h-full object-contain rounded"
-            >
-          <% } %>
-        </div>
-        <div>
-          <h3 class="font-medium text-gray-800">
-            <%= item.productId.productName %>
-          </h3>
-          <p class="text-sm text-gray-500 mt-1 hidden md:block">
-            <%= item.productId.description ? item.productId.description.substring(0, 40) + '...' : '' %>
-          </p>
-        </div>
-      </div>
-      
-      <!-- Price -->
-      <div class="md:col-span-2 flex md:justify-center items-center mb-4 md:mb-0 w-1/2 md:w-auto">
-        <% 
-          const salePrice = item.productId?.salePrice || 0;
-          const regularPrice = item.productId?.regularPrice || 0;
-        %>
-        <div class="md:text-center">
-          <% if (regularPrice > salePrice) { %>
-            <div class="flex md:flex-col md:items-center">
-              <span class="text-gray-500 line-through text-sm mr-2 md:mr-0">₹<%= regularPrice.toFixed(2) %></span>
-              <span class="text-gray-900 font-medium">₹<%= salePrice.toFixed(2) %></span>
-            </div>
-            <% if (regularPrice > salePrice) { %>
-              <span class="discount-badge md:mt-1 md:inline-block hidden">
-                <%= Math.round(((regularPrice - salePrice) / regularPrice) * 100) %>% off
-              </span>
-            <% } %>
-          <% } else { %>
-            <span class="text-gray-900 font-medium">₹<%= salePrice.toFixed(2) %></span>
-          <% } %>
-        </div>
-      </div>
-      
-      <!-- Quantity -->
-      <div class="md:col-span-2 flex md:justify-center items-center mb-4 md:mb-0 w-1/2 md:w-auto">
-        <div class="flex items-center border rounded">
-          <button 
-            data-action="decrease" 
-            data-product-id="<%= item.productId._id %>"
-            class="px-2 py-1 text-gray-600 hover:bg-gray-100 update-quantity-btn"
-          >
-            -
-          </button>
-          <input 
-            type="number" 
-            name="quantity" 
-            value="<%= item.quantity %>" 
-            min="1" 
-            max="<%= item.productId.quantity + item.quantity %>"
-            class="quantity-input text-center w-10"
-            readonly
-          >
-          <button 
-            data-action="increase" 
-            data-product-id="<%= item.productId._id %>"
-            class="px-2 py-1 text-gray-600 hover:bg-gray-100 update-quantity-btn"
-          >
-            +
-          </button>
-        </div>
-      </div>
-      
-      <!-- Total -->
-      <div class="md:col-span-2 flex md:justify-end items-center w-full md:w-auto justify-between">
-        <span 
-          class="text-gray-900 font-medium total-price md:text-right" 
-          data-total="<%= (salePrice * item.quantity).toFixed(2) %>"
-          data-sale-price="<%= salePrice.toFixed(2) %>"
-        >
-          ₹<%= (salePrice * item.quantity).toFixed(2) %>
-        </span>
-        <form action="/cart/remove" method="POST" class="remove-form ml-4">
-          <input type="hidden" name="productId" value="<%= item.productId._id %>">
-          <button type="submit" class="text-gray-400 hover:text-red-500">
-            <i class="fas fa-trash"></i>
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-<% }); %>
-            </div>
+            <% }); %>
+          </div>
 
-          
-         <!-- Pagination Controls -->
-    <% if (pagination.totalPages > 1) { %>
-      <div class="mt-6 flex justify-center items-center space-x-2">
-        <!-- Previous Button -->
-        <a
-          href="/cart?page=<%= pagination.currentPage - 1 %>"
-          class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100 <%= !pagination.hasPrevPage ? 'pointer-events-none opacity-50' : '' %>"
-        >
-          Previous
-        </a>
+          <!-- Pagination -->
+          <% if (pagination.totalPages > 1) { %>
+            <div class="mt-6 flex justify-center space-x-2">
+              <a href="/cart?page=<%= pagination.currentPage - 1 %>" class="px-4 py-2 border rounded <%= !pagination.hasPrevPage ? 'opacity-50 pointer-events-none' : '' %>">Previous</a>
+              <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+                <a href="/cart?page=<%= i %>" class="px-4 py-2 border rounded <%= pagination.currentPage === i ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100' %>"><%= i %></a>
+              <% } %>
+              <a href="/cart?page=<%= pagination.currentPage + 1 %>" class="px-4 py-2 border rounded <%= !pagination.hasNextPage ? 'opacity-50 pointer-events-none' : '' %>">Next</a>
+            </div>
+          <% } %>
 
-        <!-- Page Numbers -->
-        <% for (let i = 1; i <= pagination.totalPages; i++) { %>
-          <a
-            href="/cart?page=<%= i %>"
-            class="px-4 py-2 border rounded <%= pagination.currentPage === i ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100' %>"
-          >
-            <%= i %>
-          </a>
+          <div class="mt-4">
+            <a href="/shop" class="text-blue-600 hover:text-blue-800 flex items-center"><i class="fas fa-arrow-left mr-2"></i> Continue Shopping</a>
+          </div>
+        <% } else { %>
+          <div class="text-center bg-white p-10 rounded-lg shadow">
+            <i class="fas fa-shopping-cart text-5xl text-gray-400 mb-6"></i>
+            <h2 class="text-2xl font-medium text-gray-700 mb-4">Your cart is empty</h2>
+            <a href="/shop" class="inline-block bg-black text-white py-2 px-6 rounded hover:bg-gray-900">Start Shopping</a>
+          </div>
         <% } %>
-
-        <!-- Next Button -->
-        <a
-          href="/cart?page=<%= pagination.currentPage + 1 %>"
-          class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100 <%= !pagination.hasNextPage ? 'pointer-events-none opacity-50' : '' %>"
-        >
-          Next
-        </a>
       </div>
-    <% } %>
-
-    <div class="mt-4 flex justify-between items-center">
-      <a href="/shop" class="text-blue-600 hover:text-blue-800 flex items-center">
-        <i class="fas fa-arrow-left mr-2"></i> Continue Shopping
-      </a>
-    </div>
-  <% } else { %>
-    <div class="text-center bg-white p-10 rounded-lg shadow">
-      <div class="text-gray-400 mb-6">
-        <i class="fas fa-shopping-cart text-5xl"></i>
-      </div>
-      <h2 class="text-2xl font-medium text-gray-700 mb-4">Your cart is empty</h2>
-      <p class="text-gray-500 mb-6">Looks like you haven't added any products to your cart yet.</p>
-      <a
-        href="/shop"
-        class="inline-block bg-black text-white py-2 px-6 rounded hover:bg-gray-900 transition"
-      >
-        Start Shopping
-      </a>
-    </div>
-  <% } %>
-</div>
       
-<!-- Order Summary Section -->
-<div class="lg:col-span-1">
-  <div class="bg-white rounded-lg shadow p-6 sticky top-6" id="order-summary">
-    <h2 class="text-lg font-bold mb-4 text-gray-800 pb-2 border-b">
-      Order Summary
-    </h2>
-    <div class="space-y-3 mb-6">
-      <div class="flex justify-between text-sm">
-        <span class="text-gray-600">Subtotal</span>
-        <span id="subtotal">₹<%= subtotal.toFixed(2) %></span>
-      </div>
-      <% if (discount > 0) { %>
-        <div class="flex justify-between text-sm text-green-600">
-          <span>Discount</span>
-          <span id="discount">-₹<%= discount.toFixed(2) %></span>
+      <!-- Order Summary -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow p-6 sticky top-6" id="order-summary">
+          <h2 class="text-lg font-bold mb-4 pb-2 border-b">Order Summary</h2>
+          <div class="space-y-3 mb-6">
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Subtotal</span><span id="subtotal">₹<%= subtotal.toFixed(2) %></span></div>
+            <% if (discount > 0) { %>
+              <div class="flex justify-between text-sm text-green-600"><span>Discount</span><span id="discount">-₹<%= discount.toFixed(2) %></span></div>
+            <% } %>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Shipping</span><span id="shipping">₹<%= shippingCost.toFixed(2) %></span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Tax</span><span id="tax">₹<%= tax.toFixed(2) %></span></div>
+          </div>
+          <div class="flex justify-between font-bold text-lg pt-4 border-t"><span>Total</span><span id="total">₹<%= total.toFixed(2) %></span></div>
+          <a href="/checkout" class="block mt-6">
+            <button class="w-full bg-black text-white py-3 rounded hover:bg-gray-900 font-medium">Proceed to Checkout</button>
+          </a>
+          <div class="mt-4 text-center text-sm text-gray-500"><i class="fas fa-shield-alt mr-2 text-green-500"></i>Secure Checkout</div>
         </div>
-      <% } %>
-      <div class="flex justify-between text-sm">
-        <span class="text-gray-600">Shipping</span>
-        <span id="shipping">₹<%= shippingCost.toFixed(2) %></span>
       </div>
-      <div class="flex justify-between text-sm">
-        <span class="text-gray-600">Tax</span>
-        <span id="tax">₹<%= tax.toFixed(2) %></span>
-      </div>
-    </div>
-    <div class="flex justify-between font-bold text-lg pt-4 border-t">
-      <span>Total</span>
-      <span id="total">₹<%= total.toFixed(2) %></span>
-    </div>
-    <a href="/checkout" class="block mt-6">
-      <button class="w-full bg-black text-white py-3 rounded hover:bg-gray-900 transition font-medium">
-        Proceed to Checkout
-      </button>
-    </a>
-    <div class="mt-4 flex items-center justify-center text-gray-500 text-sm">
-      <i class="fas fa-shield-alt mr-2 text-green-500"></i>
-      Secure Checkout
-    </div>
-  </div>
-</div>
     </div>
   </div>
 
   <%- include('../partials/user/footer') %>
 
   <script>
-document.addEventListener('DOMContentLoaded', function () {
-  let isNotificationActive = false;
+    document.addEventListener('DOMContentLoaded', () => {
+      let skipSummary = false;
 
-  function showNotification(message, isSuccess = true) {
-    if (isNotificationActive) return;
-    isNotificationActive = true;
+      const showNotification = (msg, success = true) => {
+        const div = document.createElement('div');
+        div.className = `fixed top-20 right-4 px-4 py-2 rounded text-white shadow-lg z-50 ${success ? 'bg-green-500' : 'bg-red-500'}`;
+        div.textContent = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+      };
 
-    const notification = document.createElement('div');
-    notification.className = `text-white px-4 py-2 rounded shadow-lg ${
-      isSuccess ? 'bg-green-500' : 'bg-red-500'
-    }`;
-    notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.zIndex = '1000';
-    notification.style.transform = 'translateX(100%)';
-    notification.style.transition = 'transform 0.3s ease-out';
-    document.body.appendChild(notification);
-    setTimeout(() => (notification.style.transform = 'translateX(0)'), 10);
-    setTimeout(() => {
-      notification.style.transform = 'translateX(100%)';
-      setTimeout(() => {
-        notification.remove();
-        isNotificationActive = false;
-      }, 300);
-    }, 3000);
-  }
-
-  function updateOrderSummary(data) {
-    document.getElementById('subtotal').textContent = `₹${data.subtotal.toFixed(2)}`;
-    const discountContainer = document.getElementById('discount')?.parentElement;
-    if (data.discount > 0) {
-      if (!discountContainer) {
-        const discountDiv = document.createElement('div');
-        discountDiv.className = 'flex justify-between text-sm text-green-600';
-        discountDiv.innerHTML = `<span>Discount</span><span id="discount">-₹${data.discount.toFixed(2)}</span>`;
-        document.getElementById('shipping').parentElement.insertAdjacentElement('beforebegin', discountDiv);
-      } else {
-        document.getElementById('discount').textContent = `-₹${data.discount.toFixed(2)}`;
-      }
-    } else if (discountContainer) {
-      discountContainer.remove();
-    }
-    document.getElementById('shipping').textContent = `₹${data.shippingCost.toFixed(2)}`;
-    document.getElementById('tax').textContent = `₹${data.tax.toFixed(2)}`;
-    document.getElementById('total').textContent = `₹${data.total.toFixed(2)}`;
-    const cartCountEl = document.getElementById('cart-count');
-    if (cartCountEl) cartCountEl.textContent = data.cartCount;
-  }
-
-  function updateCartContents() {
-    fetch('/cart/summary', { 
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          updateOrderSummary(data);
-        }
-      })
-      .catch((error) => console.error('Error updating summary:', error));
-  }
-
-  function attachEventListeners() {
-    document.querySelectorAll('.update-quantity-btn').forEach((button) => {
-      button.addEventListener('click', function (e) {
-        e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const action = this.getAttribute('data-action');
-        const quantityInput = this.parentElement.querySelector('.quantity-input');
-        const currentQuantity = parseInt(quantityInput.value);
-        const maxQuantity = parseInt(quantityInput.getAttribute('max'));
-
-        fetch('/cart/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, action }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              const maxLimit = 5
-              const newQuantity = action === 'increase' ? currentQuantity + 1 : currentQuantity - 1;
-
-              if(newQuantity>maxLimit){
-                showNotification(`You can only add up to ${maxLimit} units of this product.`, false);
-                return
-              }
-              if (newQuantity >= 1 && newQuantity <= maxQuantity) {
-                quantityInput.value = newQuantity;
-                const totalPriceEl = quantityInput.closest('.cart-item').querySelector('.total-price');
-                const salePrice = parseFloat(totalPriceEl.getAttribute('data-sale-price'));
-                const newTotal = (salePrice * newQuantity).toFixed(2);
-                totalPriceEl.textContent = `₹${newTotal}`;
-                totalPriceEl.setAttribute('data-total', newTotal);
-                updateOrderSummary(data);
-                showNotification(`Quantity ${action === 'increase' ? 'increased' : 'decreased'} successfully!`);
-              } else {
-                showNotification(`Cannot ${action} quantity beyond ${maxQuantity}`, false);
-              }
-            } else {
-              showNotification(data.message || 'Failed to update quantity', false);
-            }
-          })
-          .catch((error) => {
-            console.error('Error:', error);
-            showNotification('An error occurred', false);
-          });
-      });
-    });
-
-    document.querySelectorAll('.remove-form').forEach((form) => {
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const productId = this.querySelector('input[name="productId"]').value;
-
-        const result = await Swal.fire({
-          title: 'Are you sure?',
-          text: 'Do you want to remove this product from your cart?',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#3085d6',
-          confirmButtonText: 'Yes, remove it!',
-          cancelButtonText: 'Cancel'
-        });
-
-        if (result.isConfirmed) {
-          try {
-            const response = await fetch('/cart/remove', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId }),
-            });
-            const data = await response.json();
-
-            if (data.success) {
-              updateOrderSummary(data);
-              const item = document.querySelector(`.cart-item[data-product-id="${productId}"]`);
-              if (item) item.remove();
-              await Swal.fire({
-                title: 'Removed!',
-                text: 'Product removed from cart.',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-              });
-              if (!document.querySelectorAll('.cart-item').length || data.cartCount === 0) {
-                location.reload();
-              }
-            } else {
-              await Swal.fire({
-                title: 'Error!',
-                text: data.message || 'Failed to remove product',
-                icon: 'error',
-                confirmButtonText: 'OK'
-              });
-            }
-          } catch (error) {
-            console.error('Error:', error);
-            await Swal.fire({
-              title: 'Error!',
-              text: 'An error occurred. Please try again.',
-              icon: 'error',
-              confirmButtonText: 'OK'
-            });
+      const updateSummary = (data) => {
+        document.getElementById('subtotal').textContent = `₹${data.subtotal.toFixed(2)}`;
+        const disc = document.getElementById('discount');
+        if (data.discount > 0) {
+          if (disc) disc.textContent = `-₹${data.discount.toFixed(2)}`;
+          else {
+            const el = document.createElement('div');
+            el.className = 'flex justify-between text-sm text-green-600';
+            el.innerHTML = `<span>Discount</span><span id="discount">-₹${data.discount.toFixed(2)}</span>`;
+            document.getElementById('shipping').parentElement.insertAdjacentElement('beforebegin', el);
           }
-        }
-      });
-    });
-  }
+        } else if (disc) disc.parentElement.remove();
+        document.getElementById('shipping').textContent = `₹${data.shippingCost.toFixed(2)}`;
+        document.getElementById('tax').textContent = `₹${data.tax.toFixed(2)}`;
+        document.getElementById('total').textContent = `₹${data.total.toFixed(2)}`;
+      };
 
-  setInterval(updateCartContents, 5000);
-  attachEventListeners();
-});
+      const calcClientSummary = () => {
+        let sub = 0, disc = 0;
+        document.querySelectorAll('.cart-item').forEach(item => {
+          const qty = parseInt(item.querySelector('.quantity-input').value);
+          const dp = parseFloat(item.querySelector('.total-price').dataset.salePrice);
+          const op = parseFloat(item.querySelector('.total-price').dataset.originalPrice);
+          sub += dp * qty;
+          disc += (op - dp) * qty;
+        });
+        const ship = sub > 1000 ? 0 : 50;
+        const tax = sub * 0.1;
+        const total = sub - disc + ship + tax;
+        return { subtotal: sub, discount: disc, shippingCost: ship, tax, total };
+      };
+
+      document.querySelectorAll('.update-quantity-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const productId = btn.dataset.productId;
+          const action = btn.dataset.action;
+          const input = btn.parentElement.querySelector('.quantity-input');
+          const current = parseInt(input.value);
+          const max = parseInt(input.max);
+          const newQty = action === 'increase' ? current + 1 : current - 1;
+
+          if (newQty < 1 || newQty > max || newQty > 5) {
+            showNotification(newQty < 1 ? 'Minimum 1' : newQty > max ? 'Out of stock' : 'Max 5 per product', false);
+            return;
+          }
+
+          const res = await fetch('/cart/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, action })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            input.value = newQty;
+            const totalEl = btn.closest('.cart-item').querySelector('.total-price');
+            const dp = parseFloat(totalEl.dataset.salePrice);
+            totalEl.textContent = `₹${(dp * newQty).toFixed(2)}`;
+
+            const summary = calcClientSummary();
+            updateSummary(summary);
+            showNotification(`Quantity ${action === 'increase' ? 'increased' : 'decreased'}`);
+            skipSummary = true;
+            setTimeout(() => skipSummary = false, 1000);
+          } else {
+            showNotification(data.message || 'Update failed', false);
+          }
+        });
+      });
+
+      document.querySelectorAll('.remove-form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const productId = form.querySelector('input').value;
+          const swalRes = await Swal.fire({
+            title: 'Remove?', text: 'Remove this item?', icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33'
+          });
+          if (!swalRes.isConfirmed) return;
+
+          const res = await fetch('/cart/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            document.querySelector(`[data-product-id="${productId}"]`).remove();
+            updateSummary(data);
+            Swal.fire('Removed!', '', 'success');
+            if (!document.querySelector('.cart-item')) location.reload();
+          }
+        });
+      });
+
+      const pollSummary = () => {
+        if (skipSummary) return;
+        fetch('/cart/summary', { method: 'POST' })
+          .then(r => r.json())
+          .then(d => d.success && updateSummary(d));
+      };
+      setInterval(pollSummary, 5000);
+      pollSummary();
+    });
   </script>
 </body>
 </html>

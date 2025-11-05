@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp')
 const multer  = require('multer')
+const Cart = require('../../models/cartSchema')
 
 
 
@@ -186,6 +187,231 @@ exports.unblockProduct = async (req, res) => {
       success: false,
       message: 'Error while listing product'
     });
+  }
+};
+
+
+// Add Product Offer
+exports.addProductOffer = async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+   
+    if (!productId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Product ID is required in the URL parameters' 
+      });
+    }
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid product ID format. Must be a valid MongoDB ObjectId' 
+      });
+    }
+
+
+    const offerPercentageRaw = req.body.offerPercentage;
+
+
+    if (offerPercentageRaw === undefined || offerPercentageRaw === null) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage is required in the request body' 
+      });
+    }
+
+
+    if (typeof offerPercentageRaw !== 'string' && typeof offerPercentageRaw !== 'number') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage must be a number or numeric string' 
+      });
+    }
+
+
+    const trimmedValue = typeof offerPercentageRaw === 'string' ? offerPercentageRaw.trim() : offerPercentageRaw;
+
+
+    if (typeof trimmedValue === 'string' && trimmedValue === '') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage cannot be empty' 
+      });
+    }
+
+
+    const offerPercentage = parseInt(trimmedValue, 10);
+
+
+    if (isNaN(offerPercentage)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage must be a valid numeric value' 
+      });
+    }
+
+
+    if (offerPercentage.toString() !== trimmedValue.toString().replace(/\..*$/, '')) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage must be a whole number (no decimals)' 
+      });
+    }
+
+    if (offerPercentage < 1 || offerPercentage > 90) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Offer percentage must be between 1 and 90 inclusive' 
+      });
+    }
+
+
+    const product = await Product.findById(productId).select('salePrice productOffer name');
+
+    if (!product) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Product not found with the provided ID' 
+      });
+    }
+
+
+    if (!product.salePrice || typeof product.salePrice !== 'number' || product.salePrice <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Product has an invalid sale price. Cannot apply offer' 
+      });
+    }
+
+
+    if (product.productOffer === offerPercentage) {
+      const currentPrice = product.salePrice - (product.salePrice * offerPercentage / 100);
+      return res.json({
+        success: true,
+        message: 'Offer already applied at this percentage',
+        offerPercentage,
+        newPrice: currentPrice.toFixed(2),
+        originalPrice: product.salePrice.toFixed(2),
+        cartsUpdated: 0
+      });
+    }
+
+
+    product.productOffer = offerPercentage;
+    await product.save();
+
+
+    const discountAmount = (product.salePrice * offerPercentage) / 100;
+    const newPriceRaw = product.salePrice - discountAmount;
+    const newPrice = Number(newPriceRaw.toFixed(2)); 
+
+
+    const carts = await Cart.find({ 'items.productId': productId });
+    let cartsUpdatedCount = 0;
+
+    for (const cart of carts) {
+      let cartUpdated = false;
+      for (const item of cart.items) {
+        if (item.productId.toString() === productId.toString()) {
+          item.price = newPrice;
+          item.totalPrice = Number((newPrice * item.quantity).toFixed(2));
+          item.updatedAt = new Date();
+          cartUpdated = true;
+        }
+      }
+      if (cartUpdated) {
+        await cart.save();
+        cartsUpdatedCount++;
+      }
+    }
+
+
+    console.log(`Offer added: ${product.name} (${productId}) → ${offerPercentage}%`);
+    console.log(`Discounted price: ₹${newPrice.toFixed(2)} (from ₹${product.salePrice.toFixed(2)})`);
+    console.log(`Updated ${cartsUpdatedCount} cart(s)`);
+
+    res.json({
+      success: true,
+      message: 'Offer applied successfully',
+      productId,
+      productName: product.name,
+      offerPercentage,
+      originalPrice: product.salePrice.toFixed(2),
+      newPrice: newPrice.toFixed(2),
+      savings: (product.salePrice - newPrice).toFixed(2),
+      cartsUpdated: cartsUpdatedCount
+    });
+
+  } catch (error) {
+    console.error('Add Offer Error:', {
+      message: error.message,
+      stack: error.stack,
+      productId: req.params.id,
+      body: req.body
+    });
+
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error. Please try again later.' 
+      
+    });
+  }
+};
+
+// Remove Product Offer
+exports.removeProductOffer = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: 'Invalid product ID' });
+    }
+
+    // Get the product
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    // Remove offer (set to 0)
+    product.productOffer = 0;
+    await product.save();
+
+    // Reset price to original salePrice
+    const originalPrice = product.salePrice;
+
+    // Update all cart items that contain this product
+    const carts = await Cart.find({ 'items.productId': productId });
+    
+    for (const cart of carts) {
+      let updated = false;
+      cart.items.forEach(item => {
+        if (item.productId.toString() === productId.toString()) {
+          item.price = originalPrice;
+          item.totalPrice = originalPrice * item.quantity;
+          item.updatedAt = new Date();
+          updated = true;
+        }
+      });
+      
+      if (updated) {
+        await cart.save();
+      }
+    }
+
+    console.log(`Offer removed: ${productId}`);
+    console.log(`Updated ${carts.length} cart(s) with original price: ₹${originalPrice.toFixed(2)}`);
+
+    res.json({
+      success: true,
+      offerPercentage: 0,
+      newPrice: originalPrice.toFixed(2),
+      cartsUpdated: carts.length
+    });
+  } catch (error) {
+    console.error('Remove Offer Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

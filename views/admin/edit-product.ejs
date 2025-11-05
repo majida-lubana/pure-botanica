@@ -354,16 +354,16 @@
         if (files && files.length > 0) {
           const file = files[0];
           const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-          if (!validImageTypes.includes(file.type)) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Invalid File',
-              text: 'Please upload a valid image file (JPEG, PNG, or GIF).',
-              confirmButtonColor: '#14b8a6',
-            });
-            input.value = '';
-            return;
-          }
+          // if (!validImageTypes.includes(file.type)) {
+          //   Swal.fire({
+          //     icon: 'error',
+          //     title: 'Invalid File',
+          //     text: 'Please upload a valid image file (JPEG, PNG, or GIF).',
+          //     confirmButtonColor: '#14b8a6',
+          //   });
+          //   input.value = '';
+          //   return;
+          // }
 
           const reader = new FileReader();
           reader.onload = function (e) {

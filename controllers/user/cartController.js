@@ -2,6 +2,35 @@ const Cart = require('../../models/cartSchema');
 const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema');
 const mongoose = require('mongoose');
+const { calculatePricing } = require('../../utils/calculatePricing');
+
+// Helper: Calculate totals using new pricing structure
+const calculateTotals = (items) => {
+  let subtotal = 0;         // after offer (displayPrice * qty)
+  let originalSubtotal = 0; // before offer (originalPrice * qty)
+
+  items.forEach(item => {
+    const p = item.productId;
+    if (p?.pricing) {
+      subtotal += p.pricing.displayPrice * item.quantity;
+      originalSubtotal += p.pricing.originalPrice * item.quantity;
+    }
+  });
+
+  const discount = originalSubtotal - subtotal;
+  const shippingCost = subtotal > 1000 ? 0 : 50;
+  const tax = subtotal * 0.1;
+  const total = subtotal + shippingCost + tax;
+
+  return { 
+    subtotal: Number(subtotal.toFixed(2)),
+    originalSubtotal: Number(originalSubtotal.toFixed(2)),
+    discount: Number(discount.toFixed(2)),
+    shippingCost,
+    tax: Number(tax.toFixed(2)),
+    total: Number(total.toFixed(2))
+  };
+};
 
 exports.getCartPage = async (req, res) => {
   try {
@@ -23,78 +52,81 @@ exports.getCartPage = async (req, res) => {
     });
 
     let subtotal = 0;
+    let originalSubtotal = 0;
     let shippingCost = 0;
     let discount = 0;
+    let tax = 0;
+    let total = 0;
     let totalItems = 0;
     let paginatedItems = [];
 
     if (cart && cart.items && cart.items.length > 0) {
-     let cartUpdated = false
+      let cartUpdated = false;
 
-      cart.items = cart.items.filter(item=>{
+      // Filter invalid/out-of-stock/blocked products
+      cart.items = cart.items.filter(item => {
         const p = item.productId;
-        return(
-          p&&
-          p.isActive === true&&
-          p.isBlocked === false&&
-          p.status === 'Available',
-          p.quantity > 0 
-        )
-      })
+        return (
+          p &&
+          p.isActive === true &&
+          p.isBlocked === false &&
+          p.status === 'Available' &&
+          p.quantity > 0
+        );
+      });
 
-      cart.items = cart.items.map(item=>{
+      // Adjust quantity based on stock and remove zero-stock items
+      cart.items = cart.items.map(item => {
         const p = item.productId;
-        if(!p) return item
+        if (!p) return item;
 
-        if(p.quantity===0){
-          cartUpdated  = true
+        if (p.quantity === 0) {
+          cartUpdated = true;
           return null;
         }
 
-        if(item.quantity>p.quantity){
-          item.quantity = p.quantity
-          cartUpdated = true
+        if (item.quantity > p.quantity) {
+          item.quantity = p.quantity;
+          cartUpdated = true;
         }
-        return item
-      }) .filter(item=>item!==null)
+        return item;
+      }).filter(item => item !== null);
+
       totalItems = cart.items.length;
       cart.items = cart.items.reverse();
       paginatedItems = cart.items.slice(skip, skip + limit);
 
-      
+      // === NEW PRICING LOGIC USING calculatePricing() ===
+      cart.items.forEach(item => {
+        if (item.productId) {
+          item.productId.pricing = calculatePricing(item.productId);
+        }
+      });
 
-      
-      if(cartUpdated){
-        await cart.save()
+      if (cartUpdated) {
+        await cart.save();
       }
 
-      
-      subtotal = cart.items.reduce((sum, item) => {
-        if (item.productId && item.productId.salePrice) {
-          const salePrice = item.productId.salePrice||0
-          const regularPrice = item.productId.regularPrice || salePrice;
-          discount += (regularPrice - salePrice) * item.quantity;
-          return sum + (salePrice * item.quantity);
-        }
-        return sum;
-      }, 0);
-
-      shippingCost = subtotal > 1000 ? 0 : 50;
+      const totals = calculateTotals(cart.items);
+      subtotal = totals.subtotal;
+      originalSubtotal = totals.originalSubtotal;
+      discount = totals.discount;
+      shippingCost = totals.shippingCost;
+      tax = totals.tax;
+      total = totals.total;
     } else {
       cart = { items: [], userId }; 
     }
 
-    const tax = subtotal * 0.1;
-    const total = subtotal - discount + shippingCost + tax;
-
-      const excludedIds = cart.items
+    const excludedIds = cart.items
       .map((item) => item.productId?._id)
       .filter(Boolean);
+
     const relatedProducts =
       cart && cart.items.length > 0
         ? await Product.find({
             category: cart.items[0]?.productId?.category?._id,
-            _id: { $nin: cart.items.map((item) => item.productId?._id).filter(Boolean) },
+            _id: { $nin: excludedIds },
           }).limit(4)
         : await Product.find().limit(4);
 
@@ -106,10 +138,12 @@ exports.getCartPage = async (req, res) => {
       hasNextPage: page < totalPages,
       totalItems: totalItems,
     };
+
     res.render('user/cart', {
-      cart: cart || { items: [], userId }, 
+      cart: { ...cart, items: paginatedItems }, 
       user: req.user,
       subtotal,
+      originalSubtotal,
       shippingCost,
       tax,
       total,
@@ -128,6 +162,7 @@ exports.getCartPage = async (req, res) => {
 };
 
 const MAX_PER_PRODUCT = 5;
+
 exports.getCountInCart = async (req, res) => {
   try {
     const { productId } = req.body;
@@ -157,13 +192,12 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid request' });
     }
 
-
     const product = await Product.findOne({
       _id: productId,
       status: 'Available',
       isActive: true,
       isBlocked: false,
-    }).lean();
+    }).populate('category').lean();
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product unavailable' });
@@ -176,16 +210,13 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-
     let cart = await Cart.findOne({ userId });
     if (!cart) cart = new Cart({ userId, items: [] });
-
 
     const existingIdx = cart.items.findIndex(i => i.productId.toString() === productId);
     const currentQty = existingIdx > -1 ? cart.items[existingIdx].quantity : 0;
     const newQty = currentQty + qty;
 
- 
     if (newQty > MAX_PER_PRODUCT) {
       return res.status(400).json({
         success: false,
@@ -193,22 +224,24 @@ exports.addToCart = async (req, res) => {
       });
     }
 
+    // Apply pricing
+    const pricing = calculatePricing(product);
+    const itemPrice = pricing.displayPrice;
 
     if (existingIdx > -1) {
       cart.items[existingIdx].quantity = newQty;
-      cart.items[existingIdx].totalPrice = newQty * product.salePrice;
+      cart.items[existingIdx].totalPrice = newQty * itemPrice;
     } else {
       cart.items.push({
         productId,
         quantity: newQty,
-        price: product.salePrice,
-        totalPrice: newQty * product.salePrice,
+        price: itemPrice,
+        totalPrice: newQty * itemPrice,
         status: 'Placed',
       });
     }
 
     await cart.save();
-
     await User.findByIdAndUpdate(userId, { $addToSet: { cart: cart._id } });
 
     const cartCount = cart.items.reduce((s, i) => s + i.quantity, 0);
@@ -223,7 +256,6 @@ exports.addToCart = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
 
 exports.updateCartQuantity = async (req, res) => {
   try {
@@ -248,11 +280,9 @@ exports.updateCartQuantity = async (req, res) => {
     if (action === 'increase') newQty++;
     else if (action === 'decrease') newQty--;
 
- 
     if (newQty < 1) {
       return res.status(400).json({ success: false, message: 'Quantity cannot be less than 1' });
     }
-
 
     if (newQty > stock) {
       return res.status(400).json({
@@ -260,7 +290,6 @@ exports.updateCartQuantity = async (req, res) => {
         message: `Only ${stock} unit(s) available`,
       });
     }
-
 
     if (newQty > MAX_PER_PRODUCT) {
       return res.status(400).json({
@@ -272,23 +301,18 @@ exports.updateCartQuantity = async (req, res) => {
     cartItem.quantity = newQty;
     await cart.save();
 
- 
-    const subtotal = cart.items.reduce((s, i) => s + i.productId.salePrice * i.quantity, 0);
-    const discount = cart.items.reduce((s, i) => {
-      const reg = i.productId.regularPrice || i.productId.salePrice;
-      return s + (reg - i.productId.salePrice) * i.quantity;
-    }, 0);
-    const shippingCost = subtotal > 1000 ? 0 : 50;
-    const tax = subtotal * 0.1;
-    const total = subtotal - discount + shippingCost + tax;
+    // === Recalculate pricing for all items ===
+    cart.items.forEach(item => {
+      if (item.productId) {
+        item.productId.pricing = calculatePricing(item.productId);
+      }
+    });
+
+    const totals = calculateTotals(cart.items);
 
     res.json({
       success: true,
-      subtotal,
-      discount,
-      shippingCost,
-      tax,
-      total,
+      ...totals,
       cartCount: cart.items.reduce((s, i) => s + i.quantity, 0),
     });
   } catch (error) {
@@ -317,25 +341,19 @@ exports.removeFromCart = async (req, res) => {
     cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
     await cart.save();
 
-    const subtotal = cart.items.reduce((sum, item) => {
-      return sum + (item.productId.salePrice * item.quantity);
-    }, 0);
-    const discount = cart.items.reduce((sum, item) => {
-      const regularPrice = item.productId.regularPrice || item.productId.salePrice; 
-      return sum + (regularPrice - item.productId.salePrice) * item.quantity; 
-    }, 0);
-    const shippingCost = subtotal > 1000 ? 0 : 50;
-    const tax = subtotal * 0.1;
-    const total = subtotal - discount + shippingCost + tax;
+    // === Recalculate pricing ===
+    cart.items.forEach(item => {
+      if (item.productId) {
+        item.productId.pricing = calculatePricing(item.productId);
+      }
+    });
+
+    const totals = calculateTotals(cart.items);
 
     res.json({
       success: true,
-      subtotal,
-      shippingCost,
-      tax,
-      total,
-      discount,
-      cartCount: cart.items.length,
+      ...totals,
+      cartCount: cart.items.reduce((s, i) => s + i.quantity, 0),
     });
   } catch (error) {
     console.error('Error removing from cart:', error.stack);
@@ -359,9 +377,16 @@ exports.getCartContents = async (req, res) => {
       return res.send('<p class="text-gray-500">Your cart is empty</p>');
     }
 
+    // === Apply pricing ===
+    cart.items.forEach(item => {
+      if (item.productId) {
+        item.productId.pricing = calculatePricing(item.productId);
+      }
+    });
+
     let html = '';
     cart.items.forEach(item => {
-      const salePrice = item.productId?.salePrice || 0;
+      const displayPrice = item.productId?.pricing?.displayPrice || 0;
       html += `
         <div class="flex items-center justify-between py-2">
           <div class="flex items-center">
@@ -371,7 +396,7 @@ exports.getCartContents = async (req, res) => {
                  onerror="this.src='/images/placeholder.jpg'">
             <span>${item.productId?.productName || 'Unnamed Product'}</span>
           </div>
-          <span>₹${(salePrice * item.quantity).toFixed(2)} (x${item.quantity})</span>
+          <span>₹${(displayPrice * item.quantity).toFixed(2)} (x${item.quantity})</span>
         </div>
       `;
     });
@@ -381,6 +406,7 @@ exports.getCartContents = async (req, res) => {
     res.status(500).send('<p class="text-red-500">Error loading cart</p>');
   }
 };
+
 exports.getCartQuantity = async (req, res) => {
   try {
     const userId = req.user?._id;
@@ -404,42 +430,23 @@ exports.getCartSummary = async (req, res) => {
     const cart = await Cart.findOne({ userId }).populate({
       path: 'items.productId',
       populate: { path: 'category' },
+    }) || { items: [] };
+
+    cart.items = cart.items.filter(item => item.productId);
+
+    // === Apply pricing ===
+    cart.items.forEach(item => {
+      if (item.productId) {
+        item.productId.pricing = calculatePricing(item.productId);
+      }
     });
 
-    let subtotal = 0;
-    let shippingCost = 50;
-    let discount = 0;
-
-    if (cart && cart.items && cart.items.length > 0) {
-
-      cart.items  = cart.items.filter(item=>item.productId)
-      
-      subtotal = cart.items.reduce((sum, item) => {
-        if (item.productId && item.productId.salePrice) { 
-          return sum + (item.productId.salePrice * item.quantity); 
-        }
-        return sum;
-      }, 0);
-      discount = cart.items.reduce((sum, item) => {
-        const regularPrice = item.productId.regularPrice || item.productId.salePrice; 
-        return sum + (regularPrice - item.productId.salePrice) * item.quantity; 
-      }, 0);
-      shippingCost = subtotal > 1000 ? 0 : 50;
-    } else {
-      shippingCost = 0;
-    }
-
-    const tax = subtotal * 0.1;
-    const total = subtotal - discount + shippingCost + tax;
+    const totals = calculateTotals(cart.items);
+    totals.cartCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
     res.json({
       success: true,
-      subtotal,
-      shippingCost,
-      tax,
-      total,
-      discount,
-      cartCount: cart?.items.length || 0,
+      ...totals,
     });
   } catch (error) {
     console.error('Error fetching cart summary:', error.stack);

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coupon Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .content-main {
+            margin-left: 250px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        @media (max-width: 1024px) {
+            .content-main {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
+
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .coupon-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coupon-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+        }
+
+        .coupon-card:hover::before {
+            animation: shine 0.5s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .status-inactive {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            transform: translateY(-2.5rem) scale(0.9);
+            color: #667eea;
+        }
+
+        .input-group label {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50">
+    <%- include("../../views/partials/admin/sidebar") %>
+    
+    <main class="content-main">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Coupon Management</h1>
+                    <p class="text-gray-600">Create and manage discount coupons for your store</p>
+                </div>
+                <button onclick="openAddModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <i class="fas fa-plus mr-2"></i>Add New Coupon
+                </button>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <input type="text" id="searchInput" placeholder="Search coupons by name or code..." 
+                           value="<%= search %>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button onclick="searchCoupons()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Search
+                </button>
+                <% if (search) { %>
+                <button onclick="clearSearch()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Clear
+                </button>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Coupons Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <% if (coupons.length > 0) { %>
+                <% coupons.forEach(coupon => { %>
+                    <div class="coupon-card rounded-xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold mb-1"><%= coupon.name %></h3>
+                                <div class="bg-white bg-opacity-20 rounded-lg px-3 py-1 text-sm font-mono">
+                                    <%= coupon.couponCode %>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold <%= coupon.isListed ? 'status-active' : 'status-inactive' %>">
+                                    <%= coupon.isListed ? 'Active' : 'Inactive' %>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-6">
+                            <div class="flex justify-between">
+                                <span class="text-sm opacity-90">Discount:</span>
+                                <span class="font-semibold">
+                                    <%= coupon.discountType === 'percentage' ? coupon.offerPrice + '%' : '₹' + coupon.offerPrice %>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm opacity-90">Min Order:</span>
+                                <span class="font-semibold">₹<%= coupon.minimumPrice %></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm opacity-90">Usage Limit:</span>
+                                <span class="font-semibold"><%= coupon.usageLimit %></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm opacity-90">Valid Until:</span>
+                                <span class="font-semibold"><%= new Date(coupon.expireOn).toLocaleDateString() %></span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="editCoupon('<%= coupon._id %>')" 
+                                    class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
+                                <i class="fas fa-edit mr-1"></i>Edit
+                            </button>
+                            <button onclick="toggleStatus('<%= coupon._id %>', <%= coupon.isListed %>)" 
+                                    class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
+                                <i class="fas fa-<%= coupon.isListed ? 'eye-slash' : 'eye' %> mr-1"></i><%= coupon.isListed ? 'Hide' : 'Show' %>
+                            </button>
+                            <button onclick="deleteCoupon('<%= coupon._id %>')" 
+                                    class="bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="col-span-full text-center py-12">
+                    <div class="text-6xl text-gray-300 mb-4">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No Coupons Found</h3>
+                    <p class="text-gray-500 mb-6">Create your first coupon to get started</p>
+                    <button onclick="openAddModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300">
+                        <i class="fas fa-plus mr-2"></i>Create Coupon
+                    </button>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Pagination -->
+        <% if (totalPages > 1) { %>
+        <div class="flex justify-center">
+            <div class="flex gap-2">
+                <% for (let i = 1; i <= totalPages; i++) { %>
+                    <a href="?page=<%= i %><%= search ? '&search=' + search : '' %>" 
+                       class="px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-100' %> transition-colors">
+                        <%= i %>
+                    </a>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="couponModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-2xl font-bold text-gray-800">Add New Coupon</h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+
+            <form id="couponForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="input-group">
+                        <input type="text" id="name" name="name" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="name">Coupon Name</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="text" id="couponCode" name="couponCode" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase" required>
+                        <label for="couponCode">Coupon Code</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <select id="discountType" name="discountType" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Select Discount Type</option>
+                            <option value="fixed">Fixed Amount</option>
+                            <option value="percentage">Percentage</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="number" id="offerPrice" name="offerPrice" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="offerPrice">Discount Value</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="number" id="minimumPrice" name="minimumPrice" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="minimumPrice">Minimum Order Value</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="number" id="usageLimit" name="usageLimit" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="usageLimit">Usage Limit</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="date" id="startDate" name="startDate" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="startDate">Start Date</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="date" id="expireOn" name="expireOn" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label for="expireOn">Expire Date</label>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="description" name="description" rows="3" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Coupon description..."></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300">
+                        Create Coupon
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let isEditMode = false;
+        let editCouponId = null;
+
+        // Set minimum date for start date
+        document.getElementById('startDate').min = new Date().toISOString().split('T')[0];
+
+        function openAddModal() {
+            isEditMode = false;
+            editCouponId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Coupon';
+            document.getElementById('submitBtn').textContent = 'Create Coupon';
+            document.getElementById('couponForm').reset();
+            document.getElementById('couponModal').classList.remove('hidden');
+        }
+
+        async function editCoupon(id) {
+            try {
+                const response = await fetch(`/admin/coupon/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    isEditMode = true;
+                    editCouponId = id;
+                    document.getElementById('modalTitle').textContent = 'Edit Coupon';
+                    document.getElementById('submitBtn').textContent = 'Update Coupon';
+                    
+                    const coupon = data.coupon;
+                    document.getElementById('name').value = coupon.name;
+                    document.getElementById('couponCode').value = coupon.couponCode;
+                    document.getElementById('discountType').value = coupon.discountType;
+                    document.getElementById('offerPrice').value = coupon.offerPrice;
+                    document.getElementById('minimumPrice').value = coupon.minimumPrice;
+                    document.getElementById('usageLimit').value = coupon.usageLimit;
+                    document.getElementById('startDate').value = coupon.startDate.split('T')[0];
+                    document.getElementById('expireOn').value = coupon.expireOn.split('T')[0];
+                    document.getElementById('description').value = coupon.description || '';
+                    
+                    document.getElementById('couponModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to load coupon details', 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('couponModal').classList.add('hidden');
+            document.getElementById('couponForm').reset();
+            isEditMode = false;
+            editCouponId = null;
+        }
+
+        document.getElementById('couponForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            const url = isEditMode ? `/admin/coupon/${editCouponId}` : '/admin/coupon/add';
+            const method = isEditMode ? 'PUT' : 'POST';
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    Swal.fire('Success', result.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Something went wrong', 'error');
+            }
+        });
+
+        async function toggleStatus(id, currentStatus) {
+            try {
+                const response = await fetch(`/admin/coupon/toggle/${id}`, { method: 'PUT' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to update status', 'error');
+            }
+        }
+
+        async function deleteCoupon(id) {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/coupon/${id}`, { method: 'DELETE' });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        Swal.fire('Deleted!', data.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Failed to delete coupon', 'error');
+                }
+            }
+        }
+
+        function searchCoupons() {
+            const search = document.getElementById('searchInput').value;
+            window.location.href = `/admin/coupons?search=${encodeURIComponent(search)}`;
+        }
+
+        function clearSearch() {
+            window.location.href = '/admin/coupons';
+        }
+
+        // Enter key search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchCoupons();
+            }
+        });
+    </script>
+</body>
+</html>

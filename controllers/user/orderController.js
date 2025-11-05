@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema');
 const Order = require('../../models/orderSchema');
+const Transaction = require('../../models/transactionSchema')
+const { creditWallet } = require('../../utils/walletUtils');
+const {calculatePricing} = require('../../utils/calculatePricing')
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map(i => i.status);
@@ -109,6 +112,12 @@ exports.loadOrderPage = async (req, res) => {
         await Order.updateOne({ _id: order._id }, { status: newStatus });
       }
     }
+orders.map((order) => {
+  order.orderItems.map((item) => {
+    console.log(item.productImage);
+  });
+});
+
 
     const message = orders.length === 0 ? 'No orders found for selected filter' : null;
 
@@ -129,8 +138,7 @@ exports.loadOrderPage = async (req, res) => {
         orderItems: order.orderItems.map(item => ({
           productId: item.product?._id,
           productName: item.productName || item.product?.productName || 'Unknown Product',
-          image: item.productImage || 
-            (item.product?.productImages?.[0] ? `/uploads/product-images/${item.product.productImages[0]}` : '/default-image.jpg'),
+          image: item.productImage 
         })),
       })),
       message,
@@ -148,7 +156,6 @@ exports.getOrderDetailsPage = async (req, res) => {
   try {
     const userId = req.session.user;
     if (!userId) {
-      console.log('User not logged in, redirecting to login page.');
       return res.redirect('/user/login');
     }
 
@@ -161,16 +168,72 @@ exports.getOrderDetailsPage = async (req, res) => {
       .populate('user', 'name email')
       .populate({
         path: 'orderItems.product',
-        select: 'productName productImages regularPrice',
+        select: 'productName productImages regularPrice salePrice productOffer category',
+        populate: { path: 'category', select: 'categoryOffer' }
       })
       .lean();
 
     if (!order) {
-      console.log('Order not found for user:', userId, 'and Order ID:', orderId);
       return res.status(404).send('Order not found');
     }
 
-    const timelineSteps = order.timeline.map(step => ({
+    // === RECALCULATE PRICING USING UTILITY ===
+    let recalculatedSubtotal = 0;
+    let originalSubtotal = 0;
+
+    const items = order.orderItems.map(item => {
+      const product = item.product;
+      let displayPrice = item.purchasePrice;
+      let originalPrice = item.purchasePrice;
+
+      if (product) {
+        const pricing = calculatePricing(product);
+        displayPrice = pricing.displayPrice;
+        originalPrice = pricing.originalPrice;
+      }
+
+      const itemTotal = displayPrice * item.quantity;
+      const itemOriginal = originalPrice * item.quantity;
+
+      recalculatedSubtotal += itemTotal;
+      originalSubtotal += itemOriginal;
+
+      // FIX: Construct image path properly
+      let imagePath = '/images/placeholder.jpg'; // default fallback
+      
+      if (item.productImage) {
+        // If productImage already has full path
+        if (item.productImage.startsWith('/uploads') || item.productImage.startsWith('http')) {
+          imagePath = item.productImage;
+        } else {
+          // If it's just a filename, construct the full path
+          imagePath = `/uploads/product-images/${item.productImage}`;
+        }
+      } else if (product?.productImages?.[0]) {
+        // Fallback to product's first image
+        imagePath = `/uploads/product-images/${product.productImages[0]}`;
+      }
+
+      return {
+        productId: product?._id || item.product,
+        productName: item.productName || product?.productName || 'Unknown Product',
+        purchasePrice: displayPrice,
+        originalPrice,
+        quantity: item.quantity,
+        productImage: imagePath,
+        productStatus: item.status || 'Unknown',
+      };
+    });
+
+    const offerDiscount = Number((originalSubtotal - recalculatedSubtotal).toFixed(2));
+    const couponDiscount = order.couponDiscount || 0;
+    const totalDiscount = Number((offerDiscount + couponDiscount).toFixed(2));
+
+    const shipping = order.shipping || 0;
+    const tax = order.tax || 0;
+    const finalAmount = Number((recalculatedSubtotal - couponDiscount + shipping + tax).toFixed(2));
+
+    const timelineSteps = (order.timeline || []).map(step => ({
       title: step.label,
       completed: step.completed,
       current: step.current,
@@ -191,46 +254,34 @@ exports.getOrderDetailsPage = async (req, res) => {
         address: order.address.address,
         city: order.address.city,
         state: order.address.state,
-        country: order.address.country,
-        pinCode: order.address.pincode,
+        country: order.address.country || 'India',
+        pinCode: order.address.pincode || order.address.pinCode,
         phone: order.address.phone,
         addressType: order.address.addressType,
       },
       user: order.user || { name: 'N/A', email: 'N/A' },
-      items: order.orderItems.filter(item => item).map((item, index) => {
-        const mappedItem = {
-          productId: item.product?._id || item.product || 'N/A',
-          productName: item.productName || item.product?.productName || 'Unknown Product',
-          purchasePrice: item.purchasePrice || 0,
-          quantity: item.quantity || 1,
-          productImage: item.productImage || 
-            (item.product?.productImages?.[0] ? `/uploads/product-images/${item.product.productImages[0]}` : '/default-image.jpg'),
-          productStatus: item.status || 'Unknown',
-        };
-        console.log(`Mapped item ${index}:`, JSON.stringify(mappedItem, null, 2));
-        return mappedItem;
-      }),
+      items,
       timeline: timelineSteps,
-      originalAmount: order.totalPrice || 0,
-      offerDiscount: order.discount || 0,
+
+      // === CORRECT BREAKDOWN ===
+      originalSubtotal: Number(originalSubtotal.toFixed(2)),
+      offerDiscount,
       couponApplied: order.couponApplied || false,
-      couponDiscount: order.couponApplied ? order.discount || 0 : 0,
-      subtotal: order.totalPrice - (order.discount || 0),
-      shipping: order.shipping || 0,
-      tax: order.tax || 0,
-      total: order.finalAmount || 0,
+      couponDiscount,
+      subtotal: Number(recalculatedSubtotal.toFixed(2)),
+      shipping,
+      tax,
+      totalDiscount,
+      total: finalAmount,
+
       message: order.message || '',
     };
 
-    console.log('Mapped orderData.items count:', orderData.items.length);
-    console.log('Mapped orderData.items:', JSON.stringify(orderData.items, null, 2));
+    res.render('user/order-details', { 
+      order: orderData, 
+      user: req.session.user 
+    });
 
-    if (orderData.total < 0) {
-      console.warn('Negative final amount detected:', orderData.total);
-      orderData.totalWarning = 'Warning: Negative total amount. Please verify order calculations.';
-    }
-
-    res.render('user/order-details', { order: orderData, user: req.session.user });
   } catch (error) {
     console.error('Error fetching order details:', error);
     res.status(500).send('Internal Server Error');
@@ -261,11 +312,26 @@ exports.cancelItem = async (req, res) => {
     }
 
     if (!['pending', 'ordered'].includes(item.status)) {
-      return res.status(400).json({ success: false, message: `Item cannot be cancelled (current status: ${item.status})` });
+      return res.status(400).json({ 
+        success: false, 
+        message: `Item cannot be cancelled (current status: ${item.status})` 
+      });
     }
 
     item.status = 'cancelled';
+    
     await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
+
+    if (order.paymentMethod !== 'cod' || order.paymentId) {
+      const refundAmount = item.purchasePrice * item.quantity;
+      
+      await creditWallet(
+        userId,
+        refundAmount,
+        order._id,
+        `Refund - Cancelled ${item.productName} (Order #${order.orderId})`
+      );
+    }
 
     order.timeline.push({
       label: `Item ${item.productName} Cancelled`,
@@ -280,7 +346,7 @@ exports.cancelItem = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'Item cancelled successfully', 
+      message: 'Item cancelled and refunded to wallet', 
       orderStatus: order.status 
     });
 
@@ -295,6 +361,12 @@ exports.returnItem = async (req, res) => {
 
   try {
     const { orderId, productId, reason } = req.body;
+    const userId = req.session.user;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -315,6 +387,7 @@ exports.returnItem = async (req, res) => {
     }
 
     item.status = 'return requested';
+    
     order.timeline.push({
       label: `Return Requested for ${item.productName}`,
       completed: true,
@@ -323,12 +396,24 @@ exports.returnItem = async (req, res) => {
       notes: `Reason: ${reason}`,
     });
 
+    const refundAmount = item.purchasePrice * item.quantity;
+    
+    await Transaction.create({
+      userId: order.user,
+      orderId: order._id,
+      amount: refundAmount,
+      type: 'refund',
+      status: 'pending',
+      description: `Return Request - ${item.productName} (Order #${order.orderId})`,
+      itemId: item._id,
+    });
+
     await updateOrderStatus(order);  
     await order.save();              
 
     res.json({ 
       success: true, 
-      message: 'Return request submitted successfully',
+      message: 'Return request submitted. Refund pending admin approval.',
       orderStatus: order.status   
     });
 

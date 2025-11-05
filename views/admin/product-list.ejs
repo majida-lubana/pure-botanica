@@ -97,6 +97,24 @@
       transform: translateY(-1px);
     }
     
+    .btn-warning {
+      background-color: #f59e0b; /* Amber-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-warning:hover {
+      background-color: #d97706; /* Amber-600 */
+      transform: translateY(-1px);
+    }
+    
     .btn-clear {
       background-color: #6b7280; /* Gray-500 */
       color: white;
@@ -132,6 +150,16 @@
     .status-unlisted {
       background-color: #fee2e2; /* Red-100 */
       color: #991b1b; /* Red-800 */
+    }
+    
+    .offer-badge {
+      background-color: #fef3c7; /* Amber-100 */
+      color: #92400e; /* Amber-800 */
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
     
     /* Table styling improvements */
@@ -202,8 +230,8 @@
           Add Product
         </button>
         
-        <form class="relative flex-1 max-w-xs">
-          <div class="flex items-center">
+        <form class="relative flex-1 max-w-xs" id="searchForm">
+          <div class="flex items-center gap-2">
             <div class="relative flex-1">
               <input
                 class="search-input w-full pr-10"
@@ -215,23 +243,22 @@
               />
               <button 
                 aria-label="Search" 
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" 
                 type="submit"
               >
                 <i class="fas fa-search"></i>
               </button>
             </div>
-            <% if (typeof search !== 'undefined' && search) { %>
-              <button 
-                type="button" 
-                id="clearSearchBtn" 
-                class="btn-clear ml-2 flex items-center gap-2" 
-                title="Clear Search"
-              >
-                <i class="fas fa-times"></i>
-                Clear
-              </button>
-            <% } %>
+            <button 
+              type="button" 
+              id="clearSearchBtn" 
+              class="btn-clear flex items-center gap-1" 
+              title="Clear Search"
+              style="display: <%= (typeof search !== 'undefined' && search) ? 'flex' : 'none' %>;"
+            >
+              <i class="fas fa-times"></i>
+              Clear
+            </button>
           </div>
         </form>
       </div>
@@ -248,6 +275,7 @@
                 <th class="px-6 py-4 font-semibold text-gray-700 uppercase tracking-wider">Price</th>
                 <th class="px-6 py-4 font-semibold text-gray-700 uppercase tracking-wider">Stock</th>
                 <th class="px-6 py-4 font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-4 font-semibold text-gray-700 uppercase tracking-wider">Offer</th>
                 <th class="px-6 py-4 font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -284,14 +312,33 @@
                       <% } %>
                     </td>
                     <td class="px-6 py-4">
+                      <span class="offer-badge" data-product-id="<%= product._id %>">
+                        <%= product.productOffer > 0 ? product.productOffer + '%' : 'No Offer' %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
                       <div class="action-buttons">
-                        <button
-                          class="btn-primary"
-                          onclick="window.location.href='/admin/product-details/<%= product._id %>'"
-                        >
-                          <i class="fas fa-eye mr-1"></i>
-                          Details
-                        </button>
+                        <% if (product.productOffer > 0) { %>
+                          <button
+                            class="btn-danger"
+                            data-product-id="<%= product._id %>"
+                            onclick="removeOffer('<%= product._id %>')"
+                            title="Remove Offer"
+                          >
+                            <i class="fas fa-times mr-1"></i>
+                            Remove Offer
+                          </button>
+                        <% } else { %>
+                          <button
+                            class="btn-warning"
+                            data-product-id="<%= product._id %>"
+                            onclick="addOffer('<%= product._id %>')"
+                            title="Add Offer"
+                          >
+                            <i class="fas fa-tag mr-1"></i>
+                            Add Offer
+                          </button>
+                        <% } %>
                         <button
                           class="btn-secondary"
                           onclick="window.location.href='/admin/edit-product/<%= product._id %>'"
@@ -326,7 +373,7 @@
                 <% }) %>
               <% } else { %>
                 <tr>
-                  <td colspan="7" class="px-6 py-12 text-center">
+                  <td colspan="8" class="px-6 py-12 text-center">
                     <div class="text-gray-500">
                       <i class="fas fa-box-open text-4xl mb-4"></i>
                       <p class="text-lg font-medium">No products found</p>
@@ -417,8 +464,161 @@
   </style>
 
   <script>
+    // Add Offer Function
+    async function addOffer(productId) {
+      const { value: offerPercentage } = await Swal.fire({
+        title: 'Add Offer',
+        text: 'Enter offer percentage (0-99)',
+        input: 'number',
+        inputPlaceholder: 'Enter percentage (e.g., 10)',
+        inputAttributes: {
+          min: 0,
+          max: 99,
+          step: 1
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#14b8a6',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Add Offer',
+        cancelButtonText: 'Cancel',
+        inputValidator: (value) => {
+          const num = parseInt(value, 10);
+          if (!value) {
+            return 'You need to enter a percentage!';
+          }
+          if (isNaN(num) || num < 0 || num > 99) {
+            return 'Please enter a valid percentage between 0 and 99!';
+          }
+        }
+      });
+
+      if (offerPercentage !== undefined) {
+        try {
+          const response = await fetch(`/admin/add-product-offer/${productId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ offerPercentage: parseInt(offerPercentage, 10) }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success) {
+            await Swal.fire({
+              icon: 'success',
+              title: 'Success!',
+              text: `Offer of ${data.offerPercentage}% added successfully! ${data.cartsUpdated > 0 ? data.cartsUpdated + ' cart(s) updated.' : ''}`,
+              timer: 2000,
+              showConfirmButton: false,
+              confirmButtonColor: '#14b8a6',
+            });
+
+            // Update UI
+            updateOfferUI(productId, data.offerPercentage);
+          } else {
+            throw new Error(data.message || 'Failed to add offer');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.message || 'An error occurred while adding the offer',
+            confirmButtonColor: '#14b8a6',
+          });
+        }
+      }
+    }
+
+    // Remove Offer Function
+    async function removeOffer(productId) {
+      const result = await Swal.fire({
+        title: 'Remove offer?',
+        text: 'This will set the offer to 0%',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#14b8a6',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Yes, remove it!',
+        cancelButtonText: 'Cancel',
+      });
+
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(`/admin/remove-product-offer/${productId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success) {
+            await Swal.fire({
+              icon: 'success',
+              title: 'Success!',
+              text: `Offer removed successfully! ${data.cartsUpdated > 0 ? data.cartsUpdated + ' cart(s) updated.' : ''}`,
+              timer: 2000,
+              showConfirmButton: false,
+              confirmButtonColor: '#14b8a6',
+            });
+
+            // Update UI
+            updateOfferUI(productId, 0);
+          } else {
+            throw new Error(data.message || 'Failed to remove offer');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.message || 'An error occurred while removing the offer',
+            confirmButtonColor: '#14b8a6',
+          });
+        }
+      }
+    }
+
+    // Update Offer UI
+    function updateOfferUI(productId, offerPercentage) {
+      const button = document.querySelector(`.action-buttons button[data-product-id="${productId}"]`);
+      const offerBadge = document.querySelector(`.offer-badge[data-product-id="${productId}"]`);
+
+      if (button && offerBadge) {
+        // Update offer badge
+        offerBadge.textContent = offerPercentage > 0 ? `${offerPercentage}%` : 'No Offer';
+
+        // Update button
+        const actionButtons = button.closest('.action-buttons');
+        if (offerPercentage > 0) {
+          // Change to "Remove Offer" button
+          button.className = 'btn-danger';
+          button.innerHTML = '<i class="fas fa-times mr-1"></i>Remove Offer';
+          button.title = 'Remove Offer';
+          button.onclick = () => removeOffer(productId);
+        } else {
+          // Change to "Add Offer" button
+          button.className = 'btn-warning';
+          button.innerHTML = '<i class="fas fa-tag mr-1"></i>Add Offer';
+          button.title = 'Add Offer';
+          button.onclick = () => addOffer(productId);
+        }
+      }
+    }
+
+    // Toggle List/Unlist Product
     async function toggleListProduct(productId, isListed) {
-      console.log(`Toggling product ${productId}, isListed: ${isListed}`);
       const result = await Swal.fire({
         title: isListed ? 'Unlist this product?' : 'List this product?',
         text: 'You can always change this later',
@@ -433,7 +633,6 @@
       if (result.isConfirmed) {
         try {
           const url = `/admin/${isListed ? 'blockProduct' : 'unblockProduct'}/${productId}`;
-          console.log(`Fetching: ${url}`);
           const response = await fetch(url, {
             method: 'PUT',
             headers: {
@@ -452,7 +651,6 @@
           }
 
           const data = await response.json();
-          console.log('Server response:', data);
 
           if (data.success) {
             await Swal.fire({
@@ -465,31 +663,28 @@
             });
 
             // Update UI
-            const button = document.querySelector(`button[data-product-id="${productId}"]`);
-            const tableRow = button ? button.closest('tr') : null;
+            const buttons = document.querySelectorAll(`button[data-product-id="${productId}"]`);
+            const listButton = Array.from(buttons).find(btn => 
+              btn.textContent.includes('Unlist') || btn.textContent.includes('List')
+            );
+            const tableRow = listButton ? listButton.closest('tr') : null;
 
-            if (tableRow && button) {
+            if (tableRow && listButton) {
               // Update status badge
               const statusBadge = tableRow.querySelector('.status-badge');
               if (statusBadge) {
                 statusBadge.classList.remove('status-listed', 'status-unlisted');
                 statusBadge.classList.add(data.isListed ? 'status-listed' : 'status-unlisted');
                 statusBadge.textContent = data.isListed ? 'Listed' : 'Unlisted';
-                console.log('Status badge updated:', statusBadge.textContent);
-              } else {
-                console.warn('Status badge not found for product:', productId);
               }
 
               // Update button
-              console.log('Button found, updating:', button);
-              button.classList.remove('btn-success', 'btn-danger');
-              button.classList.add(data.isListed ? 'btn-danger' : 'btn-success');
-              button.innerHTML = `<i class="fas fa-${data.isListed ? 'times' : 'check'} mr-1"></i>${data.isListed ? 'Unlist' : 'List'}`;
-              button.title = data.isListed ? 'Unlist Product' : 'List Product';
-              button.onclick = () => toggleListProduct(productId, data.isListed);
+              listButton.classList.remove('btn-success', 'btn-danger');
+              listButton.classList.add(data.isListed ? 'btn-danger' : 'btn-success');
+              listButton.innerHTML = `<i class="fas fa-${data.isListed ? 'times' : 'check'} mr-1"></i>${data.isListed ? 'Unlist' : 'List'}`;
+              listButton.title = data.isListed ? 'Unlist Product' : 'List Product';
+              listButton.onclick = () => toggleListProduct(productId, data.isListed);
             } else {
-              console.warn(`Button or table row not found for product: ${productId}`);
-              // Fallback: reload the page to ensure UI consistency
               location.reload();
             }
           } else {

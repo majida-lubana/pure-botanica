@@ -168,6 +168,49 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
+
+    .payment-pending-badge {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .retry-payment-section {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .retry-btn {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .retry-btn:hover {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
   </style>
 </head>
  
@@ -190,6 +233,46 @@
 
   <!-- Main Content -->
   <div class="container mx-auto mt-8 px-4">
+    <% if (order.orderStatus === 'payment_pending' || order.orderStatus === 'payment_failed') { %>
+      <!-- Payment Retry Section -->
+      <div class="retry-payment-section">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 class="text-xl font-bold text-orange-800 mb-2">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              Payment <%= order.orderStatus === 'payment_pending' ? 'Pending' : 'Failed' %>
+            </h3>
+            <p class="text-orange-700">
+              <% if (order.orderStatus === 'payment_pending') { %>
+                Your order has been created but payment is incomplete. Please complete the payment to confirm your order.
+              <% } else { %>
+                Payment for this order failed. You can retry payment to complete your order.
+              <% } %>
+            </p>
+            <% if (order.paymentRetryExpiry && new Date() < new Date(order.paymentRetryExpiry)) { %>
+              <p class="text-sm text-orange-600 mt-2">
+                <i class="fas fa-clock mr-1"></i>
+                Payment retry available until: <%= new Date(order.paymentRetryExpiry).toLocaleString() %>
+              </p>
+            <% } %>
+          </div>
+          <div>
+            <% if (!order.paymentRetryExpiry || new Date() < new Date(order.paymentRetryExpiry)) { %>
+              <button onclick="retryPayment('<%= order._id %>')" class="retry-btn">
+                <i class="fas fa-redo mr-2"></i>
+                Retry Payment
+              </button>
+            <% } else { %>
+              <div class="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">
+                <i class="fas fa-times-circle mr-1"></i>
+                Payment retry period expired
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Left Section: Order Items and Timeline -->
       <div class="lg:col-span-2 space-y-8">
@@ -222,7 +305,7 @@
                     ₹<%= typeof item.purchasePrice === 'number' && !isNaN(item.purchasePrice) ? item.purchasePrice.toFixed(2) : '0.00' %>
                   </p>
                   <div class="flex flex-wrap gap-3">
-                    <% if (['ordered', 'pending'].includes(item.productStatus)) { %>
+                    <% if (['ordered', 'pending'].includes(item.productStatus) && order.orderStatus !== 'payment_pending' && order.orderStatus !== 'payment_failed') { %>
                       <button 
                         onclick="showCancelItemModal('<%= order._id %>', '<%= item.productId %>')" 
                         class="bg-red-100 text-red-600 px-5 py-2 rounded-lg border border-red-200 btn hover:bg-red-200 font-medium"
@@ -298,6 +381,11 @@
                 <span>Coupon Discount</span>
                 <span class="font-medium">-₹<%= order.couponDiscount.toFixed(2) %></span>
               </div>
+              <div class="text-xs text-gray-500 pl-4">
+                <% if (order.couponCode) { %>
+                  Code: <span class="font-mono bg-gray-100 px-1 rounded"><%= order.couponCode %></span>
+                <% } %>
+              </div>
             <% } %>
             <div class="flex justify-between font-bold text-lg text-gray-800 pt-3 border-t-2">
               <span>Total</span>
@@ -317,9 +405,21 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Payment Status:</span>
-              <span class="font-semibold <%= order.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-600' %>">
-                <%= order.paymentStatus || 'Pending' %>
-              </span>
+              <% if (order.orderStatus === 'payment_pending') { %>
+                <span class="payment-pending-badge">
+                  <i class="fas fa-clock"></i>
+                  Pending
+                </span>
+              <% } else if (order.orderStatus === 'payment_failed') { %>
+                <span class="font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">
+                  <i class="fas fa-times-circle mr-1"></i>
+                  Failed
+                </span>
+              <% } else { %>
+                <span class="font-semibold <%= order.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-600' %>">
+                  <%= order.paymentStatus || 'Pending' %>
+                </span>
+              <% } %>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Transaction ID:</span>
@@ -355,12 +455,14 @@
               <p><span class="font-medium">Type:</span> <span class="capitalize"><%= order.shippingAddress.addressType %></span></p>
             <% } %>
           </div>
-          <button 
-            onclick="downloadInvoice()" 
-            class="mt-6 bg-blue-600 text-white px-5 py-3 rounded-lg btn hover:bg-blue-700 w-full font-semibold"
-          >
-            Download Invoice
-          </button>
+          <% if (order.orderStatus !== 'payment_pending' && order.orderStatus !== 'payment_failed') { %>
+            <button 
+              onclick="downloadInvoice()" 
+              class="mt-6 bg-blue-600 text-white px-5 py-3 rounded-lg btn hover:bg-blue-700 w-full font-semibold"
+            >
+              Download Invoice
+            </button>
+          <% } %>
         </div>
       </div>
     </div>
@@ -427,6 +529,7 @@
   </div>
 
   <!-- JavaScript -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     let currentOrderId = null;
     let currentProductId = null;
@@ -588,55 +691,81 @@
       }
     }
 
-    // Cancel Entire Order
-    async function cancelEntireOrder(orderId) {
+    // Retry Payment Function
+    async function retryPayment(orderId) {
       try {
-        const { value: reason } = await Swal.fire({
-          title: 'Cancel Entire Order',
-          input: 'textarea',
-          inputLabel: 'Please provide a reason for cancelling the entire order',
-          inputPlaceholder: 'Enter your reason here...',
-          showCancelButton: true,
-          confirmButtonText: 'Cancel Order',
-          cancelButtonText: 'Go Back',
-          confirmButtonColor: '#ef4444',
-          inputValidator: (value) => {
-            if (!value || !value.trim()) {
-              return 'You need to provide a reason!';
-            }
-          }
+        const response = await fetch(`/checkout/retry-payment/${orderId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        if (reason) {
-          const response = await fetch(`/orders/${orderId}/cancel-order`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-              orderId: orderId, 
-              reason: reason.trim() 
-            })
-          });
+        const data = await response.json();
 
-          const data = await response.json();
-          
-          await Swal.fire({
-            icon: data.success ? 'success' : 'error',
-            title: data.success ? 'Success' : 'Error',
-            text: data.message || (data.success ? 'Order cancelled successfully' : 'Failed to cancel order')
-          });
-
-          if (data.success) {
-            location.reload();
-          }
+        if (!data.success) {
+          throw new Error(data.message || "Failed to retry payment");
         }
+
+        const options = {
+          key: data.key_id,
+          amount: data.amount,
+          currency: "INR",
+          name: "Beauty Cart",
+          description: "Order Payment Retry",
+          order_id: data.razorpayOrderId,
+          handler: async function (response) {
+            const verifyRes = await fetch("/checkout/verify-razorpay", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: data.orderId
+              })
+            });
+            const vData = await verifyRes.json();
+
+            if (vData.success) {
+              await Swal.fire({
+                icon: "success", 
+                title: "Payment Successful!", 
+                text: "Your order has been confirmed.",
+                confirmButtonText: 'Continue'
+              });
+              location.reload();
+            } else {
+              await Swal.fire({
+                icon: "error", 
+                title: "Payment Verification Failed", 
+                text: vData.message || "Payment could not be verified"
+              });
+            }
+          },
+          prefill: {},
+          theme: { color: "#000000" },
+          modal: {
+            ondismiss: () => {
+              console.log('Payment dismissed by user');
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on("payment.failed", async resp => {
+          await Swal.fire({
+            icon: "error", 
+            title: "Payment Failed", 
+            text: resp.error.description || "Payment could not be processed"
+          });
+        });
+        rzp.open();
+
       } catch (error) {
-        console.error('Error cancelling order:', error);
+        console.error('Error retrying payment:', error);
         await Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to cancel order. Please try again.'
+          text: error.message || 'Failed to retry payment. Please try again.'
         });
       }
     }
@@ -701,6 +830,9 @@
         yPos += 7;
         <% if (order.couponApplied && order.couponDiscount > 0) { %>
         doc.text('Coupon Discount: -₹<%= order.couponDiscount.toFixed(2) %>', 20, yPos);
+        <% if (order.couponCode) { %>
+        doc.text('Coupon Code: <%= order.couponCode %>', 120, yPos);
+        <% } %>
         yPos += 7;
         <% } %>
         doc.setFont(undefined, 'bold');

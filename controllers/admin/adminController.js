@@ -45,21 +45,7 @@ exports.login = async(req,res)=>{
 }
 
 
-exports.loadDashboard = async (req, res) => {
-    if (req.session.admin) {
-        try {
-            res.render('admin/dashboard', {
-                pageTitle: 'Dashboard',
-                currentPage:'dashboard'
-            });
-        } catch (error) {
-            console.log('Dashboard render error:', error);
-            res.redirect('/pageError');
-        }
-    } else {
-        return res.redirect('/admin/login');
-    }
-};
+
 
 
 exports.logout = async(req,res)=>{

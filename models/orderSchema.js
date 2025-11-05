@@ -1,8 +1,6 @@
-
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 const { v4: uuidv4 } = require('uuid');
-const { string } = require('zod');
 
 const generateOrderId = () => {
   const datePart = new Date().toISOString().slice(0,10).replace(/-/g, ''); 
@@ -19,7 +17,7 @@ const generateOrderItemId = () => {
 const orderSchema = new mongoose.Schema({
   orderId: {
     type: String,
-    default:generateOrderId,
+    default: generateOrderId,
     unique: true
   },
   user: {
@@ -28,10 +26,10 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   orderItems: [{
-    ord_id:{
-      type:String,
-      default:generateOrderItemId ,
-      unique:true
+    ord_id: {
+      type: String,
+      default: generateOrderItemId,
+      unique: true
     },
     product: {
       type: Schema.Types.ObjectId,
@@ -48,7 +46,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ['ordered', 'shipped', 'delivered', 'cancelled','return requested','return rejected','returned'],
+      enum: ['ordered','payment failed','shipped', 'delivered', 'cancelled','return requested','return rejected','returned'],
       default: 'ordered'
     },
     productName: {
@@ -86,24 +84,25 @@ const orderSchema = new mongoose.Schema({
     type: Date
   },
   status: {
-  type: String,
-  required: true,
-  enum: [
-    'pending',
-    'processing',
-    'shipped',
-    'delivered',
-    'cancelled',
-    'returned',
-    'partially_returned',
-    'partially_cancelled',
-    'return_requested',
-    'return_rejected',
-    'return_approved',
-    'payment_failed'
-  ],
-  default: 'pending'
-},
+    type: String,
+    required: true,
+    enum: [
+      'pending',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+      'returned',
+      'partially_returned',
+      'partially_cancelled',
+      'return_requested',
+      'return_rejected',
+      'return_approved',
+      'payment_failed',
+      'payment_pending'
+    ],
+    default: 'pending'
+  },
   createdOn: {
     type: Date,
     default: Date.now,
@@ -113,22 +112,33 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  couponCode: {
+    type: String,
+    trim: true
+  },
+  couponDiscount: {
+    type: Number,
+    default: 0
+  },
   message: {
     type: String
   },
   timeline: [{
-  label: { type: String, required: true },   // e.g. "Ordered", "Shipped"
-  completed: { type: Boolean, default: false },
-  current: { type: Boolean, default: false },
-  date: { type: Date }
-}],
+    label: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+    current: { type: Boolean, default: false },
+    date: { type: Date }
+  }],
   paymentId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Payment'
+    type: String,
+    required: false
   },
   paymentMethod: {
     type: String,
     required: true
+  },
+  paymentRetryExpiry: {
+    type: Date
   },
   shipping: {
     type: Number,

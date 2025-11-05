@@ -198,6 +198,22 @@
       color: #713f12;
     }
 
+    .status-badge.payment-pending {
+      background: #fef3c7;
+      color: #92400e;
+      animation: pulse-orange 2s infinite;
+    }
+
+    .status-badge.payment-failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    @keyframes pulse-orange {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
     /* Custom Select */
     .status-select, .return-select {
       appearance: none;
@@ -438,26 +454,28 @@
                         <p class="text-gray-600">Price: <span class="font-bold text-green-600">₹<%= item.purchasePrice.toFixed(2) %></span></p>
                       </div>
                       <div class="flex items-center justify-between flex-wrap gap-3">
-  <span class="status-badge <%= item.status %>"><%= item.status.replace('-', ' ') %></span>
+  <span class="status-badge <%= item.status === 'payment_pending' ? 'payment-pending' : item.status === 'payment_failed' ? 'payment-failed' : item.status %>"><%= item.status.replace('-', ' ') %></span>
 
-  <select class="status-select no-print"
-          <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>
-          onchange="updateItemStatus('<%= order.orderId %>', '<%= item.ord_id %>', this.value)">
-    
-    <option value="ordered"
-            <%= item.status === 'ordered' ? 'selected' : '' %>
-            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Ordered</option>
-    
-    <option value="shipped"
-            <%= item.status === 'shipped' ? 'selected' : '' %>
-            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Shipped</option>
-    
-    <option value="delivered"
-            <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
-    
-    <option value="cancelled"
-            <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
-  </select>
+  <% if (order.orderStatus !== 'payment_pending' && order.orderStatus !== 'payment_failed') { %>
+    <select class="status-select no-print"
+            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>
+            onchange="updateItemStatus('<%= order.orderId %>', '<%= item.ord_id %>', this.value)">
+      
+      <option value="ordered"
+              <%= item.status === 'ordered' ? 'selected' : '' %>
+              <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Ordered</option>
+      
+      <option value="shipped"
+              <%= item.status === 'shipped' ? 'selected' : '' %>
+              <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Shipped</option>
+      
+      <option value="delivered"
+              <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+      
+      <option value="cancelled"
+              <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+    </select>
+  <% } %>
 
   <% if (item.status === 'return requested') { %>
     <button class="btn btn-primary no-print ml-2"
@@ -510,24 +528,37 @@
 
       <!-- Right Column: Order Summary -->
       <div class="space-y-6">
-        <!-- Order Status Card -->
-        <div class="card p-6 animate-in">
-          <h2 class="text-xl font-bold mb-4 text-gray-800">Order Status</h2>
-          <div class="space-y-3">
-            <div class="info-row">
-              <span class="info-label">Order Status</span>
-              <span class="status-badge <%= order.orderStatus %>"><%= order.orderStatus %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Payment Status</span>
-              <span class="info-value <%= order.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-600' %>"><%= order.paymentStatus %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Payment Method</span>
-              <span class="info-value"><%= order.paymentMethod %></span>
-            </div>
-          </div>
-        </div>
+       <!-- Order Status Card -->
+<div class="card p-6 animate-in">
+  <h2 class="text-xl font-bold mb-4 text-gray-800">Order Status</h2>
+  <div class="space-y-3">
+    <div class="info-row">
+      <span class="info-label">Order Status</span>
+      <% 
+        // ---- SAFE FALLBACK ----
+        const orderStatus = (order.orderStatus || 'pending').toLowerCase().replace(/_/g, ' ');
+        const badgeClass = order.orderStatus === 'payment_pending' ? 'payment-pending' :
+                          order.orderStatus === 'payment_failed'   ? 'payment-failed' :
+                          order.orderStatus || 'pending';
+      %>
+      <span class="status-badge <%= badgeClass %>">
+        <%= orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1) %>
+      </span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">Payment Status</span>
+      <span class="info-value <%= (order.paymentStatus || 'Pending') === 'Paid' ? 'text-green-600' : 'text-red-600' %>">
+        <%= order.paymentStatus || 'Pending' %>
+      </span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">Payment Method</span>
+      <span class="info-value"><%= order.paymentMethod || 'N/A' %></span>
+    </div>
+  </div>
+</div>
 
         <!-- Order Information -->
         <div class="card p-6 animate-in">
@@ -579,11 +610,16 @@
               <span class="info-label">Tax</span>
               <span class="info-value">₹<%= order.tax.toFixed(2) %></span>
             </div>
-            <% if (order.couponApplied) { %>
+            <% if (order.couponApplied && order.discount > 0) { %>
               <div class="info-row">
-                <span class="info-label text-green-600">Discount</span>
+                <span class="info-label text-green-600">Coupon Discount</span>
                 <span class="info-value text-green-600">-₹<%= order.discount.toFixed(2) %></span>
               </div>
+              <% if (order.couponCode) { %>
+                <div class="text-xs text-gray-500 pl-4">
+                  Code: <span class="font-mono bg-gray-100 px-1 rounded"><%= order.couponCode %></span>
+                </div>
+              <% } %>
             <% } %>
             <div class="info-row border-t-2 border-gray-200 pt-3">
               <span class="info-label text-lg">Total Amount</span>
@@ -615,7 +651,7 @@
         });
 
         if (!confirmResult.isConfirmed) {
-          return; // don't reload here, let user stay on the page
+          return;
         }
 
         const response = await fetch(`/admin/order/update-status/${orderId}`, {
@@ -626,9 +662,8 @@
 
         let data = {};
         try {
-          data = await response.json(); // try parsing JSON
+          data = await response.json();
         } catch {
-          // fallback if server sent empty or invalid JSON
           data.message = 'Server returned an invalid response';
         }
 
@@ -636,7 +671,6 @@
           throw new Error(data.message || 'Failed to update status');
         }
 
-        // Success alert
         await Swal.fire({
           icon: 'success',
           title: 'Updated!',
@@ -645,7 +679,7 @@
           timer: 2000
         });
 
-        location.reload(); // reload after success
+        location.reload();
       } catch (error) {
         console.error('Error updating status:', error);
 
@@ -673,7 +707,7 @@
 
         if (!confirmResult.isConfirmed) {
           
-          return; // don't reload here, let user stay on the page
+          return;
         }
 
         const response = await fetch(`/admin/order/verify-return/${orderId}`, {
@@ -685,9 +719,8 @@
 
         let data = {};
         try {
-          data = await response.json(); // try parsing JSON
+          data = await response.json();
         } catch {
-          // fallback if server sent empty or invalid JSON
           data.message = 'Server returned an invalid response';
         }
 
@@ -695,7 +728,6 @@
           throw new Error(data.message || 'Failed to verify return request');
         }
 
-        // Success alert
         await Swal.fire({
           icon: 'success',
           title: 'Return Processed!',
@@ -704,7 +736,7 @@
           timer: 2000
         });
 
-        location.reload(); // reload after success
+        location.reload();
       } catch (error) {
         console.error('Error verifying return request:', error);
 

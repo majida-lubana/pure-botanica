@@ -77,9 +77,13 @@ exports.forgotVerifyOtp = async (req, res) => {
     }
 };
 
+// forgotPassController.js
+
 exports.forgotResendOtp = async (req, res) => {
     try {
-        const email = req.session.forgotEmail;
+        console.log("ethitund")
+        const { email } = req.session.forgotEmail ? { email: req.session.forgotEmail } : {};
+        
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email not found in session' });
         }
@@ -89,16 +93,21 @@ exports.forgotResendOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'User not found' });
         }
 
-        const otp = generateOtp();
-        const emailSent = await sendVerificationEmail(email, otp);
+        const newOtp = generateOtp(); 
+        req.session.otp = newOtp;
+        req.session.forgotEmail = email;
+        req.session.forgotOtp = newOtp;
+        req.session.otpTimestamp = Date.now();
+
+        await req.session.save();
+
+        const emailSent = await sendVerificationEmail(email, newOtp);
 
         if (emailSent) {
-            req.session.forgotOtp = otp;
-            req.session.otpTimestamp = Date.now();
-            console.log('Resend OTP:', otp);
+            console.log('Resend OTP:', newOtp);
             return res.status(200).json({ success: true, message: 'OTP resent successfully' });
         } else {
-            return res.status(500).json({ success: false, message: 'Failed to resend OTP' });
+            return res.status(500).json({ success: false, message: 'Failed to send email' });
         }
     } catch (error) {
         console.error('Error resending OTP:', error);

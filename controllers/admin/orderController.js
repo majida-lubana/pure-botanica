@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 const Order = require('../../models/orderSchema');
 const Product = require('../../models/productSchema');
+const Wallet = require('../../models/walletSchema');
+const Transaction = require('../../models/transactionSchema');
+const User = require('../../models/userSchema');
+const referralController = require('../user/referralController');
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map(i => i.status);
@@ -29,13 +33,11 @@ const computeOrderStatus = (orderItems) => {
   return 'pending';
 };
 
-
 async function updateOrderStatus(order, session = null) {
   const newStatus = computeOrderStatus(order.orderItems);
 
   if (order.status !== newStatus) {
     order.status = newStatus;
-
 
     const exists = order.timeline.some(t => t.label.toLowerCase().includes(newStatus));
     if (!exists) {
@@ -55,6 +57,142 @@ async function updateOrderStatus(order, session = null) {
   await order.save({ session });
 }
 
+// ==========================================
+// PLACE ORDER - WITH REFERRAL PROCESSING
+// ==========================================
+exports.placeOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userId = req.session.user || req.user._id;
+    
+    // Your existing order creation logic here
+    const {
+      orderItems,
+      address,
+      paymentMethod,
+      totalAmount,
+      discount,
+      couponDiscount,
+      finalAmount,
+      // ... other fields
+    } = req.body;
+
+    // Create the order
+    const newOrder = await Order.create([{
+      user: userId,
+      orderItems: orderItems,
+      address: address,
+      paymentMethod: paymentMethod,
+      totalAmount: totalAmount,
+      discount: discount,
+      couponDiscount: couponDiscount,
+      finalAmount: finalAmount,
+      status: 'pending',
+      paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
+      // ... other order fields
+    }], { session });
+
+    const order = newOrder[0];
+
+    // Update product quantities
+    for (const item of orderItems) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } },
+        { session }
+      );
+    }
+
+    // ✅ CHECK IF THIS IS USER'S FIRST ORDER (ANY STATUS)
+    const previousOrdersCount = await Order.countDocuments({
+      user: userId,
+      _id: { $ne: order._id } // Exclude current order
+    });
+
+    console.log(`User ${userId} has ${previousOrdersCount} previous orders`);
+
+    // ✅ IF FIRST ORDER EVER, PROCESS REFERRAL REWARD IMMEDIATELY
+    if (previousOrdersCount === 0) {
+      console.log('🎉 First order detected! Processing referral reward...');
+      try {
+        await referralController.processReferralReward(userId);
+        console.log('✅ Referral reward processed successfully');
+      } catch (referralError) {
+        console.error('⚠️ Referral reward processing failed (non-critical):', referralError);
+        // Don't fail the order if referral processing fails
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      success: true,
+      message: 'Order placed successfully',
+      orderId: order.orderId,
+      orderNumber: order.orderNumber || order.orderId
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Order placement error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to place order',
+      error: error.message
+    });
+  }
+};
+
+// ==========================================
+// UPDATE ORDER STATUS - WITH REFERRAL ON DELIVERY
+// ==========================================
+exports.updateOrderStatus = async (req, res) => {
+  console.log('updateOrderStatus hit', req.params, req.body);
+  
+  try {
+    const { itemId, status } = req.body;
+    const { orderId } = req.params;
+
+    const validStatuses = ['ordered', 'shipped', 'delivered', 'cancelled', 'returned'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const order = await Order.findOne({ orderId }).populate('user');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const item = order.orderItems.find(item => item.ord_id.toString() === itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found in order' });
+    }
+
+    const previousStatus = item.status;
+    item.status = status;
+
+    await updateOrderStatus(order);
+
+    res.status(200).json({
+      success: true,
+      message: 'Item status updated successfully',
+      orderStatus: order.status,
+      orderId: order._id
+    });
+
+  } catch (error) {
+    console.error('Error updating item status:', error.stack);
+    res.status(500).json({ message: 'An error occurred while updating the status.' });
+  }
+};
+
+// ==========================================
+// RENDER ORDER MANAGE
+// ==========================================
 exports.renderOrderManage = async (req, res) => {
   try {
     let page = parseInt(req.query.page) || 1;
@@ -100,10 +238,11 @@ exports.renderOrderManage = async (req, res) => {
   }
 };
 
+// ==========================================
+// RENDER ORDER DETAILS
+// ==========================================
 exports.renderOrderDetails = async (req, res) => {
   try {
-    console.log('Fetching order details for orderId:', req.params.orderId);
-
     const order = await Order.findOne({ orderId: req.params.orderId })
       .populate('user', 'name email')
       .populate({
@@ -113,50 +252,45 @@ exports.renderOrderDetails = async (req, res) => {
       .lean();
 
     if (!order) {
-      console.log('Order not found for orderId:', req.params.orderId);
       return res.status(404).send('Order not found');
     }
 
+    order.orderStatus   = order.orderStatus   || 'pending';
+    order.paymentStatus = order.paymentStatus || 'Pending';
+    order.paymentMethod = order.paymentMethod || 'N/A';
+    order.transactionId = order.paymentId     || 'N/A';
 
     order.orderItems = order.orderItems.map(item => ({
       ...item,
-      productName: item.productName || (item.product?.productName || 'Unknown Product'),
-      productImage: item.productImage || (item.product?.productImages?.[0] ? `/uploads/product-images/${item.product.productImages[0]}` : '/default-image.jpg'),
-      status: item.status || 'ordered',
-      productId: item.product?._id?.toString() || item.product || 'N/A',
+      productName : item.productName || (item.product?.productName || 'Unknown Product'),
+      productImage: item.productImage || (item.product?.productImages?.[0]
+                     ? `/uploads/product-images/${item.product.productImages[0]}`
+                     : '/default-image.jpg'),
+      status      : item.status || 'ordered',
+      productId   : item.product?._id?.toString() || item.product || 'N/A',
     }));
 
-
-    order.timeline = order.timeline || [{ label: 'Ordered', current: true, completed: false, date: new Date() }];
-
+    if (!order.timeline || order.timeline.length === 0) {
+      order.timeline = [{ label: 'Ordered', current: true, completed: false, date: new Date() }];
+    }
 
     order.address = order.address || {
-      fullName: 'N/A',
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      pincode: '',
-      phone: 'N/A',
-      addressType: 'N/A',
+      fullName: 'N/A', address: '', city: '', state: '', country: '',
+      pincode: '', phone: 'N/A', addressType: 'N/A'
     };
 
+    order.status = computeOrderStatus(order.orderItems);
 
-    order.paymentStatus = order.paymentStatus || 'Pending';
-    order.transactionId = order.paymentId || 'N/A';
-
-    console.log('Processed order:', order);
-
-    res.render('admin/orderDetails', {
-      order,
-      admin: req.session.admin,
-    });
+    res.render('admin/orderDetails', { order, admin: req.session.admin });
   } catch (error) {
     console.error('Error fetching order details:', error);
     res.status(500).send('Server Error');
   }
 };
 
+// ==========================================
+// GET ORDER BY ID
+// ==========================================
 exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
@@ -201,45 +335,9 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-exports.updateOrderStatus = async (req, res) => {
-  console.log('updateOrderStatus hit', req.params, req.body);
-  try {
-    const { itemId, status } = req.body;
-    const { orderId } = req.params;
-
-    const validStatuses = ['ordered', 'shipped', 'delivered', 'cancelled', 'returned'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    const item = order.orderItems.find(item => item.ord_id.toString() === itemId);
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found in order' });
-    }
-
-    item.status = status;
-
-
-    await updateOrderStatus(order);
-
-    res.status(200).json({
-      success: true,
-      message: 'Item status updated successfully',
-      orderStatus: order.status,    
-      orderId: order._id
-    });
-  } catch (error) {
-    console.error('Error updating item status:', error.stack);
-    res.status(500).json({ message: 'An error occurred while updating the status.' });
-  }
-};
-
-
+// ==========================================
+// VERIFY RETURN
+// ==========================================
 exports.verifyReturn = async (req, res) => {
   console.log("verifyReturn hit");
   console.log("Params:", req.params);
@@ -265,20 +363,66 @@ exports.verifyReturn = async (req, res) => {
 
     if (action === 'accepted') {
       item.status = 'returned';
+      
+      await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
+
+      const refundAmount = item.purchasePrice * item.quantity;
+
+      const pendingTxn = await Transaction.findOne({
+        orderId: order._id,
+        itemId: item._id,
+        status: 'pending',
+        type: 'refund'
+      });
+
+      if (pendingTxn) {
+        pendingTxn.status = 'completed';
+        await pendingTxn.save();
+
+        let wallet = await Wallet.findOne({ userId: order.user });
+        if (!wallet) {
+          wallet = new Wallet({ userId: order.user, balance: 0 });
+        }
+        wallet.balance += refundAmount;
+        await wallet.save();
+
+        await Transaction.create({
+          userId: order.user,
+          orderId: order._id,
+          amount: refundAmount,
+          type: 'credit',
+          status: 'completed',
+          description: `Refund Approved - ${item.productName} (Order #${order.orderId})`
+        });
+      }
+
     } else if (action === 'rejected') {
       item.status = 'return rejected';
+
+      await Transaction.updateOne(
+        {
+          orderId: order._id,
+          itemId: item._id,
+          status: 'pending',
+          type: 'refund'
+        },
+        {
+          status: 'rejected',
+          description: `Return Rejected - ${item.productName} (Order #${order.orderId})`
+        }
+      );
+
     } else {
       return res.status(400).json({ success: false, message: 'Invalid action' });
     }
-
 
     await updateOrderStatus(order);
     console.log("Order saved");
 
     return res.status(200).json({
       success: true,
-      message: `Return request ${action}ed successfully`,
-      orderStatus: order.status   // ← For live update
+      message: `Return request ${action}ed successfully${action === 'accepted' ? ' and refunded to wallet' : ''}`,
+      orderStatus: order.status
     });
   } catch (error) {
     console.error('Error verifying return:', error);
@@ -288,3 +432,5 @@ exports.verifyReturn = async (req, res) => {
     });
   }
 };
+
+module.exports = exports;

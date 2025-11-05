@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Wallet - Pure Botanica</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary-color: #1a3c34;
+      --secondary-color: #e0ecf8;
+      --dark-text: #1a3c34;
+      --light-text: #5f8b88;
+      --success: #2ecc71;
+      --warning: #f1c40f;
+      --danger: #e74c3c;
+      --pending: #e67e22;
+      --border-radius: 8px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+      --header-height: 70px; /* Match your header height */
+    }
+
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
+      color: var(--dark-text);
+      line-height: 1.6;
+      margin: 0;
+      padding-top: 70px;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 0;
+      margin: 0;
+      width: 100vw;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .partial .sidebar {
+      margin-left: -85px;
+      position: sticky;
+      top: var(--header-height);
+      align-self: start;
+      height: calc(100vh - var(--header-height));
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    /* FIX: Push content below fixed header */
+    .content {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 40px;
+      width: 100%;
+      max-width: none;
+      margin-left: -10px;
+      padding-top: calc(40px + var(--header-height)); /* KEY FIX */
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(26, 60, 52, 0.2);
+    }
+
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--dark-text);
+      margin: 0;
+    }
+
+    .wallet-balance-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    .wallet-balance-card h4 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .wallet-balance-card .amount {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+
+    .transaction-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .transaction-card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .transaction-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .transaction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background-color: var(--secondary-color);
+      border-bottom: 1px solid rgba(26, 60, 52, 0.1);
+    }
+
+    .transaction-date {
+      color: var(--light-text);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .transaction-body {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transaction-details h6 {
+      margin: 0 0 0.25rem;
+      font-weight: 600;
+    }
+
+    .transaction-details small {
+      color: var(--light-text);
+      font-size: 0.8rem;
+    }
+
+    .status-badge {
+      padding: 0.35rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .status-badge i {
+      font-size: 0.7rem;
+    }
+
+    .status-completed { background-color: rgba(46, 204, 113, 0.1); color: var(--success); }
+    .status-pending { background-color: rgba(241, 196, 15, 0.1); color: var(--pending); }
+    .status-rejected { background-color: rgba(231, 76, 60, 0.1); color: var(--danger); }
+
+    .amount {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .amount.credit { color: var(--success); }
+    .amount.debit { color: var(--danger); }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 767px) {
+      .partial .sidebar { margin-left: 0; }
+      .content { 
+        margin-left: 0; 
+        padding: 1.5rem; 
+        padding-top: calc(1.5rem + var(--header-height)); 
+      }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .wallet-balance-card .amount { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="partial">
+    <%- include("../../views/partials/user/header") %>
+  </div>
+
+  <div class="container">
+    <div class="grid">
+      <div class="partial">
+        <%- include("../../views/partials/user/sidebar") %>
+      </div>
+
+      <div class="content">
+        <div class="page-header">
+          <h2 class="page-title">My Wallet</h2>
+        </div>
+
+        <!-- Wallet Balance -->
+        <div class="wallet-balance-card">
+          <h4>Available Balance</h4>
+          <div class="amount">₹<%= parseFloat(wallet.balance).toFixed(2) %></div>
+          <small>Use this balance to pay for your orders instantly!</small>
+        </div>
+
+        <!-- Use Wallet Toggle -->
+        <% if (wallet.balance > 0) { %>
+        <div class="toggle-switch">
+          <span>Use wallet by default</span>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="useWallet" <%= wallet.useInCheckout ? 'checked' : '' %>>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- Transaction History -->
+        <h5 class="mb-3">Transaction History</h5>
+        <% if (transactions.length === 0) { %>
+          <div class="text-center py-5 text-muted">
+            <i class="fas fa-wallet fa-3x mb-3"></i>
+            <p>No transactions yet. Your wallet activity will appear here.</p>
+          </div>
+        <% } else { %>
+          <div class="transaction-grid">
+            <% transactions.forEach(txn => { %>
+              <div class="transaction-card">
+                <div class="transaction-header">
+                  <div class="transaction-date">
+                    <i class="far fa-calendar-alt"></i>
+                    <%= new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+                  </div>
+                </div>
+                <div class="transaction-body">
+                  <div class="transaction-details">
+                    <h6>
+                      <%= txn.description %>
+                      <% if (txn.orderId) { %>
+                        <small class="text-muted">Order #<%= txn.orderId %></small>
+                      <% } %>
+                    </h6>
+                  </div>
+                  <div class="text-end">
+                    <div class="amount <%= txn.type === 'credit' ? 'credit' : 'debit' %>">
+                      <%= txn.type === 'credit' ? '+' : '-' %>₹<%= Math.abs(txn.amount).toFixed(2) %>
+                    </div>
+                    <div class="mt-1">
+                      <span class="status-badge <%= 
+                        txn.status === 'completed' ? 'status-completed' : 
+                        txn.status === 'pending' ? 'status-pending' : 
+                        'status-rejected' 
+                      %>">
+                        <i class="<%= 
+                          txn.status === 'completed' ? 'fas fa-check-circle' : 
+                          txn.status === 'pending' ? 'fas fa-clock' : 
+                          'fas fa-times-circle' 
+                        %>"></i>
+                        <%= txn.status.charAt(0).toUpperCase() + txn.status.slice(1) %>
+                        <% if (txn.type === 'refund' && txn.status === 'pending') { %> (Awaiting Admin)<% } %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Admin Refund Buttons -->
+                <% if (txn.type === 'refund' && txn.status === 'pending' && user.role === 'admin') { %>
+                  <div class="p-3 border-top bg-light d-flex gap-2 justify-content-end">
+                    <button 
+                      class="btn btn-sm btn-success confirm-refund" 
+                      data-txn-id="<%= txn._id %>"
+                      data-amount="<%= txn.amount %>">
+                      Confirm Refund
+                    </button>
+                    <button 
+                      class="btn btn-sm btn-danger reject-refund" 
+                      data-txn-id="<%= txn._id %>">
+                      Reject
+                    </button>
+                  </div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <!-- Info Boxes -->
+        <div class="row mt-5">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded shadow-sm">
+              <h6>Credits</h6>
+              <ul class="small text-muted mb-0">
+                <li>Refunds from returned orders</li>
+                <li>Promotional cashback</li>
+                <li>Referral bonuses</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded shadow-sm">
+              <h6>Debits</h6>
+              <ul class="small text-muted mb-0">
+                <li>Payments made using wallet</li>
+                <li>Partial or full order payments</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="partial">
+    <%- include("../../views/partials/user/footer") %>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Toggle wallet default
+    document.getElementById('useWallet')?.addEventListener('change', function() {
+      fetch('/wallet/toggle-default', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useInCheckout: this.checked })
+      });
+    });
+
+    // Admin Refund Actions
+    document.querySelectorAll('.confirm-refund').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const txnId = this.dataset.txnId;
+        const amount = this.dataset.amount;
+        if (confirm(`Confirm refund of ₹${amount}?`)) {
+          fetch('/admin/refund/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txnId, amount })
+          }).then(r => r.json()).then(d => {
+            if (d.success) location.reload();
+            else alert('Error: ' + d.message);
+          });
+        }
+      });
+    });
+
+    document.querySelectorAll('.reject-refund').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (confirm('Reject refund?')) {
+          fetch('/admin/refund/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txnId: this.dataset.txnId })
+          }).then(r => r.json()).then(d => {
+            if (d.success) location.reload();
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

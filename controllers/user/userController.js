@@ -4,7 +4,7 @@ const Product = require('../../models/productSchema')
 const User = require('../../models/userSchema')
 
 const {generateOtp, sendVerificationEmail } = require('../../utils/emailService')
-
+const referralController = require('../../controllers/user/referralController')
 
 
 exports.loadHomePage = async (req, res) => {
@@ -99,10 +99,11 @@ exports.pageNotFound = async (req,res)=>{
     }
 }
 
+// Add this to your userController.js signup function
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password, confirmPassword } = req.body; 
+    const { name, email, phone, password, confirmPassword, referralCode } = req.body; 
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -111,6 +112,22 @@ exports.signup = async (req, res) => {
         old: req.body,
         message: 'Email already registered'
       });
+    }
+
+    // Validate referral code if provided
+    if (referralCode) {
+      const referrer = await User.findOne({ 
+        referralCode: referralCode.toUpperCase() 
+      });
+      if (!referrer) {
+        return res.render('user/signup', {
+          errors: { referralCode: 'Invalid referral code' },
+          old: req.body,
+          message: 'Invalid referral code'
+        });
+      }
+      // Store referral code in session
+      req.session.referralCode = referralCode.toUpperCase();
     }
 
     const otp = generateOtp();
@@ -150,6 +167,48 @@ exports.signup = async (req, res) => {
     });
   }
 };
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    console.log("Received OTP:", otp);
+    console.log("Session OTP:", req.session.userOtp);
+
+    if (String(otp) === String(req.session.userOtp)) {
+      const user = req.session.userData;
+      const passwordHash = await securePassword(user.password);
+
+      const saveUserData = new User({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        password: passwordHash,
+      });
+
+      await saveUserData.save();
+      req.session.user = saveUserData._id;
+
+      // ✅ FIX: Process referral SIGNUP (not reward) if referral code exists
+      if (req.session.referralCode) {
+        await referralController.processReferralSignup(
+          saveUserData._id,
+          req.session.referralCode
+        );
+        delete req.session.referralCode;
+      }
+
+      delete req.session.userOtp;
+      delete req.session.userData;
+
+      res.json({ success: true, redirectUrl: "/" });
+    } else {
+      res.status(400).json({ success: false, message: "Invalid OTP, try again" });
+    }
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ success: false, message: "An error occurred" });
+  }
+};
  
 const securePassword = async(password) => {
   try {
@@ -161,43 +220,11 @@ const securePassword = async(password) => {
   }
 }
 
-exports.verifyOtp = async(req,res)=>{
-  try{
-    const {otp} = req.body
-    console.log("Received OTP:", otp)
-    console.log("Session OTP:", req.session.userOtp)
-    console.log("OTP comparison:", String(otp), "===", String(req.session.userOtp))
 
-    if(String(otp) === String(req.session.userOtp)){
-      const user = req.session.userData
-      const passwordHash = await securePassword(user.password)
-      
-      const saveUserData = new User({
-        name: user.name,  
-        email: user.email,
-        phone: user.phone,
-        password: passwordHash,
-      })
-
-      await saveUserData.save()
-      req.session.user = saveUserData._id;
-      
-
-      delete req.session.userOtp;
-      delete req.session.userData;
-      
-      res.json({success:true, redirectUrl:"/"})
-    }else{
-      res.status(400).json({success:false, message:"Invalid OTP, try again"})
-    }
-  }catch(error){
-    console.error("Error verifying OTP:", error)
-    res.status(500).json({success:false, message:"An error occurred"})
-  }
-}
 
 exports.resendOtp = async(req,res)=>{
   try{
+    console.log("kandu")
     const {email} = req.session.userData || {};
     if(!email){
       return res.status(400).json({success:false, message:"Email not found in session"})
@@ -287,39 +314,39 @@ exports.login = async (req, res) => {
 };
 
 
-exports.resendOtp = async (req, res) => {
-    try {
-        const email = req.session.email;
-        if (!email) {
-            return res.json({
-                success: false,
-                message: 'Session expired. Please start the password reset process again.'
-            });
-        }
+// exports.resendOtp = async (req, res) => {
+//     try {
+//         const email = req.session.email;
+//         if (!email) {
+//             return res.json({
+//                 success: false,
+//                 message: 'Session expired. Please start the password reset process again.'
+//             });
+//         }
 
-        const findUser = await User.findOne({ email });
-        if (!findUser) {
-            return res.json({
-                success: false,
-                message: 'User with this email does not exist'
-            });
-        }
+//         const findUser = await User.findOne({ email });
+//         if (!findUser) {
+//             return res.json({
+//                 success: false,
+//                 message: 'User with this email does not exist'
+//             });
+//         }
 
-        const otp = generateOtp();
-        const emailSent = await exports.sendVerificationEmail(email, otp);
+//         const otp = generateOtp();
+//         const emailSent = await exports.sendVerificationEmail(email, otp);
 
-        if (emailSent) {
-            req.session.userOtp = otp;
-            req.session.otpTimestamp = Date.now();
-            res.json({ success: true, message: 'OTP resent successfully. Please check your email.' });
-        } else {
-            res.json({ success: false, message: 'Failed to resend OTP. Please try again.' });
-        }
-    } catch (error) {
-        console.error('Error resending OTP:', error);
-        res.json({ success: false, message: 'Something went wrong. Please try again.' });
-    }
-};
+//         if (emailSent) {
+//             req.session.userOtp = otp;
+//             req.session.otpTimestamp = Date.now();
+//             res.json({ success: true, message: 'OTP resent successfully. Please check your email.' });
+//         } else {
+//             res.json({ success: false, message: 'Failed to resend OTP. Please try again.' });
+//         }
+//     } catch (error) {
+//         console.error('Error resending OTP:', error);
+//         res.json({ success: false, message: 'Something went wrong. Please try again.' });
+//     }
+// };
 
 exports.logout = async(req,res)=>{
   try{
@@ -337,3 +364,6 @@ exports.logout = async(req,res)=>{
     res.redirect('user/pageNotFound')
   }
 }
+
+
+

@@ -129,10 +129,10 @@
   <!-- Navigation links -->
   <nav class="sidebar-nav">
     <div class="nav-links-container">
-      <a href="/admin/dashboard" class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>">
-        <i class="fas fa-home"></i>
-        <span>Dashboard</span>
-      </a>
+<a href="/admin/sales-report" class="nav-link <%= currentPage === 'sales-report' ? 'active' : '' %>">
+  <i class="fas fa-chart-line"></i>
+  <span>Sales Report</span>
+</a>
       <a href="/admin/users" class="nav-link <%= currentPage === 'users' || currentPage === 'customers' ? 'active' : '' %>">
         <i class="fas fa-user"></i>
         <span>Users</span>
@@ -153,7 +153,7 @@
         <i class="fas fa-lock"></i>
         <span>Products</span>
       </a>
-      <a href="/admin/coupon" class="nav-link <%= currentPage === 'coupon' ? 'active' : '' %>">
+      <a href="/admin/coupons" class="nav-link <%= currentPage === 'coupon' ? 'active' : '' %>">
         <i class="fas fa-file-alt"></i>
         <span>Coupon</span>
       </a>

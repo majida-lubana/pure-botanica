@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const passport = require('passport')
-const { isLoggedIn } = require('../middlewares/auth'); 
+const { isLoggedIn } = require('../middlewares/auth');
 
 const userController = require('../controllers/user/userController')
 const profileController = require('../controllers/user/profileController')
@@ -10,10 +10,12 @@ const orderController = require('../controllers/user/orderController');
 const addressController = require('../controllers/user/addressController')
 const cartController = require('../controllers/user/cartController')
 const checkoutController = require('../controllers/user/checkoutController')
-const forgotPassController = require('../controllers/user/forgotPassController')
+const forgotPassController = require('../controllers/user/forgotPassController')        
 const { signupSchema, loginSchema} = require('../validators/authValidators');
-
-
+const walletController = require('../controllers/user/walletController')
+const wishlistController = require('../controllers/user/wishlistController')
+const couponController = require('../controllers/user/couponController')
+const referralController = require('../controllers/user/referralController')
 
 const { userAuth } = require('../middlewares/auth');
 const validate = require('../middlewares/validate');
@@ -21,17 +23,17 @@ const validate = require('../middlewares/validate');
 router.get('/',userController.loadHomePage)
 router.get('/pageNotFound',userController.pageNotFound)
 router.get('/signup',userController.loadSignup)
-router.post('/signup',validate(signupSchema, 'user/signup'),userController.signup)
-router.get('/verify-otp',userController.loadOtp)
+router.post('/signup',validate(signupSchema, 'user/signup'),userController.signup)      
+router.get('/getVerify-otp',userController.loadOtp)
 router.post('/verify-otp',userController.verifyOtp)
-router.post("/resend-otp",userController.resendOtp)
+router.post("/resendSignUp-otp",userController.resendOtp)
 
 //Forgot password
 router.get('/forgot-password', forgotPassController.getForgotPassPage);
 router.post('/forgot-password' ,forgotPassController.sendForgotOtp);
 router.get('/reset-otp', forgotPassController.loadOtpPage);
 router.post('/reset-otp', forgotPassController.forgotVerifyOtp);
-router.post('/resend-otp', forgotPassController.forgotResendOtp);
+router.post('/resendForgotPassword-otp', forgotPassController.forgotResendOtp);
 router.get('/reset-password', forgotPassController.loadResetPasswordPage);
 router.post('/reset-password', forgotPassController.resetPassword);
 
@@ -44,15 +46,15 @@ router.get('/auth/google',
    passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
-router.get('/google/callback', 
+router.get('/google/callback',
   (req, res, next) => {
     console.log('=== Google Callback Hit ===');
     console.log('Full URL:', req.url);
     console.log('Query params:', req.query);
     console.log('Session ID:', req.sessionID);
     next();
-  }, 
-  passport.authenticate('google', { failureRedirect: '/signup' }), 
+  },
+  passport.authenticate('google', { failureRedirect: '/signup' }),
   (req, res) => {
     console.log('=== Auth Successful ===');
     console.log('User object:', req.user);
@@ -79,7 +81,7 @@ router.post('/resend-emailOtp',userAuth,profileController.resendEmailOtp)
 router.post('/update-profile',userAuth, profileController.updateProfile)
 router.post('/change-password',userAuth,profileController.updatePassword)
 
-// Address management 
+// Address management
 router.get('/address', userAuth, addressController.loadAddress);
 router.get('/address/:id', userAuth, addressController.getAddress);
 router.post('/address/add', userAuth,addressController.addAddress);
@@ -89,13 +91,13 @@ router.delete('/address/:id', userAuth, addressController.deleteAddress);
 // Shop
 router.get('/shop', userAuth, shopController.loadShopPage);
 router.get('/api/products', shopController.getProductsApi);
-router.get('/product/availability/:id', shopController.checkProductAvailability);
+router.get('/product/availability/:id', shopController.checkProductAvailability);       
 router.get('/product/:id',isLoggedIn, shopController.loadProductPage);
 
 // Order management
 router.get('/orders', userAuth, orderController.loadOrderPage);
-router.get('/order-details/:orderId', userAuth, orderController.getOrderDetailsPage);
-router.post('/orders/:orderId/cancel-item', userAuth, orderController.cancelItem);
+router.get('/order-details/:orderId', userAuth, orderController.getOrderDetailsPage);   
+router.post('/orders/:orderId/cancel-item', userAuth, orderController.cancelItem);      
 router.post('/orders/:orderId/return', userAuth, orderController.returnItem);
 
 // Cart management
@@ -111,11 +113,34 @@ router.post('/cart/check-quantity',userAuth,cartController.getCountInCart)
 // Checkout management
 router.get('/checkout', userAuth, checkoutController.getCheckoutPage);
 router.post('/checkout/place-order', userAuth, checkoutController.placeOrder);
+router.post('/checkout/verify-razorpay',userAuth,checkoutController.verifyRazorpayPayment)
+router.post('/checkout/retry-payment/:orderId', userAuth, checkoutController.retryPayment);
 router.get('/order-success', userAuth, checkoutController.getOrderSuccessPage);
 router.get('/order-error', userAuth, checkoutController.getOrderErrorPage);
 router.post('/add-address', userAuth, checkoutController.addAddress);
 router.get('/get-address/:addressId', userAuth, checkoutController.getAddress);
-router.put('/edit-address/:addressId', userAuth, checkoutController.editAddress);
+router.put('/edit-address/:addressId', userAuth, checkoutController.editAddress);       
 router.delete('/remove-address/:addressId', userAuth, checkoutController.removeAddress);
+
+//wallet management
+router.get('/wallet', userAuth, walletController.getWallet);
+router.post('/wallet/toggle-default', userAuth, walletController.toggleDefault);
+
+
+//Wishlist
+router.get('/wishlist',userAuth,wishlistController.getWishlist)
+router.post('/wishlist/toggle',userAuth,wishlistController.toggleWishlist)
+router.post('/wishlist/remove',userAuth,wishlistController.removeFromWishList)
+router.get('/wishlist/count', userAuth, wishlistController.getWishListCount);
+router.post('/wishlist/clear', userAuth, wishlistController.clearWishList);
+
+//coupon Management
+router.get('/coupons', userAuth, couponController.getCouponsPage);
+router.post('/apply-coupon',userAuth,couponController.applyCoupon)
+router.get('/available-coupons', userAuth, couponController.getAvailableCoupons);
+
+
+router.get('/referral', userAuth, referralController.getReferralPage);
+
 
 module.exports = router

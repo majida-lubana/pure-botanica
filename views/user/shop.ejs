@@ -57,6 +57,14 @@
         flex-direction: column;
         align-items: center;
       }
+      .offer-badge {
+        background: #ef4444;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+      }
     </style>
   </head>
   <body class="bg-white text-black">
@@ -204,11 +212,21 @@
               </select>
             </div>
           </div>
+          
+          <!-- PRODUCTS GRID -->
           <div id="productsGrid">
             <% if (products.length > 0) { %>
               <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                 <% products.forEach(product => { %>
-                  <div class="product-card bg-white rounded-lg shadow-md border border-gray-200">
+                  <div class="product-card bg-white rounded-lg shadow-md border border-gray-200 relative">
+                    <!-- Wishlist Icon -->
+                    <button 
+                      class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-100 transition-all wishlist-btn"
+                      data-product-id="<%= product._id %>"
+                      title="Add to Wishlist">
+                      <i class="fa<%= wishlistProductIds.includes(product._id.toString()) ? 's text-red-500' : 'r' %> fa-heart text-lg"></i>
+                    </button>
+
                     <div class="product-content">
                       <a href="/product/<%= product._id %>">
                         <img
@@ -221,13 +239,33 @@
                       <div class="font-bold text-lg mb-2 text-gray-800 text-center">
                         <%= product.productName.toUpperCase() %>
                       </div>
-                      <div class="mb-3 text-gray-600 font-semibold text-base text-center">
-                        ₹<%= product.salePrice.toFixed(2) %>
+
+                      <!-- PRICE WITH OFFER -->
+                      <div class="mb-3 text-center">
+                        <div class="flex items-center justify-center gap-2 flex-wrap">
+                          <span class="text-2xl font-bold text-green-600">
+                            ₹<%= product.pricing.displayPrice.toFixed(2) %>
+                          </span>
+                          <% if (product.pricing.savings > 0) { %>
+                            <span class="text-sm line-through text-gray-500">
+                              ₹<%= product.pricing.originalPrice.toFixed(2) %>
+                            </span>
+                            <span class="offer-badge">
+                              <%= product.pricing.discountPercentage %>%
+                            </span>
+                          <% } %>
+                        </div>
+                        <% if (product.pricing.savings > 0) { %>
+                          <p class="text-xs text-gray-600 mt-1">
+                            Save ₹<%= product.pricing.savings.toFixed(2) %>
+                          </p>
+                        <% } %>
                         <% if (product.quantity === 0) { %>
-                          <span class="text-red-600 text-sm">(Out of Stock)</span>
+                          <span class="text-red-600 text-sm block">(Out of Stock)</span>
                         <% } %>
                       </div>
                     </div>
+
                     <button
                       class="bg-[#0a2a2d] text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] transition-colors w-full add-to-cart-btn"
                       data-product-id="<%= product._id %>"
@@ -245,267 +283,319 @@
         </div>
       </div>
     </main>
+    
+    <!-- PAGINATION -->
     <div class="w-full flex justify-center mt-6 mb-4">
       <div class="flex space-x-2 bg-[#0a2a2d] text-white px-4 py-2 rounded">
         <% if (currentPage > 1) { %>
           <a href="?page=<%= currentPage - 1 %>" class="px-3 py-1 rounded hover:bg-[#0f3a3f] text-sm">
-            &laquo; Prev
+            Prev
           </a>
         <% } %>
         <% for (let i = 1; i <= totalPages; i++) { %>
           <% if (i === currentPage) { %>
             <span class="px-3 py-1 rounded text-sm font-semibold"><%= i %></span>
           <% } else { %>
-            <a href="?page=<%= i %>" class="px线下</a>
+            <a href="?page=<%= i %>" class="px-3 py-1 rounded hover:bg-[#0f3a3f] text-sm"><%= i %></a>
           <% } %>
         <% } %>
         <% if (currentPage < totalPages) { %>
           <a href="?page=<%= currentPage + 1 %>" class="px-3 py-1 rounded hover:bg-[#0f3a3f] text-sm">
-            Next &raquo;
+            Next
           </a>
         <% } %>
       </div>
     </div>
+    
     <%- include("../partials/user/footer") %>
-    <script>
-      let currentParams = {
-        search: '<%= search || "" %>',
-        sort: '<%= sort || "default" %>',
-        category: <%= JSON.stringify(selectedCategories) %>,
-        skinType: <%= JSON.stringify(selectedSkinTypes) %>,
-        skinConcern: <%= JSON.stringify(selectedSkinConcerns) %>,
-        minPrice: <%= minPrice || 0 %>,
-        maxPrice: <%= maxPrice || 10000 %>,
-        page: <%= currentPage || 1 %>,
-        limit: 12
+
+<script>
+  // -------------------------------------------------
+  // GLOBAL PARAMS (filled by EJS on first load)
+  // -------------------------------------------------
+  let currentParams = {
+    search: '<%= search || "" %>',
+    sort: '<%= sort || "default" %>',
+    category: <%= JSON.stringify(selectedCategories) %>,
+    skinType: <%= JSON.stringify(selectedSkinTypes) %>,
+    skinConcern: <%= JSON.stringify(selectedSkinConcerns) %>,
+    minPrice: <%= minPrice || 0 %>,
+    maxPrice: <%= maxPrice || 10000 %>,
+    page: <%= currentPage || 1 %>,
+    limit: 12
+  };
+
+  /* -------------------------------------------------
+   *  TOAST NOTIFICATION (SweetAlert2)
+   * ------------------------------------------------- */
+  function showToast(message, type = 'info') {
+    const icons = { success: 'success', danger: 'error', info: 'info', warning: 'warning' };
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: icons[type] || 'info',
+      title: message,
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer);
+        toast.addEventListener('mouseleave', Swal.resumeTimer);
+      }
+    });
+  }
+
+  /* -------------------------------------------------
+   *  WISHLIST TOGGLE
+   * ------------------------------------------------- */
+  async function toggleWishlist(productId, button) {
+    const icon = button.querySelector('i');
+
+    try {
+      const res = await fetch('/wishlist/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.added) {
+          // ----- ADDED -----
+          icon.classList.remove('far');
+          icon.classList.add('fas', 'text-red-500');
+          showToast('Added to wishlist!', 'success');
+        } else {
+          // ----- REMOVED -----
+          icon.classList.remove('fas', 'text-red-500');
+          icon.classList.add('far');
+          showToast('Removed from wishlist', 'info');
+        }
+        updateWishlistCount();
+      } else {
+        handleAuthRedirect(data);
+      }
+    } catch (e) {
+      showToast('Network error', 'danger');
+    }
+  }
+
+  function attachWishlistListeners() {
+    document.querySelectorAll('.wishlist-btn').forEach(btn => {
+      btn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWishlist(this.dataset.productId, this);
       };
+    });
+  }
 
-      async function updateProducts(updateUrl = false) {
-        const queryString = new URLSearchParams();
-        if (currentParams.search) queryString.append('search', currentParams.search);
-        if (currentParams.sort !== 'default') queryString.append('sort', currentParams.sort);
-        currentParams.category.forEach(c => queryString.append('category', c));
-        currentParams.skinType.forEach(st => queryString.append('skinType', st));
-        currentParams.skinConcern.forEach(sc => queryString.append('skinConcern', sc));
-        if (currentParams.minPrice != 0) queryString.append('minPrice', currentParams.minPrice);
-        if (currentParams.maxPrice != 10000) queryString.append('maxPrice', currentParams.maxPrice);
-        queryString.append('page', currentParams.page);
-        queryString.append('limit', currentParams.limit);
+  /* -------------------------------------------------
+   *  UPDATE WISHLIST COUNT (header badge)
+   * ------------------------------------------------- */
+  async function updateWishlistCount() {
+    try {
+      const res = await fetch('/wishlist/count');
+      const data = await res.json();
+      const el = document.getElementById('wishlist-count');
+      if (el) el.textContent = data.count > 0 ? `${data.count} items` : 'Empty';
+    } catch (err) {
+      console.error('Failed to update wishlist count');
+    }
+  }
 
-        try {
-          const response = await fetch(`/api/products?${queryString.toString()}`);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const data = await response.json();
-          const grid = document.getElementById('productsGrid');
-          grid.innerHTML = '';
-          if (data.products.length > 0) {
-            const div = document.createElement('div');
-            div.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6';
-            data.products.forEach(product => {
-              const card = `
-                <div class="product-card bg-white rounded-lg shadow-md border border-gray-200">
-                  <div class="product-content">
-                    <a href="/product/${product._id}">
-                      <img
-                        alt="${product.productName}"
-                        class="mb-4 product-image cursor-pointer w-48 h-48 mx-auto"
-                        src="${product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/150'}"
-                        loading="lazy"
-                      />
-                    </a>
-                    <div class="font-bold text-lg mb-2 text-gray-800 text-center">
-                      ${product.productName.toUpperCase()}
-                    </div>
-                    <div class="mb-3 text-gray-600 font-semibold text-base text-center">
-                      ₹${product.salePrice.toFixed(2)}
-                      ${product.quantity === 0 ? '<span class="text-red-600 text-sm">(Out of Stock)</span>' : ''}
-                    </div>
-                  </div>
-                  <button
-                    class="bg-[#0a2a2d] text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] transition-colors w-full add-to-cart-btn"
-                    data-product-id="${product._id}"
-                    ${product.quantity === 0 ? 'disabled' : ''}
-                  >
-                    ${product.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
-                  </button>
+  /* -------------------------------------------------
+   *  AUTH REDIRECT (login popup)
+   * ------------------------------------------------- */
+  function handleAuthRedirect(data) {
+    if (data.redirectUrl) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Login Required',
+        text: data.message || 'Please login to continue.',
+        confirmButtonText: 'Login'
+      }).then(r => { if (r.isConfirmed) window.location.href = data.redirectUrl; });
+    } else {
+      showToast(data.message || 'Error', 'danger');
+    }
+  }
+
+  /* -------------------------------------------------
+   *  CART
+   * ------------------------------------------------- */
+  async function addToCart(productId) {
+    try {
+      const apiRes = await fetch(`/api/products?productId=${productId}&limit=1`);
+      if (!apiRes.ok) throw new Error('Product not found');
+      const apiData = await apiRes.json();
+      const product = apiData.products[0];
+      if (!product || product.quantity === 0) {
+        Swal.fire({ icon: 'error', title: 'Out of Stock', timer: 2000, showConfirmButton: false });
+        return;
+      }
+      const price = product.pricing.displayPrice;
+
+      const cartRes = await fetch('/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, quantity: 1, price, totalPrice: price })
+      });
+      const cartData = await cartRes.json();
+
+      if (cartData.success) {
+        Swal.fire({ icon: 'success', title: 'Added!', timer: 1500, showConfirmButton: false });
+        const el = document.getElementById('cart-count');
+        if (el && cartData.cartCount) el.textContent = cartData.cartCount;
+      } else {
+        handleAuthRedirect(cartData);
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to add to cart.', timer: 2000, showConfirmButton: false });
+    }
+  }
+
+  function attachAddToCartListeners() {
+    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+      btn.onclick = () => addToCart(btn.dataset.productId);
+    });
+  }
+
+  /* -------------------------------------------------
+   *  PRODUCT GRID UPDATE (AJAX)
+   * ------------------------------------------------- */
+  async function updateProducts() {
+    const qs = new URLSearchParams();
+    if (currentParams.search) qs.append('search', currentParams.search);
+    if (currentParams.sort !== 'default') qs.append('sort', currentParams.sort);
+    currentParams.category.forEach(c => qs.append('category', c));
+    currentParams.skinType.forEach(st => qs.append('skinType', st));
+    currentParams.skinConcern.forEach(sc => qs.append('skinConcern', sc));
+    if (currentParams.minPrice != 0) qs.append('minPrice', currentParams.minPrice);
+    if (currentParams.maxPrice != 10000) qs.append('maxPrice', currentParams.maxPrice);
+    qs.append('page', currentParams.page);
+    qs.append('limit', currentParams.limit);
+
+    const grid = document.getElementById('productsGrid');
+    grid.innerHTML = '<div class="col-span-full text-center py-12">Loading...</div>';
+
+    try {
+      const res = await fetch(`/api/products?${qs}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.products.length) {
+        const container = document.createElement('div');
+        container.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6';
+
+        data.products.forEach(p => {
+          const pricing = p.pricing;
+          const card = `
+            <div class="product-card bg-white rounded-lg shadow-md border border-gray-200 relative">
+              <button class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-100 wishlist-btn"
+                      data-product-id="${p._id}" title="Wishlist">
+                <i class="fa${p.isInWishlist ? 's text-red-500' : 'r'} fa-heart text-lg"></i>
+              </button>
+
+              <div class="product-content">
+                <a href="/product/${p._id}">
+                  <img alt="${p.productName}" class="mb-4 product-image w-48 h-48 mx-auto"
+                       src="${p.productImages?.[0] ? '/Uploads/product-images/' + p.productImages[0] : 'https://via.placeholder.com/150'}"
+                       loading="lazy"/>
+                </a>
+                <div class="font-bold text-lg mb-2 text-gray-800 text-center">
+                  ${p.productName.toUpperCase()}
                 </div>
-              `;
-              div.innerHTML += card;
-            });
-            grid.appendChild(div);
-            attachAddToCartListeners();
-          } else {
-            grid.innerHTML = '<div class="text-center text-gray-600 py-12">No products found. Try adjusting your filters.</div>';
-          }
-        } catch (error) {
-          console.error('Error fetching products:', error);
-          document.getElementById('productsGrid').innerHTML = '<div class="text-center text-red-600 py-12">Error loading products: ' + error.message + '. Please try again.</div>';
-        }
-      }
-      async function getProductCountInCart(productId){
-        const r = await fetch(`/cart/count`,{
-          method:'POST',
-          headers:{'content-type':'application/json'},
-          body:JSON.stringify({productId})
+
+                <div class="mb-3 text-center">
+                  <div class="flex items-center justify-center gap-2 flex-wrap">
+                    <span class="text-2xl font-bold text-green-600">₹${pricing.displayPrice.toFixed(2)}</span>
+                    ${pricing.savings > 0 ? `
+                      <span class="text-sm line-through text-gray-500">₹${pricing.originalPrice.toFixed(2)}</span>
+                      <span class="offer-badge">${pricing.discountPercentage}%</span>
+                    ` : ''}
+                  </div>
+                  ${pricing.savings > 0 ? `<p class="text-xs text-gray-600 mt-1">Save ₹${pricing.savings.toFixed(2)}</p>` : ''}
+                  ${p.quantity === 0 ? '<span class="text-red-600 text-sm block">(Out of Stock)</span>' : ''}
+                </div>
+              </div>
+
+              <button class="bg-[#0a2a2d] text-white text-sm font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] w-full add-to-cart-btn"
+                      data-product-id="${p._id}" ${p.quantity === 0 ? 'disabled' : ''}>
+                ${p.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
+              </button>
+            </div>`;
+          container.innerHTML += card;
         });
-        const d = await r.json()
-        return d.count ?? 0
-      }
 
-      async function addToCart(productId) {
-        try {
-          const response = await fetch(`/product/availability/${productId}`);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const data = await response.json();
-          if (data.available) {
-            const cartResponse = await fetch('/cart/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId, quantity: 1 })
-            });
-            const cartData = await cartResponse.json();
-            if (cartData.success) {
-              Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Product added to cart!',
-                showConfirmButton: false,
-                timer: 1500
-              });
-              const cartCountEl = document.getElementById('cart-count');
-              if (cartCountEl && cartData.cartCount) {
-                cartCountEl.textContent = cartData.cartCount;
-              }
-            } else {
-              if (cartData.redirectUrl) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Login Required',
-                  text: cartData.message || 'Please login to add products to your cart.',
-                  showConfirmButton: true,
-                  confirmButtonText: 'Go to Login',
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    window.location.href = cartData.redirectUrl;
-                  }
-                });
-              } else {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error',
-                  text: cartData.message || 'Failed to add product to cart',
-                  showConfirmButton: false,
-                  timer: 2000
-                });
-              }
-            }
-          } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'Out of Stock',
-              text: 'Product is out of stock.',
-              showConfirmButton: false,
-              timer: 2000
-            });
-          }
-        } catch (error) {
-          console.error('Error adding to cart:', error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'An error occurred while adding the product to the cart.',
-            showConfirmButton: false,
-            timer: 2000
-          });
-        }
-      }
-
-      function attachAddToCartListeners() {
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-          button.addEventListener('click', () => {
-            const productId = button.getAttribute('data-product-id');
-            addToCart(productId);
-          });
-        });
-      }
-
-      document.querySelectorAll('input[type="checkbox"][name="category[]"], input[type="checkbox"][name="skinType[]"], input[type="checkbox"][name="skinConcern[]"]').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-          const name = checkbox.name.replace('[]', '');
-          currentParams[name] = Array.from(document.querySelectorAll(`input[name="${checkbox.name}"]:checked`)).map(c => c.value);
-          currentParams.page = 1;
-          updateProducts(true);
-        });
-      });
-
-      const allCatCheckbox = document.getElementById('cat-all');
-      allCatCheckbox.addEventListener('change', () => {
-        if (allCatCheckbox.checked) {
-          document.querySelectorAll('input[name="category[]"]').forEach(c => c.checked = false);
-          currentParams.category = [];
-        }
-        currentParams.page = 1;
-        updateProducts(true);
-      });
-
-      document.querySelectorAll('input[name="category[]"]').forEach(c => {
-        c.addEventListener('change', () => {
-          if (c.checked) allCatCheckbox.checked = false;
-        });
-      });
-
-      document.getElementById('minPrice').addEventListener('blur', () => {
-        currentParams.minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
-        currentParams.page = 1;
-        updateProducts(true);
-      });
-      document.getElementById('maxPrice').addEventListener('blur', () => {
-        currentParams.maxPrice = parseFloat(document.getElementById('maxPrice').value) || 10000;
-        currentParams.page = 1;
-        updateProducts(true);
-      });
-      document.getElementById('minPrice').addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-          currentParams.minPrice = parseFloat(e.target.value) || 0;
-          currentParams.page = 1;
-          updateProducts(true);
-        }
-      });
-      document.getElementById('maxPrice').addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-          currentParams.maxPrice = parseFloat(e.target.value) || 10000;
-          currentParams.page = 1;
-          updateProducts(true);
-        }
-      });
-
-      document.getElementById('searchBtn').addEventListener('click', () => {
-        currentParams.search = document.getElementById('searchInput').value.trim();
-        currentParams.page = 1;
-        updateProducts(true);
-      });
-      document.getElementById('searchInput').addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-          currentParams.search = e.target.value.trim();
-          currentParams.page = 1;
-          updateProducts(true);
-        }
-      });
-
-      document.getElementById('sortSelect').addEventListener('change', (e) => {
-        currentParams.sort = e.target.value;
-        currentParams.page = 1;
-        updateProducts(true);
-      });
-
-      function changePage(page) {
-        currentParams.page = page;
-        updateProducts(true);
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
+        grid.innerHTML = '';
+        grid.appendChild(container);
         attachAddToCartListeners();
+        attachWishlistListeners();               // <-- RE-ATTACH AFTER AJAX
+      } else {
+        grid.innerHTML = '<div class="text-center text-gray-600 py-12">No products found.</div>';
+      }
+    } catch (err) {
+      console.error('updateProducts error:', err);
+      grid.innerHTML = '<div class="text-center text-red-600 py-12">Error loading products.</div>';
+    }
+  }
+
+  /* -------------------------------------------------
+   *  FILTER / SEARCH / SORT LISTENERS
+   * ------------------------------------------------- */
+  document.querySelectorAll('input[type="checkbox"][name^="category"], input[type="checkbox"][name^="skinType"], input[type="checkbox"][name^="skinConcern"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const name = cb.name.replace('[]', '');
+      currentParams[name] = Array.from(document.querySelectorAll(`input[name="${cb.name}"]:checked`)).map(c => c.value);
+      currentParams.page = 1;
+      updateProducts();
+    });
+  });
+
+  const allCat = document.getElementById('cat-all');
+  if (allCat) {
+    allCat.addEventListener('change', () => {
+      if (allCat.checked) {
+        document.querySelectorAll('input[name="category[]"]').forEach(c => c.checked = false);
+        currentParams.category = [];
+      }
+      currentParams.page = 1;
+      updateProducts();
+    });
+  }
+  document.querySelectorAll('input[name="category[]"]').forEach(c => {
+    c.addEventListener('change', () => { if (c.checked) allCat.checked = false; });
+  });
+
+  ['minPrice', 'maxPrice'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    ['blur', 'keyup'].forEach(ev => {
+      el.addEventListener(ev, e => {
+        if (ev === 'keyup' && e.key !== 'Enter') return;
+        currentParams[id === 'minPrice' ? 'minPrice' : 'maxPrice'] = parseFloat(el.value) || (id === 'minPrice' ? 0 : 10000);
+        currentParams.page = 1;
+        updateProducts();
       });
-    </script>
-  </body>
+    });
+  });
+
+  const searchBtn = document.getElementById('searchBtn');
+  const searchInp = document.getElementById('searchInput');
+  if (searchBtn) searchBtn.addEventListener('click', () => { currentParams.search = searchInp.value.trim(); currentParams.page = 1; updateProducts(); });
+  if (searchInp) searchInp.addEventListener('keyup', e => { if (e.key === 'Enter') { currentParams.search = e.target.value.trim(); currentParams.page = 1; updateProducts(); } });
+
+  const sortSel = document.getElementById('sortSelect');
+  if (sortSel) sortSel.addEventListener('change', e => { currentParams.sort = e.target.value; currentParams.page = 1; updateProducts(); });
+
+  /* -------------------------------------------------
+   *  INITIALISE
+   * ------------------------------------------------- */
+  document.addEventListener('DOMContentLoaded', () => {
+    attachAddToCartListeners();
+    attachWishlistListeners();
+    updateWishlistCount();
+  });
+</script>  </body>
 </html>
