@@ -83,11 +83,17 @@
       align-items: center;
       padding: 1rem 0;
       border-bottom: 1px solid #eee;
-      transition: background 0.2s;
+      transition: all 0.3s ease;
+      opacity: 1;
     }
 
-    .wishlist-item:hover {
-      background-color: #f9f9f9;
+    .wishlist-item.removing {
+      opacity: 0;
+      height: 0;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      overflow: hidden;
     }
 
     .item-image {
@@ -122,10 +128,19 @@
       overflow: hidden;
     }
 
+    .item-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .item-title a:hover {
+      color: var(--primary-color);
+    }
+
     .item-meta {
       font-size: 0.8rem;
       color: #666;
-      margin-bottom: 0.3rem;
+      margin-top: 0.3rem;
     }
 
     .assured {
@@ -151,25 +166,20 @@
       margin-left: 0.5rem;
     }
 
-    .discount {
-      color: var(--discount);
-      font-weight: 600;
+    .discount-badge {
+      background-color: #dc3545;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
       margin-left: 0.5rem;
-      font-size: 0.9rem;
     }
 
-    .remove-btn {
-      background: none;
-      border: none;
-      color: #999;
-      font-size: 1.2rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      transition: color 0.2s;
-    }
-
-    .remove-btn:hover {
-      color: var(--danger);
+    .save-text {
+      font-size: 0.75rem;
+      color: #555;
+      margin-left: 0.5rem;
     }
 
     .action-buttons {
@@ -187,6 +197,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
+      transition: all 0.2s;
     }
 
     .add-all-btn {
@@ -217,6 +228,16 @@
       opacity: 0.5;
     }
 
+    .btn-out-of-stock {
+      background-color: #e5e7eb;
+      color: #6b7280;
+      cursor: not-allowed;
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      width: 100%;
+    }
+
     @media (max-width: 767px) {
       .partial .sidebar { margin-left: 0; }
       .content { margin-left: 0; padding: 1.5rem; padding-top: calc(1.5rem + var(--header-height)); }
@@ -243,64 +264,98 @@
           <h2 class="page-title">My Wishlist (<span id="wishlist-count"><%= wishlist.length %></span>)</h2>
         </div>
 
-        <% if (wishlist.length === 0) { %>
-          <div class="empty-wishlist">
-            <i class="far fa-heart"></i>
-            <h5>Your wishlist is empty</h5>
-            <p>Browse our collection and add products you love.</p>
-            <a href="/shop" class="btn btn-primary mt-3">Continue Shopping</a>
-          </div>
-        <% } else { %>
-          <div class="wishlist-list">
-            <% wishlist.forEach(item => { %>
-              <div class="wishlist-item" data-product-id="<%= item.product._id %>">
-                <div class="item-image">
+        <!-- Empty State -->
+        <div id="empty-wishlist" class="empty-wishlist" style="display: <%= wishlist.length === 0 ? 'block' : 'none' %>;">
+          <i class="far fa-heart"></i>
+          <h5>Your wishlist is empty</h5>
+          <p>Browse our collection and add products you love.</p>
+          <a href="/shop" class="inline-block bg-[#0a2a2d] text-white px-6 py-2 rounded hover:bg-[#0f3a3f] transition text-sm font-semibold">
+            Continue Shopping
+          </a>
+        </div>
+
+        <!-- Wishlist Items -->
+        <div id="wishlist-container" class="wishlist-list" style="display: <%= wishlist.length > 0 ? 'flex' : 'none' %>;">
+          <% wishlist.forEach(item => { %>
+            <% const p = item.product; %>
+            <% const pr = p.pricing; %>
+
+            <div class="wishlist-item" data-product-id="<%= p._id %>">
+              <!-- Image -->
+              <div class="item-image">
+                <a href="/product/<%= p._id %>">
                   <img 
-                    src="<%= item.product.images && item.product.images.length > 0 
-                      ? '/Uploads/product-images/' + item.product.images[0] 
-                      : '/images/placeholder.jpg' %>" 
-                    alt="<%= item.product.name %>"
+                    src="<%= p.images?.[0] ? '/Uploads/product-images/' + p.images[0] : '/images/placeholder.jpg' %>" 
+                    alt="<%= p.name %>"
                     onerror="this.src='/images/placeholder.jpg'">
+                </a>
+              </div>
+
+              <!-- Details -->
+              <div class="item-details">
+                <div class="item-title">
+                  <a href="/product/<%= p._id %>"><%= p.name %></a>
                 </div>
-                <div class="item-details">
-                  <div class="item-title"><%= item.product.name %></div>
-                  <% if (item.product.assured) { %>
-                    <div class="assured">
-                      <i class="fas fa-shield-alt"></i> Assured
-                    </div>
+
+                <% if (p.assured) { %>
+                  <div class="assured">
+                    <i class="fas fa-shield-alt"></i> Assured
+                  </div>
+                <% } %>
+
+                <!-- Pricing -->
+                <div class="flex items-center gap-2 flex-wrap mt-2">
+                  <span class="item-price">₹<%= pr.displayPrice.toFixed(2) %></span>
+                  <% if (pr.savings > 0) { %>
+                    <span class="original-price">₹<%= pr.originalPrice.toFixed(2) %></span>
+                    <span class="discount-badge"><%= pr.discountPercentage %>% OFF</span>
+                    <span class="save-text">Save ₹<%= pr.savings.toFixed(2) %></span>
                   <% } %>
-                  <div>
-                    <span class="item-price">₹<%= parseFloat(item.product.salePrice || item.product.price).toFixed(2) %></span>
-                    <% if (item.product.originalPrice && item.product.originalPrice > (item.product.salePrice || item.product.price)) { %>
-                      <span class="original-price">₹<%= item.product.originalPrice.toFixed(2) %></span>
-                      <% const discount = Math.round(((item.product.originalPrice - (item.product.salePrice || item.product.price)) / item.product.originalPrice) * 100); %>
-                      <span class="discount"><%= discount %>% off</span>
-                    <% } %>
-                  </div>
-                  <div class="item-meta">
-                    <% if (item.product.stock > 0) { %>
-                      <i class="fas fa-check-circle text-success"></i> In Stock
-                    <% } else { %>
-                      <i class="fas fa-times-circle text-danger"></i> Out of Stock
-                    <% } %>
-                  </div>
                 </div>
-                <button class="remove-btn remove-wishlist-btn" data-product-id="<%= item.product._id %>">
-                  <i class="fas fa-trash-alt"></i>
+
+                <!-- Stock -->
+                <div class="item-meta mt-2">
+                  <% if (p.stock > 0) { %>
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <span class="font-medium" style="color: var(--success);">In Stock</span>
+                  <% } else { %>
+                    <i class="fas fa-times-circle" style="color: var(--danger);"></i>
+                    <span class="font-medium" style="color: var(--danger);">Out of Stock</span>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex flex-col gap-2 ml-4">
+                <% if (p.stock > 0) { %>
+                  <button 
+                    class="add-to-cart-btn bg-[#0a2a2d] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-[#0f3a3f] transition whitespace-nowrap"
+                    data-product-id="<%= p._id %>">
+                    Add to Cart
+                  </button>
+                <% } else { %>
+                  <button class="btn-out-of-stock" disabled>Out of Stock</button>
+                <% } %>
+
+                <button 
+                  class="remove-wishlist-btn text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
+                  data-product-id="<%= p._id %>">
+                  <i class="fas fa-trash-alt"></i> Remove
                 </button>
               </div>
-            <% }) %>
-          </div>
+            </div>
+          <% }) %>
+        </div>
 
-          <div class="action-buttons">
-            <button class="add-all-btn" id="add-all-to-cart">
-              <i class="fas fa-shopping-cart"></i> Add All to Cart
-            </button>
-            <button class="clear-btn" id="clear-wishlist">
-              <i class="fas fa-trash"></i> Clear Wishlist
-            </button>
-          </div>
-        <% } %>
+        <!-- Action Buttons -->
+        <div id="action-buttons" class="action-buttons" style="display: <%= wishlist.length > 0 ? 'flex' : 'none' %>;">
+          <button id="add-all-to-cart" class="add-all-btn">
+            <i class="fas fa-shopping-cart"></i> Add All Available to Cart
+          </button>
+          <button id="clear-wishlist" class="clear-btn">
+            <i class="fas fa-trash"></i> Clear Wishlist
+          </button>
+        </div>
 
         <!-- Info Box -->
         <div class="row mt-5">
@@ -329,193 +384,170 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    function updateCount() {
-      const count = document.querySelectorAll('.wishlist-item').length;
-      document.getElementById('wishlist-count').textContent = count;
-      const buttons = document.querySelector('.action-buttons');
-      if (count === 0) {
-        if (buttons) buttons.style.display = 'none';
-        // Removed location.reload() to prevent full page redirect/refresh
-        // The empty state will now show automatically once all items are faded/removed
-      } else {
-        if (buttons) buttons.style.display = 'flex';
-      }
+    // DOM Selectors
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    // Update wishlist count and visibility
+    function updateWishlistUI() {
+      const items = $$('.wishlist-item');
+      const count = items.length;
+      $('#wishlist-count').textContent = count;
+      $('#action-buttons').style.display = count ? 'flex' : 'none';
+      $('#empty-wishlist').style.display = count ? 'none' : 'block';
+      $('#wishlist-container').style.display = count ? 'flex' : 'none';
+    }
+
+    // Toast Notification
+    function toast(message, type = 'success') {
+      const bg = type === 'success' ? '#2ecc71' : '#e74c3c';
+      const div = Object.assign(document.createElement('div'), {
+        innerHTML: `<span>${message}</span>`,
+        style: `
+          position: fixed; bottom: 20px; right: 20px; 
+          background: ${bg}; color: white; padding: 12px 20px; 
+          border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          z-index: 10000; font-weight: 600; animation: fadeIn 0.3s;
+        `
+      });
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
+    }
+
+    // Add to Cart
+    function attachAddToCart(button) {
+      button.addEventListener('click', async () => {
+        const productId = button.dataset.productId;
+        try {
+          const res = await fetch('/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, quantity: 1 })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            button.textContent = 'Go to Cart';
+            button.className = 'bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded hover:bg-green-700';
+            button.onclick = () => location.href = '/cart';
+
+            // Update cart count in header
+            const cartCountEl = $('#cart-count');
+            if (cartCountEl && data.cartCount !== undefined) {
+              cartCountEl.textContent = data.cartCount;
+            }
+            toast('Added to cart!', 'success');
+          } else {
+            if (data.redirectUrl) {
+              Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: data.message || 'Please login to continue',
+                confirmButtonText: 'Login'
+              }).then(r => r.isConfirmed && (location.href = data.redirectUrl));
+            } else {
+              toast(data.message || 'Failed to add', 'error');
+            }
+          }
+        } catch (err) {
+          toast('Network error', 'error');
+        }
+      });
     }
 
     // Remove from Wishlist
-    document.querySelectorAll('.remove-wishlist-btn').forEach(btn => {
-      btn.addEventListener('click', async function (e) {
-        // No preventDefault needed for <button> in this context, but added for safety
-        e.preventDefault();
-        const productId = this.dataset.productId;
-        const item = this.closest('.wishlist-item');
+    function attachRemoveButton(button) {
+      button.addEventListener('click', async () => {
+        const productId = button.dataset.productId;
+        const row = button.closest('.wishlist-item');
 
-        const result = await Swal.fire({
-          title: 'Remove Item?',
-          text: "Remove from wishlist?",
+        const { isConfirmed } = await Swal.fire({
+          title: 'Remove from Wishlist?',
+          text: 'This item will be removed from your wishlist.',
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonText: 'Yes',
-          cancelButtonText: 'No',
           confirmButtonColor: '#e74c3c',
+          confirmButtonText: 'Yes, Remove'
         });
 
-        if (!result.isConfirmed) return;
+        if (!isConfirmed) return;
 
-        fetch('/wishlist/remove', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId })
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              item.style.transition = 'all 0.3s ease';
-              item.style.opacity = '0';
-              item.style.height = item.offsetHeight + 'px'; // Capture height
-              item.style.height = '0';
-              item.style.padding = '0';
-              item.style.margin = '0';
-              item.style.border = '0';
-              setTimeout(() => {
-                item.remove();
-                updateCount();
-                // Show empty state if needed (no reload)
-                if (document.querySelectorAll('.wishlist-item').length === 0) {
-                  const empty = document.querySelector('.empty-wishlist');
-                  if (empty) empty.style.display = 'block';
-                }
-              }, 300);
-            } else {
-              showToast('Failed to remove', 'danger');
-            }
-          })
-          .catch(err => {
-            console.error(err);
-            showToast('Error occurred', 'danger');
+        try {
+          const res = await fetch('/wishlist/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId })
           });
-      });
-    });
+          const data = await res.json();
 
-    // Add All to Cart → Clear Wishlist
-    document.getElementById('add-all-to-cart')?.addEventListener('click', async function (e) {
-      e.preventDefault();
-      const items = document.querySelectorAll('.wishlist-item');
-      let added = 0;
-      for (const item of items) {
-        const productId = item.dataset.productId;
-        const stock = item.querySelector('.item-meta .text-success') ? true : false;
-        if (stock) {
-          try {
-            await fetch('/cart/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId, quantity: 1 })
-            });
-            added++;
-          } catch (err) {
-            console.error(err);
+          if (data.success) {
+            row.classList.add('removing');
+            setTimeout(() => {
+              row.remove();
+              updateWishlistUI();
+              toast('Removed from wishlist', 'success');
+            }, 300);
+          } else {
+            toast(data.message || 'Failed to remove', 'error');
           }
+        } catch (err) {
+          toast('Network error', 'error');
         }
-      }
-
-      if (added > 0) showToast(`Added ${added} items!`, 'success');
-
-      const res = await fetch('/wishlist/clear', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' } 
       });
-      const data = await res.json();
-      if (data.success) {
-        items.forEach(item => {
-          item.style.transition = 'all 0.3s ease';
-          item.style.opacity = '0';
-          item.style.height = '0';
-          item.style.padding = '0';
-          item.style.margin = '0';
-          item.style.border = '0';
-        });
-        setTimeout(() => {
-          items.forEach(item => item.remove());
-          updateCount();
-          // Ensure empty state is visible (no reload)
-          const empty = document.querySelector('.empty-wishlist');
-          if (empty) empty.style.display = 'block';
-        }, 400);
+    }
+
+    // Add All to Cart
+    $('#add-all-to-cart')?.addEventListener('click', async () => {
+      const buttons = $$('.add-to-cart-btn:not([disabled])');
+      for (const btn of buttons) {
+        btn.click();
+        await new Promise(r => setTimeout(r, 200)); // Rate limit
       }
     });
 
-    // Clear Wishlist
-    document.getElementById('clear-wishlist')?.addEventListener('click', async function (e) {
-      e.preventDefault();
-      const result = await Swal.fire({
+    // Clear Entire Wishlist
+    $('#clear-wishlist')?.addEventListener('click', async () => {
+      const { isConfirmed } = await Swal.fire({
         title: 'Clear Wishlist?',
-        text: "All items will be removed.",
+        text: 'All items will be removed permanently.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, Clear',
-        cancelButtonText: 'Cancel',
         confirmButtonColor: '#e74c3c',
+        confirmButtonText: 'Yes, Clear All'
       });
 
-      if (!result.isConfirmed) return;
+      if (!isConfirmed) return;
 
-      fetch('/wishlist/clear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            const items = document.querySelectorAll('.wishlist-item');
-            items.forEach(el => {
-              el.style.transition = 'all 0.3s ease';
-              el.style.opacity = '0';
-              el.style.height = '0';
-              el.style.padding = '0';
-              el.style.margin = '0';
-              el.style.border = '0';
-            });
-            setTimeout(() => {
-              items.forEach(el => el.remove());
-              updateCount();
-              // Show empty state (no reload)
-              const empty = document.querySelector('.empty-wishlist');
-              if (empty) empty.style.display = 'block';
-            }, 400);
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          showToast('Error occurred', 'danger');
+      try {
+        const res = await fetch('/wishlist/clear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
         });
+        const data = await res.json();
+
+        if (data.success) {
+          $$('.wishlist-item').forEach(el => el.classList.add('removing'));
+          setTimeout(() => {
+            $$('.wishlist-item').forEach(el => el.remove());
+            updateWishlistUI();
+            toast('Wishlist cleared', 'success');
+          }, 400);
+        } else {
+          toast(data.message || 'Failed to clear', 'error');
+        }
+      } catch (err) {
+        toast('Network error', 'error');
+      }
     });
 
-    // Toast
-    function showToast(message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.style.position = 'fixed';
-      toast.style.bottom = '20px';
-      toast.style.right = '20px';
-      toast.style.backgroundColor = type === 'success' ? '#2ecc71' : '#e74c3c';
-      toast.style.color = 'white';
-      toast.style.padding = '1rem 1.5rem';
-      toast.style.borderRadius = '8px';
-      toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-      toast.style.zIndex = '10000';
-      toast.style.fontWeight = '600';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    }
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateWishlistUI();
 
-    // Initial setup
-    updateCount();
-    // Hide empty wishlist initially if there are items
-    if (document.querySelectorAll('.wishlist-item').length > 0) {
-      const empty = document.querySelector('.empty-wishlist');
-      if (empty) empty.style.display = 'none';
-    }
+      // Attach event listeners
+      $$('.add-to-cart-btn').forEach(attachAddToCart);
+      $$('.remove-wishlist-btn').forEach(attachRemoveButton);
+    });
   </script>
 </body>
 </html>
