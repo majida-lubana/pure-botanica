@@ -113,9 +113,6 @@ exports.loadShopPage = async (req, res) => {
   }
 };
 
-/* ------------------------------------------------------------------ */
-/* -------------------------- AJAX API ------------------------------- */
-/* ------------------------------------------------------------------ */
 exports.getProductsApi = async (req, res) => {
   try {
     let {
@@ -210,7 +207,7 @@ exports.getProductsApi = async (req, res) => {
   }
 };
 
-/* ------------------------------------------------------------------ */
+
 exports.checkProductAvailability = async (req, res) => {
   try {
     const product = await Product.findOne({
