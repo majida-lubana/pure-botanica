@@ -5,6 +5,7 @@ const User = require('../../models/userSchema')
 
 const {generateOtp, sendVerificationEmail } = require('../../utils/emailService')
 const referralController = require('../../controllers/user/referralController')
+const { calculatePricing } = require('../../utils/calculatePricing');
 
 
 exports.loadHomePage = async (req, res) => {
@@ -30,16 +31,22 @@ exports.loadHomePage = async (req, res) => {
       .populate('category')
       .lean();
 
+    const productsWithPricing = products.map(product => ({
+      ...product,
+      pricing: calculatePricing(product)
+    }));
 
-    const formattedProducts = products.map(product => ({
-      id: product._id.toString(), 
+
+    const formattedProducts = productsWithPricing.map(product => ({
+      id: product._id.toString(),
       name: product.productName,
-      image: product.productImages?.length > 0 
-        ? '/Uploads/product-images/' + product.productImages[0] 
+      image: product.productImages?.length > 0
+        ? '/Uploads/product-images/' + product.productImages[0]
         : 'https://storage.googleapis.com/a1aa/image/placeholder.jpg',
-      price: product.salePrice,
+      price: product.salePrice, 
       rating: product.rating ?? 4,
-      reviews: product.reviews ?? 0
+      reviews: product.reviews ?? 0,
+      pricing: product.pricing 
     }));
       console.log(req.session.user)
 
