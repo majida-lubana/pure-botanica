@@ -192,33 +192,52 @@ exports.renderOrderManage = async (req, res) => {
     let limit = 5;
     let skip = (page - 1) * limit;
 
+    // Count total orders (for pagination)
     const totalOrders = await Order.countDocuments();
+
+    // Fetch orders with populated product data
     const orders = await Order.find()
       .populate('user', 'name email')
       .populate('address')
       .populate({
         path: 'orderItems.product',
-        select: 'productName productImages',
+        select: 'productName productImages', // Only what we need
       })
       .sort({ createdOn: -1 })
       .skip(skip)
       .limit(limit)
-      .lean();
+      .lean(); // Important: .lean() for mutability
 
+    // Process each order
     for (const order of orders) {
+      // 1. Compute and sync status
       const newStatus = computeOrderStatus(order.orderItems);
       if (order.status !== newStatus) {
         order.status = newStatus;
         await Order.updateOne({ _id: order._id }, { status: newStatus });
       }
 
+      // 2. Map display fields from populated product
       order.orderItems.forEach(item => {
-        if (!item.product) console.warn(`Order ${order.orderId} has an item with no valid product reference. Product ID: ${item.product}`);
-        item.displayName = item.productName || (item.product?.productName || 'Unknown Product');
-        item.displayImage = item.productImage || (item.product?.productImages?.[0] ? `/uploads/product-images/${item.product.productImages[0]}` : '/default-image.jpg');
+        const product = item.product;
+
+        // Log missing product (for debugging)
+        if (!product) {
+          console.warn(`Order ${order.orderId} has item with missing product. Item ID: ${item._id}`);
+        }
+
+        // Set display name
+        item.displayName = product?.productName || 'Unknown Product';
+
+        // Set display image (safe fallback)
+        const imageFile = product?.productImages?.[0];
+        item.displayImage = imageFile
+          ? `/Uploads/product-images/${imageFile}`
+          : 'https://via.placeholder.com/80?text=No+Image';
       });
     }
 
+    // Render page
     res.render('admin/orderManage', {
       orders,
       currentPage: page,
@@ -251,15 +270,23 @@ exports.renderOrderDetails = async (req, res) => {
     order.paymentMethod = order.paymentMethod || 'N/A';
     order.transactionId = order.paymentId     || 'N/A';
 
-    order.orderItems = order.orderItems.map(item => ({
-      ...item,
-      productName : item.productName || (item.product?.productName || 'Unknown Product'),
-      productImage: item.productImage || (item.product?.productImages?.[0]
-                     ? `/uploads/product-images/${item.product.productImages[0]}`
-                     : '/default-image.jpg'),
-      status      : item.status || 'ordered',
-      productId   : item.product?._id?.toString() || item.product || 'N/A',
-    }));
+    order.orderItems = order.orderItems.map(item => {
+  const product = item.product;
+
+  
+  const imageFile = product?.productImages?.[0];
+  const productImage = imageFile 
+    ? `/Uploads/product-images/${imageFile}` 
+    : 'https://via.placeholder.com/120?text=No+Image';
+
+  return {
+    ...item,
+    productName : product?.productName || 'Unknown Product',
+    productImage: productImage,
+    status      : item.status || 'ordered',
+    productId   : product?._id?.toString() || 'N/A',
+  };
+});
 
     if (!order.timeline || order.timeline.length === 0) {
       order.timeline = [{ label: 'Ordered', current: true, completed: false, date: new Date() }];
