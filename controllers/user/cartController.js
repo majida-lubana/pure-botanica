@@ -199,6 +199,8 @@ exports.addToCart = async (req, res) => {
       isBlocked: false,
     }).populate('category').lean();
 
+    
+
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product unavailable' });
     }
@@ -247,15 +249,17 @@ exports.addToCart = async (req, res) => {
     const cartCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
     return res.json({
-      success: true,
-      message: 'Product added to cart!',
-      cartCount,
-    });
+  success: true,
+  message: 'Product added to cart!',
+  cartCount,
+  
+});
   } catch (error) {
     console.error('Add to Cart Error:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 exports.updateCartQuantity = async (req, res) => {
   try {
