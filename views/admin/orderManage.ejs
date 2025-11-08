@@ -328,21 +328,21 @@
               <% order.orderItems.forEach(item => { %>
                 <div class="product-item">
                   <img
-                    src="<%= item.displayImage %>"
-                    alt="<%= item.displayName %>"
-                    class="product-thumbnail"
-                    onerror="this.src='/default-image.jpg'"
-                  >
+            src="<%= item.displayImage || 'https://via.placeholder.com/80?text=No+Image' %>"
+            alt="<%= item.displayName %>"
+            class="product-thumbnail"
+            onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Image';"
+          >
                 </div>
               <% }) %>
             <% } else { %>
               <div class="product-item">
                 <img
-                  src="<%= order.orderItems[0].displayImage %>"
-                  alt="<%= order.orderItems[0].displayName %>"
-                  class="product-thumbnail"
-                  onerror="this.src='/default-image.jpg'"
-                >
+          src="<%= order.orderItems[0].displayImage || 'https://via.placeholder.com/80?text=No+Image' %>"
+          alt="<%= order.orderItems[0].displayName %>"
+          class="product-thumbnail"
+          onerror="this.onerror=null; this.src='https://via.placeholder.com/80?text=No+Image';"
+        >
                 <span class="text-xs text-gray-500">+<%= order.orderItems.length - 1 %></span>
               </div>
             <% } %>
