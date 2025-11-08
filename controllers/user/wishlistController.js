@@ -3,61 +3,59 @@ const WishList = require('../../models/wishlistSchema')
 const Product = require('../../models/productSchema')
 const User = require('../../models/userSchema');
 
-
+const { calculatePricing } = require('../../utils/calculatePricing');
 
 exports.getWishlist = async (req, res) => {
   try {
     const userId = req.user?._id;
+    if (!userId) return res.redirect('/login');
 
     const wishlistDoc = await WishList.findOne({ user: userId })
       .populate({
         path: 'products.productId',
-        select: 'productName productImages regularPrice salePrice quantity status',
-      });
+        select: 'productName productImages regularPrice salePrice quantity status isActive isBlocked category',
+        match: { status: { $ne: 'Deleted' } }
+      })
+      .lean();
 
-    const items = wishlistDoc
-      ? wishlistDoc.products
-          .filter(p => p.productId && p.productId.status !== 'Deleted') 
-          .map(p => {
-            const prod = p.productId;
+    let items = [];
 
-            const images = Array.isArray(prod.productImages)
-              ? prod.productImages
-              : [];
+    if (wishlistDoc?.products) {
+      items = wishlistDoc.products
+        .filter(p => p.productId)                    
+        .map(p => {
+          const prod = p.productId;
+          const pricing = calculatePricing(prod);     
 
-            return {
-              product: {
-                _id: prod._id,
-                name: prod.productName || 'Unknown Product',   
-                images,                                          
-                price: prod.regularPrice || 0,               
-                salePrice: prod.salePrice ?? prod.regularPrice ?? 0, 
-                stock: prod.quantity ?? 0,                      
-              },
-              addedOn: p.addedOn,
-            };
-          })
-      : [];
+          return {
+            product: {
+              _id: prod._id.toString(),
+              name: prod.productName || 'Unknown',
+              images: Array.isArray(prod.productImages) ? prod.productImages : [],
+              stock: prod.quantity ?? 0,
+              assured: prod.assured ?? false,    
+              pricing                                
+            },
+            addedOn: p.addedOn
+          };
+        });
+    }
 
- 
+    
     if (wishlistDoc && items.length !== wishlistDoc.products.length) {
-      const validIds = items.map(i => i.product._id);
+      const keepIds = items.map(i => i.product._id);
       await WishList.updateOne(
         { user: userId },
-        { $pull: { products: { productId: { $nin: validIds } } } }
+        { $pull: { products: { productId: { $nin: keepIds } } } }
       );
     }
 
-    res.render('user/wishlist', {
-      wishlist: items,
-      user: req.user,
-    });
+    res.render('user/wishlist', { wishlist: items, user: req.user });
   } catch (err) {
     console.error('getWishlist error:', err);
-    res.status(500).send('Server Error');
+    res.status(500).render('error', { message: 'Failed to load wishlist' });
   }
 };
-
 
 exports.toggleWishlist = async (req, res) => {
   try {
