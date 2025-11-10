@@ -5,112 +5,27 @@
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <title><%= product.productName %> - Pure Botanica</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-      body {
-        font-family: "Montserrat", sans-serif;
-      }
-      .product-image {
-        transition: transform 0.3s ease-in-out;
-        object-fit: contain;
-        border-radius: 8px;
-        image-rendering: -webkit-optimize-contrast; 
-        image-rendering: crisp-edges; 
-      }
-      .product-image:hover {
-        transform: scale(1.05);
-      }
-      .thumbnail {
-        cursor: pointer;
-        opacity: 0.6;
-        transition: opacity 0.3s;
-      }
-      .thumbnail.active {
-        opacity: 1;
-      }
-      .sold-out {
-        color: #ff0000;
-        font-weight: bold;
-      }
-      .available {
-        color: #10b981;
-        font-weight: bold;
-      }
-      .related-product-card {
-        transition: transform 0.3s ease-in-out;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        height: 100%;
-      }
-      .related-product-card:hover {
-        transform: translateY(-5px);
-      }
-      .quantity-input {
-        width: 3rem;
-        text-align: center;
-        border: 1px solid #d1d5db;
-        border-radius: 0.25rem;
-        padding: 0.5rem;
-      }
-      .quantity-btn {
-        background-color: #e5e7eb;
-        color: #374151;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        transition: background-color 0.2s;
-      }
-      .quantity-btn:hover {
-        background-color: #d1d5db;
-      }
-      .quantity-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .image-container {
-        position: relative;
-        width: 100%;
-        height: 400px;
-      }
-      .zoom-lens {
-        position: absolute;
-        border: 1px solid #d4d4d4;
-        width: 100px;
-        height: 100px;
-        background-color: rgba(255, 255, 255, 0.3);
-        cursor: none;
-        display: none;
-      }
-      .zoom-result {
-        position: absolute;
-        top: 0;
-        left: 100%;
-        margin-left: 20px;
-        width: 300px;
-        height: 300px;
-        border: 1px solid #d4d4d4;
-        background-color: #fff;
-        display: none;
-        overflow: hidden;
-        z-index: 10;
-      }
-      .offer-badge {
-        background: #ef4444;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: bold;
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-      }
+      body { font-family: "Montserrat", sans-serif; }
+      .product-image { transition: transform 0.3s ease-in-out; object-fit: contain; border-radius: 8px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+      .product-image:hover { transform: scale(1.05); }
+      .thumbnail { cursor: pointer; opacity: 0.6; transition: opacity 0.3s; }
+      .thumbnail.active { opacity: 1; }
+      .sold-out { color: #ff0000; font-weight: bold; }
+      .available { color: #10b981; font-weight: bold; }
+      .related-product-card { transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; }
+      .related-product-card:hover { transform: translateY(-5px); }
+      .quantity-input { width: 3rem; text-align: center; border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.5rem; }
+      .quantity-btn { background-color: #e5e7eb; color: #374151; padding: 0.5rem; border-radius: 0.25rem; transition: background-color 0.2s; }
+      .quantity-btn:hover { background-color: #d1d5db; }
+      .quantity-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .image-container { position: relative; width: 100%; height: 400px; }
+      .zoom-lens { position: absolute; border: 1px solid #d4d4d4; width: 100px; height: 100px; background-color: rgba(255, 255, 255, 0.3); cursor: none; display: none; }
+      .zoom-result { position: absolute; top: 0; left: 100%; margin-left: 20px; width: 300px; height: 300px; border: 1px solid #d4d4d4; background-color: #fff; display: none; overflow: hidden; z-index: 10; }
+      .offer-badge { background: #ef4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 9999px; }
     </style>
   </head>
   <body class="bg-white text-black">
@@ -127,6 +42,7 @@
     <main class="max-w-[1400px] mx-auto px-8 py-12">
       <% if (product) { %>
         <div class="flex flex-col md:flex-row gap-12">
+          <!-- IMAGE SECTION -->
           <div class="w-full md:w-1/2">
             <div class="image-container">
               <img
@@ -149,53 +65,42 @@
               <% }) %>
             </div>
           </div>
+
+          <!-- DETAILS SECTION -->
           <div class="w-full md:w-1/2 relative">
-            <!-- WISHLIST ICON (Top Right) -->
-            <button 
-              class="absolute top-0 right-0 z-10 p-2 rounded-full hover:bg-gray-100 transition-all wishlist-btn"
-              data-product-id="<%= product._id %>"
-              title="Add to Wishlist">
-              <i class="fa<%= wishlistProductIds.includes(product._id) ? 's text-red-500' : 'r' %> fa-heart text-2xl"></i>
-            </button>
+            <!-- WISHLIST ICON (server-rendered) -->
+            <button class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-100 transition-all wishlist-btn"
+                            data-product-id="<%= product._id %>" title="Add to Wishlist">
+                      <i class="fa<%= wishlistProductIds.includes(product._id.toString()) ? 's text-red-500' : 'r' %> fa-heart text-lg"></i>
+                    </button>
+
 
             <h1 class="text-3xl font-bold mb-4 text-gray-800"><%= product.productName %></h1>
             <div class="mb-4 flex items-center">
               <span class="text-yellow-400">
-                <i class="fas fa-star"></i>
-                <i class="fas fa-star"></i>
-                <i class="fas fa-star"></i>
-                <i class="fas fa-star"></i>
-                <i class="fas fa-star-half-alt"></i>
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
               </span>
             </div>
 
-            <!-- MAIN PRODUCT OFFER PRICE -->
+            <!-- PRICE -->
             <div class="mb-4 text-center md:text-left">
               <div class="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-                <span class="text-3xl font-bold text-green-600">
-                  ₹<%= product.pricing.displayPrice.toFixed(2) %>
-                </span>
+                <span class="text-3xl font-bold text-green-600">₹<%= product.pricing.displayPrice.toFixed(2) %></span>
                 <% if (product.pricing.savings > 0) { %>
-                  <span class="text-lg line-through text-gray-500">
-                    ₹<%= product.pricing.originalPrice.toFixed(2) %>
-                  </span>
-                  <span class="offer-badge">
-                    <%= product.pricing.discountPercentage %>%
-                  </span>
+                  <span class="text-lg line-through text-gray-500">₹<%= product.pricing.originalPrice.toFixed(2) %></span>
+                  <span class="offer-badge"><%= product.pricing.discountPercentage %>%</span>
                 <% } %>
               </div>
               <% if (product.pricing.savings > 0) { %>
-                <p class="text-sm text-gray-600 mt-1">
-                  Save ₹<%= product.pricing.savings.toFixed(2) %>
-                </p>
+                <p class="text-sm text-gray-600 mt-1">Save ₹<%= product.pricing.savings.toFixed(2) %></p>
               <% } %>
             </div>
 
             <% if (discountsApplied) { %>
-              <div class="mb-4 text-green-600">
-                Discounts Applied: <%= discountsApplied %>
-              </div>
+              <div class="mb-4 text-green-600">Discounts Applied: <%= discountsApplied %></div>
             <% } %>
+
+            <!-- STOCK -->
             <div class="mb-4">
               <% if (product.quantity > 0) { %>
                 <span class="available">Available (<%= product.quantity %> in stock)</span>
@@ -208,6 +113,8 @@
                 </div>
               <% } %>
             </div>
+
+            <!-- QUANTITY + ADD TO CART -->
             <div class="flex items-center gap-4 mb-4">
               <% if (product.quantity > 0) { %>
                 <div class="flex items-center gap-2">
@@ -216,15 +123,22 @@
                   <button id="increaseQty" class="quantity-btn"><i class="fas fa-plus"></i></button>
                 </div>
               <% } %>
+
+              <!-- MAIN ADD TO CART BUTTON -->
               <button 
                 id="addToCartBtn"
-                class="bg-black text-white text-sm font-semibold px-6 py-3 rounded hover:bg-gray-800 transition-colors <%= product.quantity === 0 ? 'opacity-50 cursor-not-allowed' : '' %>"
+                class="bg-black text-white text-sm font-semibold px-6 py-3 rounded hover:bg-gray-800 transition-colors
+                       <%= product.quantity === 0 ? 'opacity-50 cursor-not-allowed' : '' %>
+                       <%= inCart ? 'bg-green-600 hover:bg-green-700' : '' %>"
                 <%= product.quantity === 0 ? 'disabled' : '' %>
                 data-product-id="<%= product._id %>"
+                data-mode="<%= inCart ? 'goto-cart' : 'add-to-cart' %>"
               >
-                ADD TO CART
+                <%= inCart ? 'GO TO CART' : 'ADD TO CART' %>
               </button>
             </div>
+
+            <!-- DESCRIPTION SECTIONS -->
             <section class="mt-8">
               <h3 class="font-bold text-lg mb-4 text-[#1a4a5a]">Product Description</h3>
               <p class="text-gray-700"><%= product.description || 'No description available.' %></p>
@@ -244,18 +158,17 @@
           </div>
         </div>
 
-        <!-- RELATED PRODUCTS WITH OFFER -->
+        <!-- RELATED PRODUCTS -->
         <section class="mt-12">
           <h3 class="font-bold text-lg mb-4 text-[#1a4a5a]">Related Products</h3>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
             <% relatedProducts.forEach(relProduct => { %>
               <div class="related-product-card flex flex-col items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
-                <!-- Wishlist Icon -->
                 <button 
                   class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-100 transition-all wishlist-btn"
                   data-product-id="<%= relProduct._id %>"
                   title="Add to Wishlist">
-                  <i class="fa<%= wishlistProductIds.includes(relProduct._id) ? 's text-red-500' : 'r' %> fa-heart text-lg"></i>
+                  <i class="fa<%= wishlistProductIds.includes(relProduct._id.toString()) ? 's text-red-500' : 'r' %> fa-heart text-lg"></i>
                 </button>
 
                 <a href="/product/<%= relProduct._id %>">
@@ -265,35 +178,30 @@
                     src="<%= relProduct.productImages.length > 0 ? '/Uploads/product-images/' + relProduct.productImages[0] : 'https://via.placeholder.com/150' %>"
                   />
                 </a>
-                <div class="font-bold text-base mb-2 text-gray-800 text-center">
-                  <%= relProduct.productName.toUpperCase() %>
-                </div>
+                <div class="font-bold text-base mb-2 text-gray-800 text-center"><%= relProduct.productName.toUpperCase() %></div>
                 <div class="mb-3 text-center">
                   <div class="flex items-center justify-center gap-2 flex-wrap">
-                    <span class="text-xl font-bold text-green-600">
-                      ₹<%= relProduct.pricing.displayPrice.toFixed(2) %>
-                    </span>
+                    <span class="text-xl font-bold text-green-600">₹<%= relProduct.pricing.displayPrice.toFixed(2) %></span>
                     <% if (relProduct.pricing.savings > 0) { %>
-                      <span class="text-sm line-through text-gray-500">
-                        ₹<%= relProduct.pricing.originalPrice.toFixed(2) %>
-                      </span>
-                      <span class="offer-badge">
-                        <%= relProduct.pricing.discountPercentage %>%
-                      </span>
+                      <span class="text-sm line-through text-gray-500">₹<%= relProduct.pricing.originalPrice.toFixed(2) %></span>
+                      <span class="offer-badge"><%= relProduct.pricing.discountPercentage %>%</span>
                     <% } %>
                   </div>
                   <% if (relProduct.pricing.savings > 0) { %>
-                    <p class="text-xs text-gray-600 mt-1">
-                      Save ₹<%= relProduct.pricing.savings.toFixed(2) %>
-                    </p>
+                    <p class="text-xs text-gray-600 mt-1">Save ₹<%= relProduct.pricing.savings.toFixed(2) %></p>
                   <% } %>
                 </div>
+
+                <!-- RELATED PRODUCT BUTTON -->
                 <button 
-                  class="bg-black text-white text-sm font-semibold px-4 py-1 rounded hover:bg-gray-800 transition-colors add-to-cart-btn"
+                  class="bg-black text-white text-sm font-semibold px-4 py-1 rounded hover:bg-gray-800 transition-colors add-to-cart-btn
+                         <%= relProduct.quantity === 0 ? 'opacity-50 cursor-not-allowed' : '' %>
+                         <%= relProduct.inCart ? 'bg-green-600 hover:bg-green-700' : '' %>"
                   data-product-id="<%= relProduct._id %>"
+                  data-mode="<%= relProduct.inCart ? 'goto-cart' : 'add-to-cart' %>"
                   <%= relProduct.quantity === 0 ? 'disabled' : '' %>
                 >
-                  <%= relProduct.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART' %>
+                  <%= relProduct.inCart ? 'GO TO CART' : (relProduct.quantity === 0 ? 'OUT OF STOCK' : 'ADD TO CART') %>
                 </button>
               </div>
             <% }) %>
@@ -305,25 +213,24 @@
     </main>
     <%- include("../partials/user/footer") %>
 
+    <!-- FULL JS (wishlist + cart + zoom) -->
     <script>
-      // =============================
-      // WISHLIST LOGIC (Same as shop)
-      // =============================
-      async function updateWishlistCount() {
-        try {
-          const res = await fetch('/wishlist/count');
-          const data = await res.json();
-          const el = document.getElementById('wishlist-count');
-          if (el) el.textContent = data.count > 0 ? `${data.count} items` : 'Empty';
-        } catch (err) {
-          console.error('Failed to update wishlist count');
-        }
+      // Toast (same as shop)
+      function showToast(message, type = 'info') {
+        const icons = { success: 'success', danger: 'error', info: 'info', warning: 'warning' };
+        Swal.fire({
+          toast: true, position: 'top-end', icon: icons[type] || 'info', title: message,
+          showConfirmButton: false, timer: 2000, timerProgressBar: true,
+          didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+          }
+        });
       }
 
+      // ---------- WISHLIST (exact copy from shop) ----------
       async function toggleWishlist(productId, button) {
         const icon = button.querySelector('i');
-        const isAdded = icon.classList.contains('fas');
-
         try {
           const res = await fetch('/wishlist/toggle', {
             method: 'POST',
@@ -334,72 +241,115 @@
 
           if (data.success) {
             if (data.added) {
-              icon.classList.remove('far', 'text-gray-600');
+              icon.classList.remove('far');
               icon.classList.add('fas', 'text-red-500');
               showToast('Added to wishlist!', 'success');
             } else {
               icon.classList.remove('fas', 'text-red-500');
-              icon.classList.add('far', 'text-gray-600');
+              icon.classList.add('far');
               showToast('Removed from wishlist', 'info');
             }
             updateWishlistCount();
           } else {
-            if (data.redirectUrl) {
-              Swal.fire({
-                icon: 'warning',
-                title: 'Login Required',
-                text: 'Please login to manage your wishlist.',
-                confirmButtonText: 'Login'
-              }).then(r => { if (r.isConfirmed) window.location.href = data.redirectUrl; });
-            } else {
-              showToast(data.message || 'Error', 'danger');
-            }
+            handleAuthRedirect(data);
           }
-        } catch (err) {
+        } catch (e) {
           showToast('Network error', 'danger');
         }
       }
 
       function attachWishlistListeners() {
         document.querySelectorAll('.wishlist-btn').forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const productId = this.dataset.productId;
-            toggleWishlist(productId, this);
-          });
+          btn.onclick = function (e) {
+            e.preventDefault(); e.stopPropagation();
+            toggleWishlist(this.dataset.productId, this);
+          };
         });
       }
 
-      function showToast(message, type = 'info') {
-        const colors = { success: '#2ecc71', danger: '#e74c3c', info: '#3498db', warning: '#f39c12' };
-        const toast = document.createElement('div');
-        toast.textContent = message;
-        toast.style.cssText = `
-          position: fixed; bottom: 20px; right: 20px; background: ${colors[type]};
-          color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600;
-          z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-          animation: slideIn 0.3s ease;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+      async function updateWishlistCount() {
+        try {
+          const res = await fetch('/wishlist/count');
+          const data = await res.json();
+          const el = document.getElementById('wishlist-count');
+          if (el) el.textContent = data.count > 0 ? `${data.count} items` : 'Empty';
+        } catch (err) { console.error('Failed to update wishlist count'); }
       }
 
-      const style = document.createElement('style');
-      style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
-      document.head.appendChild(style);
+      function handleAuthRedirect(data) {
+        if (data.redirectUrl) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Login Required',
+            text: data.message || 'Please login to continue.',
+            confirmButtonText: 'Login'
+          }).then(r => { if (r.isConfirmed) window.location.href = data.redirectUrl; });
+        } else {
+          showToast(data.message || 'Error', 'danger');
+        }
+      }
 
-      // =============================
-      // CART & QUANTITY LOGIC (Unchanged)
-      // =============================
+      // ---------- CART ----------
+      async function addToCart(productId, quantity) {
+        try {
+          const res = await fetch('/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, quantity })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            // Update cart count
+            const el = document.getElementById('cart-count');
+            if (el) el.textContent = data.cartCount;
+
+            // Update ALL buttons for this product
+            document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(btn => {
+              btn.textContent = 'GO TO CART';
+              btn.classList.remove('bg-black', 'hover:bg-gray-800');
+              btn.classList.add('bg-green-600', 'hover:bg-green-700');
+              btn.dataset.mode = 'goto-cart';
+            });
+
+            // Disable quantity controls for main button
+            if (document.getElementById('addToCartBtn')?.dataset.productId === productId) {
+              quantityInput.disabled = true;
+              decreaseQty.disabled = true;
+              increaseQty.disabled = true;
+            }
+
+            showToast('Added to cart!', 'success');
+          } else {
+            handleAuthRedirect(data);
+          }
+        } catch (err) {
+          showToast('Network error', 'danger');
+        }
+      }
+
+      document.addEventListener('click', async e => {
+        const btn = e.target.closest('#addToCartBtn, .add-to-cart-btn');
+        if (!btn || btn.disabled) return;
+
+        if (btn.dataset.mode === 'goto-cart') {
+          window.location.href = '/cart';
+          return;
+        }
+
+        const productId = btn.dataset.productId;
+        const qty = btn.id === 'addToCartBtn' ? parseInt(quantityInput.value) : 1;
+        await addToCart(productId, qty);
+      });
+
+      // ---------- Quantity Controls ----------
       const maxLimit = 5;
       const quantityInput = document.getElementById('quantity');
       const decreaseQty = document.getElementById('decreaseQty');
       const increaseQty = document.getElementById('increaseQty');
 
       if (quantityInput && decreaseQty && increaseQty) {
-        const originalMax = parseInt(quantityInput.max);
-        const effectiveMax = Math.min(originalMax, maxLimit);
+        const effectiveMax = Math.min(parseInt(quantityInput.max), maxLimit);
         let notificationActive = false;
 
         const showLimitAlert = () => {
@@ -414,201 +364,57 @@
         };
 
         decreaseQty.addEventListener('click', () => {
-          let value = parseInt(quantityInput.value) || 1;
-          if (value > 1) quantityInput.value = value - 1;
-          decreaseQty.disabled = parseInt(quantityInput.value) <= 1;
-          increaseQty.disabled = parseInt(quantityInput.value) >= effectiveMax;
+          let v = parseInt(quantityInput.value) || 1;
+          if (v > 1) quantityInput.value = v - 1;
+          decreaseQty.disabled = v <= 2;
+          increaseQty.disabled = v >= effectiveMax;
         });
 
         increaseQty.addEventListener('click', () => {
-          let value = parseInt(quantityInput.value) || 1;
-          if (value < effectiveMax) {
-            quantityInput.value = value + 1;
+          let v = parseInt(quantityInput.value) || 1;
+          if (v < effectiveMax) {
+            quantityInput.value = v + 1;
           } else {
             setTimeout(showLimitAlert, 50);
           }
-          decreaseQty.disabled = parseInt(quantityInput.value) <= 1;
-          increaseQty.disabled = parseInt(quantityInput.value) >= effectiveMax;
+          decreaseQty.disabled = v <= 0;
+          increaseQty.disabled = v >= effectiveMax;
         });
 
         quantityInput.addEventListener('input', () => {
-          let value = parseInt(quantityInput.value) || 1;
-          if (value < 1) value = 1;
-          if (value > effectiveMax) {
+          let v = parseInt(quantityInput.value) || 1;
+          if (v < 1) v = 1;
+          if (v > effectiveMax) {
             quantityInput.value = effectiveMax;
             setTimeout(showLimitAlert, 50);
           } else {
-            quantityInput.value = value;
+            quantityInput.value = v;
           }
-          decreaseQty.disabled = value <= 1;
-          increaseQty.disabled = value >= effectiveMax;
+          decreaseQty.disabled = v <= 1;
+          increaseQty.disabled = v >= effectiveMax;
         });
       }
 
-      async function addToCart(productId, quantity) {
-        try {
-          const response = await fetch(`/product/availability/${productId}`);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const data = await response.json();
-          
-          if (data.available) {
-            const cartResponse = await fetch('/cart/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId, quantity })
-            });
-            const cartData = await cartResponse.json();
-            
-            if (cartData.success) {
-              Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: `Added ${quantity} item(s) to cart!`,
-                showConfirmButton: false,
-                timer: 1500
-              });
-              
-              const cartCountEl = document.getElementById('cart-count');
-              if (cartCountEl && cartData.cartCount) {
-                cartCountEl.textContent = cartData.cartCount;
-              }
-              
-              await checkCartQuantityAndUpdateButton(productId);
-            } else {
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: cartData.message || 'Failed to add product to cart',
-                showConfirmButton: false,
-                timer: 2000
-              });
-            }
-          } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'Out of Stock',
-              text: `Only ${data.quantity || 0} item(s) available in stock.`,
-              showConfirmButton: false,
-              timer: 2000
-            });
-          }
-        } catch (error) {
-          console.error('Error adding to cart:', error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'An error occurred while adding the product to the cart.',
-            showConfirmButton: false,
-            timer: 2000
-          });
-        }
-      }
-
-      async function checkCartQuantityAndUpdateButton(productId) {
-        try {
-          const response = await fetch('/cart/check-quantity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId })
-          });
-          
-          if (!response.ok) return;
-          
-          const data = await response.json();
-          const button = document.querySelector(`#addToCartBtn[data-product-id="${productId}"]`);
-          const relatedButton = document.querySelector(`.add-to-cart-btn[data-product-id="${productId}"]`);
-          
-          if (button && data.inCart && data.cartQuantity >= data.stockQuantity && data.stockQuantity > 0) {
-            updateButtonToGoToCart(button, true);
-          } else if (button) {
-            updateButtonToAddToCart(button, true);
-          }
-          
-          if (relatedButton && data.inCart && data.cartQuantity >= data.stockQuantity && data.stockQuantity > 0) {
-            updateButtonToGoToCart(relatedButton, false);
-          } else if (relatedButton) {
-            updateButtonToAddToCart(relatedButton, false);
-          }
-        } catch (error) {
-          console.error('Error checking cart quantity:', error);
-        }
-      }
-
-      function updateButtonToGoToCart(button, isMainButton) {
-        button.textContent = 'GO TO CART';
-        button.classList.remove('bg-black', 'hover:bg-gray-800');
-        button.classList.add('bg-green-600', 'hover:bg-green-700');
-        button.dataset.mode = 'goto-cart';
-        
-        if (isMainButton) {
-          const qtyInput = document.getElementById('quantity');
-          const decreaseBtn = document.getElementById('decreaseQty');
-          const increaseBtn = document.getElementById('increaseQty');
-          
-          if (qtyInput) qtyInput.disabled = true;
-          if (decreaseBtn) decreaseBtn.disabled = true;
-          if (increaseBtn) increaseBtn.disabled = true;
-        }
-      }
-
-      function updateButtonToAddToCart(button, isMainButton) {
-        button.textContent = 'ADD TO CART';
-        button.classList.remove('bg-green-600', 'hover:bg-green-700');
-        button.classList.add('bg-black', 'hover:bg-gray-800');
-        button.dataset.mode = 'add-to-cart';
-        
-        if (isMainButton) {
-          const qtyInput = document.getElementById('quantity');
-          const decreaseBtn = document.getElementById('decreaseQty');
-          const increaseBtn = document.getElementById('increaseQty');
-          
-          if (qtyInput) qtyInput.disabled = false;
-          if (decreaseBtn) decreaseBtn.disabled = parseInt(qtyInput.value) <= 1;
-          if (increaseBtn) increaseBtn.disabled = parseInt(qtyInput.value) >= parseInt(qtyInput.max);
-        }
-      }
-
-      function attachAddToCartListeners() {
-        document.querySelectorAll('.add-to-cart-btn, #addToCartBtn').forEach(button => {
-          button.addEventListener('click', async () => {
-            if (button.disabled) return;
-            
-            if (button.dataset.mode === 'goto-cart') {
-              window.location.href = '/cart';
-              return;
-            }
-            
-            const productId = button.getAttribute('data-product-id');
-            const quantity = button.id === 'addToCartBtn' && quantityInput ? parseInt(quantityInput.value) : 1;
-            await addToCart(productId, quantity);
-          });
-        });
-      }
-
-      // =============================
-      // IMAGE & ZOOM LOGIC
-      // =============================
+      // ---------- Image Zoom & Thumbnails ----------
       const thumbnails = document.querySelectorAll('.thumbnail');
       const mainImage = document.getElementById('mainImage');
+      const zoomLens = document.getElementById('zoomLens');
+      const zoomResult = document.getElementById('zoomResult');
+
       thumbnails.forEach(thumb => {
         thumb.addEventListener('click', () => {
           thumbnails.forEach(t => t.classList.remove('active'));
           thumb.classList.add('active');
           mainImage.src = thumb.src;
-          const zoomResult = document.getElementById('zoomResult');
           zoomResult.style.backgroundImage = `url(${thumb.src})`;
         });
       });
 
-      const imageContainer = document.querySelector('.image-container');
-      const zoomLens = document.getElementById('zoomLens');
-      const zoomResult = document.getElementById('zoomResult');
-
-      if (imageContainer && zoomLens && zoomResult) {
+      if (mainImage && zoomLens && zoomResult) {
         zoomResult.style.backgroundImage = `url(${mainImage.src})`;
         zoomResult.style.backgroundSize = `${mainImage.width * 2}px ${mainImage.height * 2}px`;
 
-        imageContainer.addEventListener('mousemove', (e) => {
+        mainImage.parentElement.addEventListener('mousemove', e => {
           const rect = mainImage.getBoundingClientRect();
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
@@ -616,11 +422,10 @@
           zoomLens.style.display = 'block';
           zoomResult.style.display = 'block';
 
-          let lensX = x - zoomLens.offsetWidth / 2;
-          let lensY = y - zoomLens.offsetHeight / 2;
-
-          lensX = Math.max(0, Math.min(lensX, mainImage.width - zoomLens.offsetWidth));
-          lensY = Math.max(0, Math.min(lensY, mainImage.height - zoomLens.offsetHeight));
+          let lensX = x - 50;
+          let lensY = y - 50;
+          lensX = Math.max(0, Math.min(lensX, mainImage.width - 100));
+          lensY = Math.max(0, Math.min(lensY, mainImage.height - 100));
 
           zoomLens.style.left = `${lensX}px`;
           zoomLens.style.top = `${lensY}px`;
@@ -630,31 +435,22 @@
           zoomResult.style.backgroundPosition = `-${rx}px -${ry}px`;
         });
 
-        imageContainer.addEventListener('mouseleave', () => {
+        mainImage.parentElement.addEventListener('mouseleave', () => {
           zoomLens.style.display = 'none';
           zoomResult.style.display = 'none';
         });
       }
 
-      // =============================
-      // INITIALIZE
-      // =============================
-      document.addEventListener('DOMContentLoaded', async () => {
-        attachAddToCartListeners();
-        attachWishlistListeners(); // Attach wishlist
+      // ---------- Init ----------
+      document.addEventListener('DOMContentLoaded', () => {
+        const mainBtn = document.getElementById('addToCartBtn');
+        if (mainBtn?.dataset.mode === 'goto-cart') {
+          quantityInput.disabled = true;
+          decreaseQty.disabled = true;
+          increaseQty.disabled = true;
+        }
+        attachWishlistListeners();
         updateWishlistCount();
-
-        const mainButton = document.getElementById('addToCartBtn');
-        if (mainButton) {
-          const productId = mainButton.getAttribute('data-product-id');
-          await checkCartQuantityAndUpdateButton(productId);
-        }
-
-        const relatedButtons = document.querySelectorAll('.add-to-cart-btn');
-        for (const button of relatedButtons) {
-          const productId = button.getAttribute('data-product-id');
-          await checkCartQuantityAndUpdateButton(productId);
-        }
       });
     </script>
   </body>

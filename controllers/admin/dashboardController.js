@@ -1,11 +1,9 @@
 
 const Order = require('../../models/orderSchema');
-const User = require('../../models/userSchema');
 const pdfkit = require('pdfkit');
 const exceljs = require('exceljs');
 const moment = require('moment');
-const fs = require('fs');
-const path = require('path');
+
 
 exports.loadSalesReport = async (req, res) => {
   if (!req.session.admin) {
@@ -14,93 +12,121 @@ exports.loadSalesReport = async (req, res) => {
 
   try {
     const { period, startDate, endDate, page = 1 } = req.query;
-    const limit = 10; 
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     let filter = { status: 'delivered' };
-    let fromDate, toDate = new Date();
-    let periodLabel = '';
+    let fromDate, toDate;
+    let periodLabel = 'Custom Period';
 
- 
-    if (period === 'daily') {
+   
+    if (!period || !['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(period)) {
+      fromDate = moment().subtract(7, 'days').startOf('day').toDate();
+      toDate = moment().endOf('day').toDate();
+      periodLabel = 'Last 7 Days';
+    } 
+  
+    else if (period === 'daily') {
       fromDate = moment().startOf('day').toDate();
       toDate = moment().endOf('day').toDate();
       periodLabel = 'Today';
-    } else if (period === 'weekly') {
-      fromDate = moment().subtract(7, 'days').startOf('day').toDate();
+    } 
+   
+    else if (period === 'weekly') {
+      fromDate = moment().subtract(6, 'days').startOf('day').toDate(); 
+      toDate = moment().endOf('day').toDate();
       periodLabel = 'Last 7 Days';
-    } else if (period === 'monthly') {
-      fromDate = moment().subtract(30, 'days').startOf('day').toDate();
+    } 
+   
+    else if (period === 'monthly') {
+      fromDate = moment().subtract(29, 'days').startOf('day').toDate(); 
+      toDate = moment().endOf('day').toDate();
       periodLabel = 'Last 30 Days';
-    } else if (period === 'yearly') {
+    } 
+
+    else if (period === 'yearly') {
       fromDate = moment().startOf('year').toDate();
+      toDate = moment().endOf('day').toDate();
       periodLabel = 'This Year';
-    } else if (period === 'custom' && startDate && endDate) {
-      fromDate = moment(startDate).startOf('day').toDate();
-      toDate = moment(endDate).endOf('day').toDate();
-      periodLabel = `${moment(startDate).format('MMM DD, YYYY')} - ${moment(endDate).format('MMM DD, YYYY')}`;
-    } else {
-     
-      return res.render('admin/sales-report', {
-        pageTitle: 'Sales Report',
-        currentPage: 'sales-report',
-        salesData: null,
-        queryString: '',
-        currentFilter: null,
-        pagination: null
-      });
+    } 
+  
+    else if (period === 'custom' && startDate && endDate) {
+      const start = moment(startDate);
+      const end = moment(endDate);
+
+      if (!start.isValid() || !end.isValid() || start > end) {
+        return res.render('admin/dashboard', {
+          pageTitle: 'Dashboard',
+          currentPage: 'sales-report',
+          error: 'Invalid date range',
+          salesData: null,
+          queryString: '',
+          currentFilter: null,
+          pagination: null
+        });
+      }
+
+      fromDate = start.startOf('day').toDate();
+      toDate = end.endOf('day').toDate();
+      periodLabel = `${start.format('MMM DD, YYYY')} - ${end.format('MMM DD, YYYY')}`;
     }
 
-    filter.createdOn = { $gte: fromDate, $lte: toDate };
-
   
+    if (fromDate && toDate) {
+      filter.createdOn = { $gte: fromDate, $lte: toDate };
+    }
+
+
     const totalOrders = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalOrders / limit);
 
- 
+  
     const orders = await Order.find(filter)
       .populate('user', 'name email')
       .sort({ createdOn: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-   
-    const allOrders = await Order.find(filter);
-    const totalAmount = allOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-    const totalDiscount = allOrders.reduce((sum, order) => sum + (order.discount || 0) + (order.couponDiscount || 0), 0);
-    const avgOrderValue = totalOrders > 0 ? totalAmount / totalOrders : 0;
+    const allOrders = await Order.find(filter).lean();
 
-    const salesData = {
-      totalOrders,
-      totalAmount,
-      totalDiscount,
-      avgOrderValue,
-      orders,
-      periodLabel
-    };
+const totalAmount = allOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
+const totalDiscount = allOrders.reduce((sum, o) => 
+  sum + (o.discount || 0) + (o.couponDiscount || 0), 0);
+const avgOrderValue = totalOrders > 0 ? totalAmount / totalOrders : 0;
 
+const salesData = {
+  totalOrders,
+  totalAmount: totalAmount.toFixed(2),      
+  totalDiscount: totalDiscount.toFixed(2),  
+  avgOrderValue: avgOrderValue.toFixed(2),  
+  orders,
+  periodLabel
+};
 
+ 
     const queryParams = { period, startDate, endDate };
-    const queryString = new URLSearchParams(
+    const baseQuery = new URLSearchParams(
       Object.fromEntries(Object.entries(queryParams).filter(([_, v]) => v))
     ).toString();
 
     const pagination = {
       currentPage: parseInt(page),
       totalPages,
-      totalOrders,
       hasNext: page < totalPages,
-      hasPrev: page > 1
+      hasPrev: page > 1,
+      getPageUrl: (p) => `/admin/dashboard?${baseQuery}&page=${p}`
     };
 
-    res.render('admin/sales-report', {
+    res.render('admin/dashboard', {
       pageTitle: 'Sales Report',
       currentPage: 'sales-report',
       salesData,
-      queryString,
+      queryString: baseQuery,
       currentFilter: { period, startDate, endDate },
       pagination
     });
+
   } catch (error) {
     console.error('Sales report error:', error);
     res.status(500).render('admin/page-error', {

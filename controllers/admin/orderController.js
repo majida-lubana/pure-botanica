@@ -192,44 +192,43 @@ exports.renderOrderManage = async (req, res) => {
     let limit = 5;
     let skip = (page - 1) * limit;
 
-    // Count total orders (for pagination)
     const totalOrders = await Order.countDocuments();
 
-    // Fetch orders with populated product data
+
     const orders = await Order.find()
       .populate('user', 'name email')
       .populate('address')
       .populate({
         path: 'orderItems.product',
-        select: 'productName productImages', // Only what we need
+        select: 'productName productImages', 
       })
       .sort({ createdOn: -1 })
       .skip(skip)
       .limit(limit)
-      .lean(); // Important: .lean() for mutability
+      .lean(); 
 
-    // Process each order
+
     for (const order of orders) {
-      // 1. Compute and sync status
+    
       const newStatus = computeOrderStatus(order.orderItems);
       if (order.status !== newStatus) {
         order.status = newStatus;
         await Order.updateOne({ _id: order._id }, { status: newStatus });
       }
 
-      // 2. Map display fields from populated product
+
       order.orderItems.forEach(item => {
         const product = item.product;
 
-        // Log missing product (for debugging)
+
         if (!product) {
           console.warn(`Order ${order.orderId} has item with missing product. Item ID: ${item._id}`);
         }
 
-        // Set display name
+
         item.displayName = product?.productName || 'Unknown Product';
 
-        // Set display image (safe fallback)
+       
         const imageFile = product?.productImages?.[0];
         item.displayImage = imageFile
           ? `/Uploads/product-images/${imageFile}`
@@ -237,7 +236,6 @@ exports.renderOrderManage = async (req, res) => {
       });
     }
 
-    // Render page
     res.render('admin/orderManage', {
       orders,
       currentPage: page,
@@ -261,32 +259,30 @@ exports.renderOrderDetails = async (req, res) => {
       })
       .lean();
 
-    if (!order) {
-      return res.status(404).send('Order not found');
+    if (!order) return res.status(404).send('Order not found');
+
+
+    const newStatus = computeOrderStatus(order.orderItems);
+    if (order.status !== newStatus) {
+      order.status = newStatus;
+      await Order.updateOne({ _id: order._id }, { status: newStatus });
     }
 
-    order.orderStatus   = order.orderStatus   || 'pending';
-    order.paymentStatus = order.paymentStatus || 'Pending';
-    order.paymentMethod = order.paymentMethod || 'N/A';
-    order.transactionId = order.paymentId     || 'N/A';
-
     order.orderItems = order.orderItems.map(item => {
-  const product = item.product;
+      const product = item.product;
+      const imageFile = product?.productImages?.[0];
+      const productImage = imageFile 
+        ? `/Uploads/product-images/${imageFile}` 
+        : 'https://via.placeholder.com/120?text=No+Image';
 
-  
-  const imageFile = product?.productImages?.[0];
-  const productImage = imageFile 
-    ? `/Uploads/product-images/${imageFile}` 
-    : 'https://via.placeholder.com/120?text=No+Image';
-
-  return {
-    ...item,
-    productName : product?.productName || 'Unknown Product',
-    productImage: productImage,
-    status      : item.status || 'ordered',
-    productId   : product?._id?.toString() || 'N/A',
-  };
-});
+      return {
+        ...item,
+        productName: product?.productName || 'Unknown Product',
+        productImage,
+        status: item.status || 'ordered',
+        productId: product?._id?.toString() || 'N/A',
+      };
+    });
 
     if (!order.timeline || order.timeline.length === 0) {
       order.timeline = [{ label: 'Ordered', current: true, completed: false, date: new Date() }];
@@ -296,8 +292,6 @@ exports.renderOrderDetails = async (req, res) => {
       fullName: 'N/A', address: '', city: '', state: '', country: '',
       pincode: '', phone: 'N/A', addressType: 'N/A'
     };
-
-    order.status = computeOrderStatus(order.orderItems);
 
     res.render('admin/orderDetails', { order, admin: req.session.admin });
   } catch (error) {

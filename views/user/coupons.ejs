@@ -124,13 +124,22 @@
                                         <i class="fas fa-shopping-cart mr-2 text-xs"></i>
                                         Min order: ₹<%= coupon.minimumPrice %>
                                     </div>
+
+                                    <!-- NEW: Max Order Value -->
+                                    <% if (coupon.maxOrderValue) { %>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-exclamation-triangle mr-2 text-xs"></i>
+                                            Max order: ₹<%= coupon.maxOrderValue %>
+                                        </div>
+                                    <% } %>
+
                                     <div class="flex items-center">
                                         <i class="fas fa-calendar-alt mr-2 text-xs"></i>
                                         Valid till: <%= new Date(coupon.expireOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
                                     </div>
                                     <div class="flex items-center">
                                         <i class="fas fa-users mr-2 text-xs"></i>
-                                        <%= coupon.usageLimit - coupon.usedCount %> uses left
+                                        <%= coupon.remainingUses %> uses left
                                     </div>
                                 </div>
                             </div>
@@ -210,7 +219,7 @@
                     timerProgressBar: true
                 });
             }).catch(() => {
-                // Fallback for older browsers
+                // Fallback
                 const textArea = document.createElement('textarea');
                 textArea.value = code;
                 document.body.appendChild(textArea);

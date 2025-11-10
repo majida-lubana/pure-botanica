@@ -422,12 +422,6 @@ exports.placeOrder = async (req, res) => {
       if (!p.isActive || p.isBlocked || p.status !== 'Available') {
         return res.status(400).json({ success: false, message: `"${p.productName}" unavailable` });
       }
-      if (p.quantity === 0) {
-        return res.status(400).json({ success: false, message: `"${p.productName}" out of stock` });
-      }
-      if (item.quantity > p.quantity) {
-        return res.status(400).json({ success: false, message: `Only ${p.quantity} "${p.productName}" left` });
-      }
     }
 
   
@@ -598,6 +592,7 @@ exports.placeOrder = async (req, res) => {
         shipping: shippingCost,
         tax,
         paidViaWallet: true,
+        paymentStatus: 'paid'
       });
       await order.save();
 
@@ -693,7 +688,7 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
     
-    const order = await Order.findOne({ 
+const order = await Order.findOne({ 
       _id: orderId, 
       user: userId, 
       status: 'payment_pending' 
@@ -706,8 +701,10 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
 
+    // FIXED: Set paymentStatus to 'paid'
     order.status = 'processing';
     order.paymentId = razorpay_payment_id;
+    order.paymentStatus = 'paid';  // THIS WAS MISSING
     await order.save();
 
     for (const item of order.orderItems) {

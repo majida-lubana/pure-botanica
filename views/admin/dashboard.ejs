@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><%= pageTitle || 'Sales Report' %></title>
+  <title><%= pageTitle || Dashboard %></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -35,12 +35,12 @@
           </div>
           <% if (salesData) { %>
           <div class="flex gap-3">
-            <a href="/admin/sales-report/download?type=pdf&<%= queryString %>" 
+            <a href="/admin/dashboard/download?type=pdf&<%= queryString %>" 
                class="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg">
               <i class="fas fa-file-pdf"></i>
               <span>Download PDF</span>
             </a>
-            <a href="/admin/sales-report/download?type=excel&<%= queryString %>" 
+            <a href="/admin/dashboard/download?type=excel&<%= queryString %>" 
                class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg">
               <i class="fas fa-file-excel"></i>
               <span>Download Excel</span>
@@ -58,14 +58,14 @@
             Filter Options
           </h3>
           <% if (salesData) { %>
-          <a href="/admin/sales-report" class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+          <a href="/admin/dashboard" class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
             <i class="fas fa-redo"></i>
             Reset Filters
           </a>
           <% } %>
         </div>
         
-        <form id="salesFilterForm" action="/admin/sales-report" method="GET">
+        <form id="salesFilterForm" action="/admin/dashboard" method="GET">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <!-- Period Selector -->
             <div class="md:col-span-1">
@@ -153,7 +153,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm opacity-90 mb-1">Total Revenue</p>
-              <p class="text-3xl font-bold">₹<%= salesData.totalAmount.toFixed(2) %></p>
+              <p class="text-3xl font-bold">₹<%= salesData.totalAmount%></p>
             </div>
           </div>
           <div class="flex items-center gap-2 text-sm opacity-90">
@@ -170,7 +170,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm opacity-90 mb-1">Total Discount</p>
-              <p class="text-3xl font-bold">₹<%= salesData.totalDiscount.toFixed(2) %></p>
+              <p class="text-3xl font-bold">₹<%= salesData.totalDiscount %></p>
             </div>
           </div>
           <div class="flex items-center gap-2 text-sm opacity-90">
@@ -187,7 +187,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm opacity-90 mb-1">Avg Order Value</p>
-              <p class="text-3xl font-bold">₹<%= salesData.avgOrderValue.toFixed(2) %></p>
+              <p class="text-3xl font-bold">₹<%= salesData.avgOrderValue%></p>
             </div>
           </div>
           <div class="flex items-center gap-2 text-sm opacity-90">
@@ -272,13 +272,13 @@
             </p>
             <div class="flex gap-2">
               <% if (pagination.hasPrev) { %>
-              <a href="/admin/sales-report?<%= queryString %>&page=<%= pagination.currentPage - 1 %>" 
+              <a href="/admin/dashboard<%= queryString %>&page=<%= pagination.currentPage - 1 %>" 
                  class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <i class="fas fa-chevron-left"></i> Previous
               </a>
               <% } %>
               <% if (pagination.hasNext) { %>
-              <a href="/admin/sales-report?<%= queryString %>&page=<%= pagination.currentPage + 1 %>" 
+              <a href="/admin/dashboard?<%= queryString %>&page=<%= pagination.currentPage + 1 %>" 
                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 Next <i class="fas fa-chevron-right"></i>
               </a>
@@ -313,51 +313,151 @@
     </div>
   </main>
 
-  <script>
-    // Toggle custom date range visibility
-    const periodSelect = document.getElementById('period');
-    const customDateRange = document.getElementById('customDateRange');
-    
-    periodSelect.addEventListener('change', () => {
-      customDateRange.classList.toggle('hidden', periodSelect.value !== 'custom');
-      
-      // Make dates required when custom is selected
-      const startDate = document.getElementById('startDate');
-      const endDate = document.getElementById('endDate');
-      if (periodSelect.value === 'custom') {
-        startDate.required = true;
-        endDate.required = true;
-      } else {
-        startDate.required = false;
-        endDate.required = false;
-      }
+ <script>
+  // ---------- 1. Elements ----------
+  const periodSelect      = document.getElementById('period');
+  const customDateRange   = document.getElementById('customDateRange');
+  const startDateInput    = document.getElementById('startDate');
+  const endDateInput      = document.getElementById('endDate');
+  const filterForm        = document.getElementById('salesFilterForm');
+  const resetLink         = document.querySelector('a[href="/admin/dashboard"]'); // Reset Filters link
+  const mainContainer     = document.querySelector('main .p-8');
+
+  // ---------- 2. Toggle custom dates ----------
+  periodSelect.addEventListener('change', () => {
+    const show = periodSelect.value === 'custom';
+    customDateRange.classList.toggle('hidden', !show);
+    startDateInput.required = show;
+    endDateInput.required   = show;
+  });
+
+  // ---------- 3. Build query string (preserves pagination) ----------
+  function buildQueryString(extra = {}) {
+    const params = new URLSearchParams(extra);
+
+    // keep any existing pagination / other params
+    const url = new URL(window.location);
+    url.searchParams.forEach((v, k) => {
+      if (!['period','startDate','endDate'].includes(k)) params.set(k, v);
     });
 
-    // Form validation
-    document.getElementById('salesFilterForm').addEventListener('submit', (e) => {
-      const period = periodSelect.value;
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
+    return params.toString();
+  }
 
-      if (!period) {
-        e.preventDefault();
-        alert('Please select a period');
-        return;
-      }
+  // ---------- 4. Load report via fetch ----------
+  async function loadReport(query = '') {
+    const url = `/admin/dashboard${query ? '?' + query : ''}`;
 
-      if (period === 'custom') {
-        if (!startDate || !endDate) {
-          e.preventDefault();
-          alert('Please select both start and end dates for custom range');
-          return;
-        }
-        if (new Date(startDate) > new Date(endDate)) {
-          e.preventDefault();
-          alert('Start date cannot be after end date');
-          return;
-        }
+    try {
+      const res = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const newMain = doc.querySelector('main');
+
+      if (newMain) {
+        document.querySelector('main').innerHTML = newMain.innerHTML;
+        attachAllListeners();                 // re-attach after DOM swap
+        history.replaceState(null, '', url);  // keep URL in sync
       }
+    } catch (err) {
+      alert('Failed to load report: ' + err.message);
+    }
+  }
+
+  // ---------- 5. Form submit ----------
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    const period = periodSelect.value;
+    if (!period) return alert('Please select a period');
+
+    if (period === 'custom') {
+      const s = startDateInput.value, e = endDateInput.value;
+      if (!s || !e) return alert('Both start and end dates are required');
+      if (new Date(s) > new Date(e)) return alert('Start date cannot be after end date');
+    }
+
+    const qs = buildQueryString({
+      period: periodSelect.value,
+      ...(period === 'custom' && {
+        startDate: startDateInput.value,
+        endDate:   endDateInput.value
+      })
     });
-  </script>
+
+    loadReport(qs);
+  }
+
+  // ---------- 6. Reset Filters ----------
+  function handleReset(e) {
+    if (e) e.preventDefault();
+
+    // 1. Clear form fields
+    periodSelect.value = '';
+    startDateInput.value = '';
+    endDateInput.value = '';
+    customDateRange.classList.add('hidden');
+
+    // 2. Load the clean dashboard (no query params except pagination)
+    const qs = buildQueryString(); // only keeps page= if present
+    loadReport(qs);
+  }
+
+  // ---------- 7. Pagination ----------
+  function handlePagination(e) {
+    const link = e.target.closest('a[href^="/admin/dashboard"]');
+    if (!link || !link.href.includes('page=')) return;
+
+    e.preventDefault();
+    const url = new URL(link.href);
+    loadReport(url.searchParams.toString());
+  }
+
+  // ---------- 8. Quick-view buttons (Today / Monthly) ----------
+  function handleQuickButton(btn) {
+    const match = btn.getAttribute('onclick')?.match(/'([^']+)'/);
+    if (!match) return;
+    const val = match[1];
+
+    periodSelect.value = val;
+    periodSelect.dispatchEvent(new Event('change'));
+    loadReport(buildQueryString({ period: val }));
+  }
+
+  // ---------- 9. Attach all listeners (call after every DOM replace) ----------
+  function attachAllListeners() {
+    // Form
+    const form = document.getElementById('salesFilterForm');
+    if (form) {
+      form.removeEventListener('submit', handleSubmit);
+      form.addEventListener('submit', handleSubmit);
+    }
+
+    // Reset link
+    const reset = document.querySelector('a[href="/admin/dashboard"]');
+    if (reset) {
+      reset.removeEventListener('click', handleReset);
+      reset.addEventListener('click', handleReset);
+    }
+
+    // Pagination
+    document.removeEventListener('click', handlePagination);
+    document.addEventListener('click', handlePagination);
+
+    // Quick buttons
+    document.querySelectorAll('[onclick*="period"]').forEach(btn => {
+      btn.replaceWith(btn.cloneNode(true)); // remove old onclick
+      const newBtn = document.querySelector(`[onclick*="${btn.getAttribute('onclick')}"]`);
+      if (newBtn) newBtn.addEventListener('click', () => handleQuickButton(newBtn));
+    });
+  }
+
+  // ---------- 10. Initial attach ----------
+  attachAllListeners();
+</script>
 </body>
 </html>

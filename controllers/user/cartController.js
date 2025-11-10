@@ -60,6 +60,8 @@ exports.getCartPage = async (req, res) => {
     let totalItems = 0;
     let paginatedItems = [];
 
+    let cartCount = 0;
+
     if (cart && cart.items && cart.items.length > 0) {
       let cartUpdated = false;
 
@@ -114,8 +116,12 @@ exports.getCartPage = async (req, res) => {
       shippingCost = totals.shippingCost;
       tax = totals.tax;
       total = totals.total;
+
+
+      cartCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     } else {
       cart = { items: [], userId }; 
+      cartCount = 0;
     }
 
     const excludedIds = cart.items
@@ -151,6 +157,7 @@ exports.getCartPage = async (req, res) => {
       relatedProducts,
       pagination,
       pageTitle: 'Your Shopping Cart', 
+      cartCount
     });
   } catch (error) {
     console.error('Error loading cart page:', error.stack);

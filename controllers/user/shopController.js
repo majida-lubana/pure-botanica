@@ -2,6 +2,7 @@ const Product = require("../../models/productSchema");
 const Category = require("../../models/categorySchema");
 const WishList = require("../../models/wishlistSchema");
 const { calculatePricing } = require('../../utils/calculatePricing')
+const Cart = require('../../models/cartSchema')
 
 exports.loadShopPage = async (req, res) => {
   try {
@@ -50,13 +51,23 @@ exports.loadShopPage = async (req, res) => {
     query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
 
     let sortOption = {};
-    switch (sort) {
-      case "price-asc": sortOption = { salePrice: 1 }; break;
-      case "price-desc": sortOption = { salePrice: -1 }; break;
-      case "name-asc": sortOption = { productName: 1 }; break;
-      case "name-desc": sortOption = { productName: -1 }; break;
-      default: sortOption = { createdAt: -1 };
-    }
+switch (sort) {
+  case "price-asc":
+    sortOption = { salePrice: 1 }; 
+    break;
+  case "price-desc":
+    sortOption = { salePrice: -1 }; 
+    break;
+  case "name-asc":
+    sortOption = { productName: 1 };
+    break;
+  case "name-desc":
+    sortOption = { productName: -1 };
+    break;
+  default:
+    sortOption = { createdAt: -1 };
+}
+
 
     const pageNum = +page || 1;
     const limitNum = +limit || 12;
@@ -159,44 +170,61 @@ exports.getProductsApi = async (req, res) => {
 
     query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
 
-    let sortOption = {};
+
+    let products = await Product.find(query)
+      .populate("category")
+      .lean();
+
+
+    let wishlistIds = [];
+    let cartProductIds = [];
+    
+    if (req.user?._id) {
+      const wl = await WishList.findOne({ user: req.user._id }).lean();
+      if (wl?.products?.length) wishlistIds = wl.products.map(i => i.productId.toString());
+      
+ 
+      const Cart = require("../../models/cartSchema");
+      const cart = await Cart.findOne({ user: req.user._id }).lean();
+      if (cart?.items?.length) cartProductIds = cart.items.map(item => item.product.toString());
+    }
+
+  
+    products = products.map(p => ({
+      ...p,
+      pricing: calculatePricing(p),
+      isInWishlist: wishlistIds.includes(p._id.toString()),
+      isInCart: cartProductIds.includes(p._id.toString())
+    }));
+
+
     switch (sort) {
-      case "price-asc": sortOption = { salePrice: 1 }; break;
-      case "price-desc": sortOption = { salePrice: -1 }; break;
-      case "name-asc": sortOption = { productName: 1 }; break;
-      case "name-desc": sortOption = { productName: -1 }; break;
-      default: sortOption = { createdAt: -1 };
+      case "price-asc":
+        products.sort((a, b) => a.pricing.displayPrice - b.pricing.displayPrice);
+        break;
+      case "price-desc":
+        products.sort((a, b) => b.pricing.displayPrice - a.pricing.displayPrice);
+        break;
+      case "name-asc":
+        products.sort((a, b) => a.productName.localeCompare(b.productName));
+        break;
+      case "name-desc":
+        products.sort((a, b) => b.productName.localeCompare(a.productName));
+        break;
+      default:
+        products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
     const pageNum = +page || 1;
     const limitNum = +limit || 12;
     const skip = (pageNum - 1) * limitNum;
+    const paginatedProducts = products.slice(skip, skip + limitNum);
 
-    const products = await Product.find(query)
-      .populate("category")
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
-
-   
-    let wishlistIds = [];
-    if (req.user?._id) {
-      const wl = await WishList.findOne({ user: req.user._id }).lean();
-      if (wl?.products?.length) wishlistIds = wl.products.map(i => i.productId.toString());
-    }
-
-    const productsWithPricing = products.map(p => ({
-      ...p,
-      pricing: calculatePricing(p),
-      isInWishlist: wishlistIds.includes(p._id.toString())
-    }));
-
-    const totalProducts = await Product.countDocuments(query);
+    const totalProducts = products.length;
     const totalPages = Math.ceil(totalProducts / limitNum) || 1;
 
     res.json({
-      products: productsWithPricing,
+      products: paginatedProducts,
       totalProducts,
       totalPages,
       currentPage: pageNum,
@@ -223,10 +251,13 @@ exports.checkProductAvailability = async (req, res) => {
   }
 };
 
+
 exports.loadProductPage = async (req, res) => {
   try {
     const productId = req.params.id;
     console.log("Loading product page for ID:", productId);
+
+
     const product = await Product.findOne({
       _id: productId,
       status: "Available",
@@ -244,29 +275,13 @@ exports.loadProductPage = async (req, res) => {
       });
     }
 
- 
-    let offerPercent = 0;
-    let appliedOfferName = null;
-
-
-    if (product.productOffer && product.productOffer > 0) {
-      offerPercent = product.productOffer;
-      appliedOfferName = "Product Offer";
-    }
-
-    const basePrice = product.salePrice && product.salePrice < product.regularPrice
-      ? product.salePrice
-      : product.regularPrice;
-
- 
-    const discountAmount = (basePrice * offerPercent) / 100;
-    const finalPrice = basePrice - discountAmount;
 
     product.pricing = calculatePricing(product);
 
-   const discountsApplied = product.pricing.isOnOffer
-  ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
-  : "";
+    const discountsApplied = product.pricing.isOnOffer
+      ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
+      : "";
+
 
     const relatedProducts = await Product.find({
       category: product.category._id,
@@ -279,14 +294,38 @@ exports.loadProductPage = async (req, res) => {
       .limit(4)
       .lean();
 
+    relatedProducts.forEach(rel => {
+      rel.pricing = calculatePricing(rel);
+    });
 
-relatedProducts.forEach(rel => {
-  rel.pricing = calculatePricing(rel);
-});
 
     const wishlistProductIds = req.user?.wishlist
-      ? req.user.wishlist.map((w) => w.product.toString())
+      ? req.user.wishlist.map(w => w.product.toString())
       : [];
+
+ 
+    let inCart = false;
+    if (req.user) {
+      const cart = await Cart.findOne({ user: req.user._id }).lean();
+      if (cart) {
+        inCart = cart.items.some(item => 
+          item.product.toString() === productId
+        );
+      }
+    }
+
+
+    if (req.user) {
+      const cart = await Cart.findOne({ user: req.user._id }).lean();
+      if (cart) {
+        relatedProducts.forEach(rel => {
+          rel.inCart = cart.items.some(item => 
+            item.product.toString() === rel._id.toString()
+          );
+        });
+      }
+    }
+
 
     res.render("user/product-details", {
       product,
@@ -294,7 +333,9 @@ relatedProducts.forEach(rel => {
       wishlistProductIds,
       discountsApplied,
       user: req.user,
+      inCart,                   
     });
+
   } catch (error) {
     console.error("Error loading product page:", error.stack);
     res.status(500).render("pageNotFound", {

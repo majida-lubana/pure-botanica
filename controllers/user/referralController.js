@@ -199,8 +199,7 @@ exports.processReferralReward = async (newUserId) => {
     const verifyInvite = verifyDoc.invitedUsers.find(
       u => u.userId && u.userId.toString() === newUserId.toString()
     );
-    console.log('🔍 Verification - Status after save:', verifyInvite.status);
-    console.log('💰 Total earned after save:', verifyDoc.totalEarned);
+    
 
   
     await creditReferralReward(referrerDoc.userId, invite.rewardAmount, newUser.email);

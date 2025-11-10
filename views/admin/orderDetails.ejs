@@ -33,333 +33,67 @@
       box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
     }
 
-    /* Enhanced Timeline Styles */
-    .timeline {
-      position: relative;
-      padding: 40px 0;
-    }
-
-    .timeline-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      position: relative;
-      padding: 0 40px;
-    }
-
-    .timeline-line {
-      position: absolute;
-      top: 48px;
-      left: 80px;
-      right: 80px;
-      height: 8px;
-      background: linear-gradient(90deg, #e5e7eb 0%, #e5e7eb 100%);
-      z-index: 0;
-      border-radius: 8px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .timeline-progress {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary-color) 0%, var(--success) 100%);
-      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(16, 138, 126, 0.5);
-    }
-
-    .timeline-step {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      flex: 1;
-      min-width: 120px;
-    }
-
-    .timeline-icon {
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      margin: 0 auto 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      background: white;
-      border: 6px solid #e5e7eb;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .timeline-step.completed .timeline-icon {
-      background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
-      border-color: var(--success);
-      color: white;
-      transform: scale(1.05);
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-    }
-
-    .timeline-step.current .timeline-icon {
-      background: linear-gradient(135deg, var(--primary-color) 0%, #0d6f66 100%);
-      border-color: var(--primary-color);
-      color: white;
-      transform: scale(1.1);
-      box-shadow: 0 0 0 6px rgba(16, 138, 126, 0.2), 0 8px 24px rgba(16, 138, 126, 0.4);
-      animation: pulse 2s infinite;
-    }
-
-    .timeline-step.pending .timeline-icon {
-      background: #f9fafb;
-      border-color: #d1d5db;
-      color: #9ca3af;
-      transform: scale(0.95);
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 0 0 6px rgba(16, 138, 126, 0.2), 0 8px 24px rgba(16, 138, 126, 0.4);
-      }
-      50% {
-        box-shadow: 0 0 0 12px rgba(16, 138, 126, 0.1), 0 8px 32px rgba(16, 138, 126, 0.5);
-      }
-    }
-
-    .timeline-label {
-      font-weight: 700;
-      font-size: 16px;
-      color: #6b7280;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .timeline-step.completed .timeline-label,
-    .timeline-step.current .timeline-label {
-      color: #1f2937;
-    }
-
-    .timeline-date {
-      font-size: 13px;
-      color: #9ca3af;
-      font-weight: 500;
-    }
-
-    .timeline-step.completed .timeline-date {
-      color: var(--success);
-      font-weight: 600;
-    }
-
-    .timeline-step.current .timeline-date {
-      color: var(--primary-color);
-      font-weight: 600;
-    }
-
     /* Status Badge */
     .status-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: capitalize;
+      display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; text-transform: capitalize;
     }
-
-    .status-badge.ordered {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .status-badge.shipped {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .status-badge.delivered {
-      background: #d1fae5;
-      color: #065f46;
-    }
-
-    .status-badge.cancelled {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .status-badge.returned {
-      background: #e0e7ff;
-      color: #3730a3;
-    }
-
-    .status-badge.return-requested {
-      background: #fef9c3;
-      color: #713f12;
-    }
-
-    .status-badge.payment-pending {
-      background: #fef3c7;
-      color: #92400e;
-      animation: pulse-orange 2s infinite;
-    }
-
-    .status-badge.payment-failed {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    @keyframes pulse-orange {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
+    .status-badge.ordered { background: #dbeafe; color: #1e40af; }
+    .status-badge.shipped { background: #fef3c7; color: #92400e; }
+    .status-badge.delivered { background: #d1fae5; color: #065f46; }
+    .status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+    .status-badge.returned { background: #e0e7ff; color: #3730a3; }
+    .status-badge.return-requested { background: #fef9c3; color: #713f12; }
+    .status-badge.return-rejected { background: #fee2e2; color: #991b1b; }
+    .status-badge.payment-pending { background: #fef3c7; color: #92400e; animation: pulse-orange 2s infinite; }
+    .status-badge.payment-failed { background: #fee2e2; color: #991b1b; }
+    @keyframes pulse-orange { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
     /* Custom Select */
-    .status-select, .return-select {
-      appearance: none;
-      background: #f9fafb;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 8px 36px 8px 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
+    .status-select {
+      appearance: none; background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px 36px 8px 12px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      background-size: 20px;
+      background-repeat: no-repeat; background-position: right 8px center; background-size: 20px;
     }
-
-    .status-select:hover, .return-select:hover {
-      border-color: var(--primary-color);
-      background-color: white;
-    }
-
-    .status-select:focus, .return-select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(16, 138, 126, 0.1);
+    .status-select:hover { border-color: var(--primary-color); background-color: white; }
+    .status-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(16,138,126,0.1); }
+    .status-select:disabled {
+      background: #f3f4f6; color: #9ca3af; cursor: not-allowed; opacity: 0.7; border-color: #d1d5db;
     }
 
     /* Action Buttons */
     .btn {
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; transition: all 0.3s ease; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px;
     }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary-color), #0d6f66);
-      color: white;
-    }
-
-    .btn-danger {
-      background: linear-gradient(135deg, var(--danger), #dc2626);
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #f3f4f6;
-      color: #374151;
-      border: 2px solid #e5e7eb;
-    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn-primary { background: linear-gradient(135deg, var(--primary-color), #0d6f66); color: white; }
+    .btn-danger { background: linear-gradient(135deg, var(--danger), #dc2626); color: white; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 2px solid #e5e7eb; }
 
     /* Product Card */
-    .product-card {
-      border: 2px solid #f3f4f6;
-      border-radius: 12px;
-      padding: 20px;
-      transition: all 0.3s ease;
-    }
-
-    .product-card:hover {
-      border-color: var(--primary-color);
-      background: #f9fafb;
-    }
-
-    .product-image {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
+    .product-card { border: 2px solid #f3f4f6; border-radius: 12px; padding: 20px; transition: all 0.3s ease; }
+    .product-card:hover { border-color: var(--primary-color); background: #f9fafb; }
+    .product-image { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
     /* Info Grid */
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #f3f4f6;
-    }
-
-    .info-row:last-child {
-      border-bottom: none;
-    }
-
-    .info-label {
-      color: #6b7280;
-      font-weight: 500;
-    }
-
-    .info-value {
-      color: #1f2937;
-      font-weight: 600;
-      text-align: right;
-    }
+    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #6b7280; font-weight: 500; }
+    .info-value { color: #1f2937; font-weight: 600; text-align: right; }
 
     /* Header */
-    .page-header {
-      background: linear-gradient(135deg, var(--primary-color), #0d6f66);
-      color: white;
-      padding: 32px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 16px rgba(16, 138, 126, 0.3);
+    .page-header { background: linear-gradient(135deg, var(--primary-color), #0d6f66); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 8px 16px rgba(16,138,126,0.3); }
+
+    /* Return Reason Box */
+    .return-reason-box {
+      background: #fef9c3; border-left: 4px solid #d97706; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px;
     }
+    .return-reason-box strong { color: #92400e; }
 
     /* Animations */
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: slideIn 0.5s ease forwards; }
 
-    .animate-in {
-      animation: slideIn 0.5s ease forwards;
-    }
-
-    /* Print styles */
-    @media print {
-      body {
-        background: white;
-      }
-      .no-print {
-        display: none;
-      }
-      .card {
-        box-shadow: none;
-        border: 1px solid #e5e7eb;
-      }
-    }
+    @media print { body { background: white; } .no-print { display: none; } .card { box-shadow: none; border: 1px solid #e5e7eb; } }
   </style>
 </head>
 <body class="min-h-screen p-6">
@@ -372,68 +106,19 @@
           <p class="text-blue-100">Manage and track order details</p>
         </div>
         <div class="flex gap-3 no-print">
-          <button onclick="window.print()" class="btn btn-secondary">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Print
-          </button>
-          <button onclick="window.history.back()" class="btn btn-secondary">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Orders
-          </button>
+          <button onclick="window.print()" class="btn btn-secondary">Print</button>
+          <button onclick="window.history.back()" class="btn btn-secondary">Back to Orders</button>
         </div>
       </div>
     </div>
 
     <% if (order.totalWarning) { %>
       <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg animate-in">
-        <div class="flex items-center">
-          <svg class="w-6 h-6 text-yellow-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <p class="text-yellow-700 font-medium"><%= order.totalWarning %></p>
-        </div>
+        <p class="text-yellow-700 font-medium"><%= order.totalWarning %></p>
       </div>
     <% } %>
 
-    <!-- Timeline Section -->
-    <div class="card p-8 mb-6 animate-in">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">Order Timeline</h2>
-      <div class="timeline">
-        <div class="timeline-container">
-          <div class="timeline-line">
-            <div class="timeline-progress" style="width: <%= (order.timeline.filter(s => s.completed).length / order.timeline.length) * 100 %>%"></div>
-          </div>
-          <% order.timeline.forEach(step => { %>
-            <div class="timeline-step <%= step.completed ? 'completed' : step.current ? 'current' : 'pending' %>">
-              <div class="timeline-icon">
-                <% if (step.label === 'Ordered') { %>
-                  📦
-                <% } else if (step.label === 'Shipped') { %>
-                  🚚
-                <% } else if (step.label === 'Out for Delivery') { %>
-                  🛵
-                <% } else if (step.label === 'Delivered') { %>
-                  ✅
-                <% } else { %>
-                  📋
-                <% } %>
-              </div>
-              <div class="timeline-label"><%= step.label %></div>
-              <% if (step.completed) { %>
-                <div class="timeline-date"><%= new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) %></div>
-              <% } else { %>
-                <div class="timeline-date">Pending</div>
-              <% } %>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    </div>
-
+    <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Left Column: Order Items -->
       <div class="lg:col-span-2 space-y-6">
@@ -453,46 +138,57 @@
                         <p class="text-gray-600">Quantity: <span class="font-medium text-gray-800"><%= item.quantity %></span></p>
                         <p class="text-gray-600">Price: <span class="font-bold text-green-600">₹<%= item.purchasePrice.toFixed(2) %></span></p>
                       </div>
+
+                      <!-- Status & Actions -->
                       <div class="flex items-center justify-between flex-wrap gap-3">
-  <span class="status-badge <%= item.status === 'payment_pending' ? 'payment-pending' : item.status === 'payment_failed' ? 'payment-failed' : item.status %>"><%= item.status.replace('-', ' ') %></span>
+                        <span class="status-badge <%= 
+                          item.status === 'payment_pending' ? 'payment-pending' :
+                          item.status === 'payment_failed' ? 'payment-failed' :
+                          item.status === 'return rejected' ? 'return-rejected' :
+                          item.status %>">
+                          <%= item.status.replace('-', ' ') %>
+                        </span>
 
-  <% if (order.orderStatus !== 'payment_pending' && order.orderStatus !== 'payment_failed') { %>
-    <select class="status-select no-print"
-            <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>
-            onchange="updateItemStatus('<%= order.orderId %>', '<%= item.ord_id %>', this.value)">
-      
-      <option value="ordered"
-              <%= item.status === 'ordered' ? 'selected' : '' %>
-              <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Ordered</option>
-      
-      <option value="shipped"
-              <%= item.status === 'shipped' ? 'selected' : '' %>
-              <%= ['delivered', 'cancelled'].includes(item.status) ? 'disabled' : '' %>>Shipped</option>
-      
-      <option value="delivered"
-              <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
-      
-      <option value="cancelled"
-              <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
-    </select>
-  <% } %>
+                        <% 
+                          const isFrozen = ['delivered', 'cancelled', 'returned', 'return rejected'].includes(item.status);
+                        %>
 
-  <% if (item.status === 'return requested') { %>
-    <button class="btn btn-primary no-print ml-2"
-            onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'accepted')">Accept Return</button>
-    <button class="btn btn-danger no-print ml-2"
-            onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'rejected')">Reject Return</button>
-  <% } %>
-</div>
+                        <% if (order.orderStatus !== 'payment_pending' && order.orderStatus !== 'payment_failed') { %>
+                          <select class="status-select no-print"
+                                  <%= isFrozen ? 'disabled' : '' %>
+                                  onchange="<%= isFrozen ? '' : `updateItemStatus('${order.orderId}', '${item.ord_id}', this.value)` %>">
+                            <option value="ordered" <%= item.status === 'ordered' ? 'selected' : '' %>>Ordered</option>
+                            <option value="shipped" <%= item.status === 'shipped' ? 'selected' : '' %>>Shipped</option>
+                            <option value="delivered" <%= item.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                            <option value="cancelled" <%= item.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                          </select>
+                        <% } %>
+
+                        <% if (item.status === 'return requested') { %>
+                          <div class="flex gap-2 no-print">
+                            <button class="btn btn-primary" onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'accepted')">
+                              Accept Return
+                            </button>
+                            <button class="btn btn-danger" onclick="verifyReturnRequest('<%= order.orderId %>', '<%= item.ord_id %>', 'rejected')">
+                              Reject Return
+                            </button>
+                          </div>
+                        <% } %>
+                      </div>
+
+                      <!-- Return Reason (Only if return requested) -->
+                      <% if (item.status === 'return requested' && item.returnReason) { %>
+                        <div class="return-reason-box">
+                          <strong>Return Reason:</strong>
+                          <p class="mt-1"><%= item.returnReason %></p>
+                        </div>
+                      <% } %>
                     </div>
                   </div>
                 </div>
               <% }) %>
             <% } else { %>
               <div class="text-center py-12 text-gray-400">
-                <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
                 <p class="text-lg">No items found in this order</p>
               </div>
             <% } %>
@@ -501,24 +197,13 @@
 
         <!-- Shipping Address -->
         <div class="card p-6 animate-in">
-          <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Shipping Address
-          </h2>
+          <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">Shipping Address</h2>
           <div class="bg-gray-50 p-6 rounded-lg">
             <p class="text-lg font-bold text-gray-800 mb-3"><%= order.address.fullName %></p>
             <p class="text-gray-700 mb-2"><%= order.address.address %></p>
             <p class="text-gray-700 mb-2"><%= order.address.city %>, <%= order.address.state %></p>
             <p class="text-gray-700 mb-2"><%= order.address.country %> - <%= order.address.pinCode %></p>
-            <p class="text-gray-700 mb-2 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <%= order.address.phone %>
-            </p>
+            <p class="text-gray-700 mb-2 flex items-center gap-2"><%= order.address.phone %></p>
             <span class="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium capitalize">
               <%= order.address.addressType %>
             </span>
@@ -528,37 +213,34 @@
 
       <!-- Right Column: Order Summary -->
       <div class="space-y-6">
-       <!-- Order Status Card -->
-<div class="card p-6 animate-in">
-  <h2 class="text-xl font-bold mb-4 text-gray-800">Order Status</h2>
-  <div class="space-y-3">
-    <div class="info-row">
-      <span class="info-label">Order Status</span>
-      <% 
-        // ---- SAFE FALLBACK ----
-        const orderStatus = (order.orderStatus || 'pending').toLowerCase().replace(/_/g, ' ');
-        const badgeClass = order.orderStatus === 'payment_pending' ? 'payment-pending' :
-                          order.orderStatus === 'payment_failed'   ? 'payment-failed' :
-                          order.orderStatus || 'pending';
-      %>
-      <span class="status-badge <%= badgeClass %>">
-        <%= orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1) %>
-      </span>
-    </div>
-
-    <div class="info-row">
-      <span class="info-label">Payment Status</span>
-      <span class="info-value <%= (order.paymentStatus || 'Pending') === 'Paid' ? 'text-green-600' : 'text-red-600' %>">
-        <%= order.paymentStatus || 'Pending' %>
-      </span>
-    </div>
-
-    <div class="info-row">
-      <span class="info-label">Payment Method</span>
-      <span class="info-value"><%= order.paymentMethod || 'N/A' %></span>
-    </div>
-  </div>
-</div>
+        <!-- Order Status Card -->
+        <div class="card p-6 animate-in">
+          <h2 class="text-xl font-bold mb-4 text-gray-800">Order Status</h2>
+          <div class="space-y-3">
+            <div class="info-row">
+              <span class="info-label">Order Status</span>
+              <% 
+                const orderStatus = (order.orderStatus || 'pending').toLowerCase().replace(/_/g, ' ');
+                const badgeClass = order.orderStatus === 'payment_pending' ? 'payment-pending' :
+                                  order.orderStatus === 'payment_failed'   ? 'payment-failed' :
+                                  order.orderStatus || 'pending';
+              %>
+              <span class="status-badge <%= badgeClass %>">
+                <%= orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1) %>
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Payment Status</span>
+              <span class="info-value <%= (order.paymentStatus || 'Pending') === 'Paid' ? 'text-green-600' : 'text-red-600' %>">
+                <%= order.paymentStatus || 'Pending' %>
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Payment Method</span>
+              <span class="info-value"><%= order.paymentMethod || 'N/A' %></span>
+            </div>
+          </div>
+        </div>
 
         <!-- Order Information -->
         <div class="card p-6 animate-in">
@@ -649,10 +331,7 @@
           confirmButtonText: 'Yes, update it!',
           cancelButtonText: 'Cancel'
         });
-
-        if (!confirmResult.isConfirmed) {
-          return;
-        }
+        if (!confirmResult.isConfirmed) return;
 
         const response = await fetch(`/admin/order/update-status/${orderId}`, {
           method: 'POST',
@@ -661,15 +340,8 @@
         });
 
         let data = {};
-        try {
-          data = await response.json();
-        } catch {
-          data.message = 'Server returned an invalid response';
-        }
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to update status');
-        }
+        try { data = await response.json(); } catch {}
+        if (!response.ok) throw new Error(data.message || 'Failed to update status');
 
         await Swal.fire({
           icon: 'success',
@@ -678,15 +350,13 @@
           confirmButtonColor: '#108a7e',
           timer: 2000
         });
-
         location.reload();
       } catch (error) {
-        console.error('Error updating status:', error);
-
+        console.error('Error:', error);
         await Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: error.message || 'An error occurred while updating the status',
+          text: error.message || 'Failed to update status',
           confirmButtonColor: '#ef4444'
         });
       }
@@ -704,29 +374,17 @@
           confirmButtonText: `Yes, ${action}!`,
           cancelButtonText: 'Cancel'
         });
-
-        if (!confirmResult.isConfirmed) {
-          
-          return;
-        }
+        if (!confirmResult.isConfirmed) return;
 
         const response = await fetch(`/admin/order/verify-return/${orderId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId, action })
         });
-        console.log('YYEWYWY',response)
 
         let data = {};
-        try {
-          data = await response.json();
-        } catch {
-          data.message = 'Server returned an invalid response';
-        }
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to verify return request');
-        }
+        try { data = await response.json(); } catch {}
+        if (!response.ok) throw new Error(data.message || 'Failed to verify return');
 
         await Swal.fire({
           icon: 'success',
@@ -735,26 +393,21 @@
           confirmButtonColor: '#108a7e',
           timer: 2000
         });
-
         location.reload();
       } catch (error) {
-        console.error('Error verifying return request:', error);
-
+        console.error('Error:', error);
         await Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: error.message || 'An error occurred while processing the return request',
+          text: error.message || 'Failed to process return',
           confirmButtonColor: '#ef4444'
         });
       }
     }
 
-    // Add staggered animation to cards
     document.addEventListener('DOMContentLoaded', () => {
       const cards = document.querySelectorAll('.animate-in');
-      cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-      });
+      cards.forEach((card, i) => card.style.animationDelay = `${i * 0.1}s`);
     });
   </script>
 </body>

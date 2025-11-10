@@ -37,11 +37,13 @@
       </a>
 
       <a href="/cart" class="hover:underline relative" title="Shopping Cart">
-        <i class="fas fa-shopping-bag text-lg"></i>
-        <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
-          <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"><%= cartCount %></span>
-        <% } %>
-      </a>
+  <i class="fas fa-shopping-bag text-lg"></i>
+ <span id="cart-count-badge" 
+      class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold 
+      <%= (typeof cartCount !== 'undefined' && cartCount > 0) ? '' : 'hidden' %>">
+  <%= typeof cartCount !== 'undefined' ? cartCount : '' %>
+</span>
+</a>
     </div>
   </nav>
 </header>
@@ -61,4 +63,17 @@
       }
     });
   });
+
+
+  const updateCartBadge = (count) => {
+  const badge = document.getElementById('cart-count-badge');
+  if (!badge) return;
+
+  if (count > 0) {
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+};
 </script>

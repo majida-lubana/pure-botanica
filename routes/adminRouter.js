@@ -62,7 +62,7 @@ router.delete('/coupon/:id', adminAuth, couponController.deleteCoupon);
 
 
 // Add these routes to your admin routes file
-router.get('/sales-report', dashboardController.loadSalesReport);
-router.get('/sales-report/download', dashboardController.downloadSalesReport);
+router.get('/dashboard', dashboardController.loadSalesReport);
+router.get('/dashboard/download', dashboardController.downloadSalesReport);
 
 module.exports = router
