@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --primary-color: #1a3c34;
@@ -130,11 +132,23 @@
             box-shadow: var(--shadow);
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
         }
 
         .order-card:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
+        }
+
+        /* FAILED/PENDING PAYMENT HIGHLIGHT */
+        .order-card.payment-failed {
+            border-left: 5px solid #ef4444;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.02) 0%, white 10%);
+        }
+
+        .order-card.payment-pending {
+            border-left: 5px solid #f59e0b;
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.02) 0%, white 10%);
         }
 
         .order-header {
@@ -249,30 +263,47 @@
             color: var(--pending);
         }
 
-.status-returned {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-}
-.status-cancelled {
-    background-color: rgba(192, 57, 43, 0.1);
-    color: #c0392b;
-}
-.status-return-requested {
-    background-color: rgba(241, 196, 15, 0.1);
-    color: #f39c12;
-}
-.status-shipped {
-    background-color: rgba(52, 152, 219, 0.1);
-    color: #2980b9;
-}
-.status-partially-returned {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-}
-.status-partially-cancelled {
-    background-color: rgba(192, 57, 43, 0.1);
-    color: #c0392b;
-}
+        .status-payment-pending {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            animation: pulse 2s infinite;
+        }
+
+        .status-payment-failed {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status-returned {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+        .status-cancelled {
+            background-color: rgba(192, 57, 43, 0.1);
+            color: #c0392b;
+        }
+        .status-return-requested {
+            background-color: rgba(241, 196, 15, 0.1);
+            color: #f39c12;
+        }
+        .status-shipped {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+        }
+        .status-partially-returned {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+        .status-partially-cancelled {
+            background-color: rgba(192, 57, 43, 0.1);
+            color: #c0392b;
+        }
+        
         .payment-badge {
             font-size: 0.75rem;
             font-weight: 500;
@@ -287,6 +318,11 @@
 
         .payment-badge.pending {
             color: var(--warning);
+        }
+
+        .payment-badge.failed {
+            color: #ef4444;
+            animation: pulse 2s infinite;
         }
 
         .payment-badge.completed {
@@ -327,6 +363,52 @@
 
         .view-details-btn i {
             font-size: 0.75rem;
+        }
+
+        .retry-payment-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.5rem 0.85rem;
+            border-radius: var(--border-radius);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .retry-payment-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .retry-payment-btn.pending {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .retry-payment-btn.pending:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .payment-alert {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: var(--border-radius);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: #92400e;
+        }
+
+        .payment-alert.failed {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #ef4444;
+            color: #991b1b;
         }
 
         .search-container {
@@ -499,6 +581,8 @@
             .price-actions-container {
                 width: 100%;
                 justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 0.5rem;
             }
 
             .empty-state {
@@ -543,7 +627,7 @@
                 justify-content: center;
             }
 
-            .view-details-btn {
+            .view-details-btn, .retry-payment-btn {
                 width: 100%;
                 justify-content: center;
                 margin-top: 0.5rem;
@@ -572,36 +656,22 @@
                 <div class="page-header">
                     <h2 class="page-title">My Orders</h2>
                     <div class="search-container">
-    <input 
-    type="text" 
-    id="orderSearch" 
-    class="form-control" 
-    placeholder="Search orders by product or status..." 
-    value="<%= filters.search || '' %>" 
-    style="max-width: 300px; border-radius: var(--border-radius);"
->
-    <button id="searchBtn" class="view-details-btn ms-2">
-        Search
-    </button>
-    <button id="clearSearchBtn" class="view-details-btn ms-1" style="background-color: #95a5a6;">
-        Clear
-    </button>
-</div>
+                        <input 
+                            type="text" 
+                            id="orderSearch" 
+                            class="form-control" 
+                            placeholder="Search orders by product or status..." 
+                            value="<%= filters.search || '' %>" 
+                            style="max-width: 300px; border-radius: var(--border-radius);"
+                        >
+                        <button id="searchBtn" class="view-details-btn ms-2">
+                            Search
+                        </button>
+                        <button id="clearSearchBtn" class="view-details-btn ms-1" style="background-color: #95a5a6;">
+                            Clear
+                        </button>
+                    </div>
                 </div>
-                
-                <!-- <div class="filter-container">
-                    <select id="statusFilter" class="filter-select">
-                        <option value="">All Statuses</option>
-                        <option value="processing">Processing</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                    <select id="timeFilter" class="filter-select">
-                        <option value="">All Time</option>
-                        <option value="last30">Last 30 Days</option>
-                        <option value="last90">Last 90 Days</option>
-                        <option value="lastYear">Last Year</option>
-                    </select>
-                </div> -->
                 
                 <% if (orders.length === 0) { %>
                     <div class="empty-state">
@@ -618,26 +688,37 @@
                 <% } else { %>
                     <div class="order-grid" id="orderGrid">
                         <% orders.forEach(order => { %>
-    <div class="order-card" 
-         data-order-id="<%= order._id %>"              
-         data-product="<%= order.orderItems[0]?.productName?.toLowerCase() || '' %>" 
-         data-status="<%= order.status.toLowerCase() %>" 
-         data-date="<%= order.createdAt.toISOString() %>">
-        
-        <div class="order-header">
-            <div class="order-id-container">
-                <span class="order-date">
-                    <i class="far fa-calendar-alt"></i>
-                    <%= order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
-                </span>
-            </div>
-            <!-- <div class="payment-status-container">
-                <span class="payment-badge <%= order.paymentStatus === 'Pending' ? 'pending' : 'completed' %>">
-                    <i class="<%= order.paymentStatus === 'Pending' ? 'fas fa-hourglass-half' : 'fas fa-check-circle' %>"></i>
-                    <%= order.paymentStatus %>
-                </span>
-            </div> -->
-        </div>
+                            <div class="order-card 
+                                <%= order.paymentStatus === 'Failed' ? 'payment-failed' : '' %>
+                                <%= order.paymentStatus === 'Pending' && ['payment_pending', 'payment_failed'].includes(order.status) ? 'payment-pending' : '' %>" 
+                                data-order-id="<%= order._id %>"              
+                                data-product="<%= order.orderItems[0]?.productName?.toLowerCase() || '' %>" 
+                                data-status="<%= order.status.toLowerCase() %>" 
+                                data-date="<%= order.createdAt.toISOString() %>">
+                                
+                                <!-- Payment Alert for Failed/Pending Payments -->
+                                <% if (order.paymentStatus === 'Failed' || (order.paymentStatus === 'Pending' && ['payment_pending', 'payment_failed'].includes(order.status))) { %>
+                                    <div class="payment-alert <%= order.paymentStatus === 'Failed' ? 'failed' : '' %>">
+                                        <i class="fas fa-<%= order.paymentStatus === 'Failed' ? 'exclamation-triangle' : 'clock' %> mr-1"></i>
+                                        <strong>Payment <%= order.paymentStatus === 'Failed' ? 'Failed' : 'Incomplete' %>:</strong>
+                                        <%= order.paymentStatus === 'Failed' ? 'Complete payment to confirm your order' : 'Please complete payment to confirm your order' %>
+                                    </div>
+                                <% } %>
+                        
+                                <div class="order-header">
+                                    <div class="order-id-container">
+                                        <span class="order-date">
+                                            <i class="far fa-calendar-alt"></i>
+                                            <%= order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+                                        </span>
+                                    </div>
+                                    <!-- Payment Status Badge -->
+                                    <div class="payment-badge <%= order.paymentStatus.toLowerCase() %>">
+                                        <i class="fas fa-<%= order.paymentStatus === 'Paid' ? 'check-circle' : order.paymentStatus === 'Failed' ? 'times-circle' : 'clock' %>"></i>
+                                        <%= order.paymentStatus %>
+                                    </div>
+                                </div>
+                                
                                 <div class="order-body">
                                     <div class="product-image-container">
                                         <img
@@ -660,38 +741,57 @@
 
                                 <div class="order-footer">
                                     <div class="status-payment-container">
-    <span class="status-badge 
-        <%= 
-          ['delivered', 'completed'].includes(order.status) ? 'status-completed' :
-          ['returned', 'partially_returned'].includes(order.status) ? 'status-returned' :
-          ['cancelled', 'partially_cancelled'].includes(order.status) ? 'status-cancelled' :
-          ['return_requested', 'return_requested'].includes(order.status) ? 'status-return-requested' :
-          ['shipped'].includes(order.status) ? 'status-shipped' :
-          'status-processing'
-        %>">
-        <i class="<%= 
-          ['delivered', 'completed'].includes(order.status) ? 'fas fa-check-circle' :
-          ['returned', 'partially_returned'].includes(order.status) ? 'fas fa-undo' :
-          ['cancelled', 'partially_cancelled'].includes(order.status) ? 'fas fa-ban' :
-          ['return_requested'].includes(order.status) ? 'fas fa-clock' :
-          ['shipped'].includes(order.status) ? 'fas fa-truck' :
-          'fas fa-cogs'
-        %>"></i>
-        <%= 
-          order.status === 'partially_returned' ? 'Partially Returned' :
-          order.status === 'partially_cancelled' ? 'Partially Cancelled' :
-          order.status === 'return_requested' ? 'Return Requested' :
-          order.status.charAt(0).toUpperCase() + order.status.slice(1)
-        %>
-    </span>
-</div>
+                                        <span class="status-badge 
+                                            <%= 
+                                                ['payment_pending'].includes(order.status) ? 'status-payment-pending' :
+                                                ['payment_failed'].includes(order.status) ? 'status-payment-failed' :
+                                                ['delivered', 'completed'].includes(order.status) ? 'status-completed' :
+                                                ['returned', 'partially_returned'].includes(order.status) ? 'status-returned' :
+                                                ['cancelled', 'partially_cancelled'].includes(order.status) ? 'status-cancelled' :
+                                                ['return_requested', 'return_requested'].includes(order.status) ? 'status-return-requested' :
+                                                ['shipped'].includes(order.status) ? 'status-shipped' :
+                                                'status-processing'
+                                            %>">
+                                            <i class="<%= 
+                                                ['payment_pending'].includes(order.status) ? 'fas fa-clock' :
+                                                ['payment_failed'].includes(order.status) ? 'fas fa-times-circle' :
+                                                ['delivered', 'completed'].includes(order.status) ? 'fas fa-check-circle' :
+                                                ['returned', 'partially_returned'].includes(order.status) ? 'fas fa-undo' :
+                                                ['cancelled', 'partially_cancelled'].includes(order.status) ? 'fas fa-ban' :
+                                                ['return_requested'].includes(order.status) ? 'fas fa-clock' :
+                                                ['shipped'].includes(order.status) ? 'fas fa-truck' :
+                                                'fas fa-cogs'
+                                            %>"></i>
+                                            <%= 
+                                                order.status === 'payment_pending' ? 'Payment Pending' :
+                                                order.status === 'payment_failed' ? 'Payment Failed' :
+                                                order.status === 'partially_returned' ? 'Partially Returned' :
+                                                order.status === 'partially_cancelled' ? 'Partially Cancelled' :
+                                                order.status === 'return_requested' ? 'Return Requested' :
+                                                order.status.charAt(0).toUpperCase() + order.status.slice(1)
+                                            %>
+                                        </span>
+                                    </div>
 
                                     <div class="price-actions-container">
                                         <span class="order-amount">₹<%= order.finalAmount.toFixed(2) %></span>
-                                        <a href="/order-details/<%= order._id %>" class="view-details-btn">
-                                            <i class="fas fa-eye"></i>
-                                            View Details
-                                        </a>
+                                        
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <!-- ENHANCED: Retry Payment Button -->
+                                            <% if (order.canRetryPayment) { %>
+                                                <button 
+                                                    onclick="retryPayment('<%= order._id %>', <%= order.finalAmount %>)" 
+                                                    class="retry-payment-btn <%= order.paymentStatus === 'Failed' ? '' : 'pending' %>">
+                                                    <i class="fas fa-<%= order.paymentStatus === 'Failed' ? 'exclamation-triangle' : 'clock' %>"></i>
+                                                    <%= order.paymentStatus === 'Failed' ? 'Retry Payment' : 'Complete Payment' %>
+                                                </button>
+                                            <% } %>
+                                            
+                                            <a href="/order-details/<%= order._id %>" class="view-details-btn">
+                                                <i class="fas fa-eye"></i>
+                                                View Details
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -699,34 +799,34 @@
                     </div>
 
                     <div class="pagination-container">
-    <!-- Previous -->
-    <button id="prevPage"
-            class="pagination-btn <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
-            <%= currentPage === 1 ? 'disabled' : '' %>>
-        Previous
-    </button>
+                        <!-- Previous -->
+                        <button id="prevPage"
+                                class="pagination-btn <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <%= currentPage === 1 ? 'disabled' : '' %>>
+                            Previous
+                        </button>
 
-    <!-- Page 1 -->
-    <button class="pagination-btn <%= currentPage === 1 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
-            data-page="1">
-        1
-    </button>
+                        <!-- Page 1 -->
+                        <button class="pagination-btn <%= currentPage === 1 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
+                                data-page="1">
+                            1
+                        </button>
 
-    <!-- Page 2 (only show if totalPages >= 2) -->
-    <% if (totalPages >= 2) { %>
-        <button class="pagination-btn <%= currentPage === 2 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
-                data-page="2">
-            2
-        </button>
-    <% } %>
+                        <!-- Page 2 (only show if totalPages >= 2) -->
+                        <% if (totalPages >= 2) { %>
+                            <button class="pagination-btn <%= currentPage === 2 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
+                                    data-page="2">
+                                2
+                            </button>
+                        <% } %>
 
-    <!-- Next -->
-    <button id="nextPage"
-            class="pagination-btn <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
-            <%= currentPage === totalPages ? 'disabled' : '' %>>
-        Next
-    </button>
-</div>
+                        <!-- Next -->
+                        <button id="nextPage"
+                                class="pagination-btn <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
+                                <%= currentPage === totalPages ? 'disabled' : '' %>>
+                            Next
+                        </button>
+                    </div>
                 <% } %>
             </div>
         </div>
@@ -739,171 +839,326 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-   <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('orderSearch');
-    const searchBtn = document.getElementById('searchBtn');
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
-    const orderGrid = document.getElementById('orderGrid');
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    const pageButtons = document.querySelectorAll('.pagination-btn[data-page]');
-
-    // ── FETCH ORDERS FROM SERVER ──
-    async function fetchOrders(page = 1, search = '') {
-        const url = new URL('/orders', window.location.origin);
-        url.searchParams.set('page', page);
-        if (search) url.searchParams.set('search', search);
-
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network error');
-            const html = await response.text();
-
-            // Parse HTML and extract only the order grid + pagination
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newGrid = doc.querySelector('#orderGrid');
-            const newPagination = doc.querySelector('.pagination-container');
-
-            if (newGrid) orderGrid.innerHTML = newGrid.innerHTML;
-            if (newPagination) {
-                document.querySelector('.pagination-container').outerHTML = newPagination.outerHTML;
-            }
-
-            // Re-attach event listeners
-            attachPaginationListeners();
-            applyLiveSearch(); // Re-apply live search on new cards
-        } catch (err) {
-            console.error('Fetch error:', err);
-            Swal.fire('Error', 'Failed to load orders', 'error');
-        }
-    }
-
-    // ── LIVE SEARCH (Client-side) ──
-    function applyLiveSearch() {
-        const query = searchInput.value.toLowerCase().trim();
-        const cards = document.querySelectorAll('.order-card');
-
-        cards.forEach(card => {
-            const product = (card.dataset.product || '').toLowerCase();
-            const status = (card.dataset.status || '').toLowerCase();
-            const matches = !query || product.includes(query) || status.includes(query);
-            card.style.display = matches ? 'block' : 'none';
-        });
-    }
-
-    // ── RE-ATTACH PAGINATION LISTENERS AFTER FETCH ──
-    function attachPaginationListeners() {
-        const newPrev = document.getElementById('prevPage');
-        const newNext = document.getElementById('nextPage');
-        const newPageBtns = document.querySelectorAll('.pagination-btn[data-page]');
-
-        if (newPrev) newPrev.onclick = () => {
-            const page = parseInt(newPrev.dataset.page || '<%= currentPage %>') - 1;
-            if (page >= 1) fetchOrders(page, searchInput.value.trim());
-        };
-        if (newNext) newNext.onclick = () => {
-            const page = parseInt(newNext.dataset.page || '<%= currentPage %>') + 1;
-            fetchOrders(page, searchInput.value.trim());
-        };
-        newPageBtns.forEach(btn => {
-            btn.onclick = () => fetchOrders(btn.dataset.page, searchInput.value.trim());
-        });
-    }
-
-    // ── EVENT LISTENERS ──
-    if (searchBtn) {
-        searchBtn.addEventListener('click', () => {
-            fetchOrders(1, searchInput.value.trim());
-        });
-    }
-
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            fetchOrders(1, '');
-        });
-    }
-
-    searchInput.addEventListener('keypress', e => {
-        if (e.key === 'Enter') {
-            fetchOrders(1, searchInput.value.trim());
-        }
-    });
-
-    // Live search while typing
-    searchInput.addEventListener('input', applyLiveSearch);
-
-    // Initial pagination
-    attachPaginationListeners();
-
-    // Apply live search on load
-    applyLiveSearch();
-
-    // ────── CANCEL / RETURN (Keep existing fetch) ──────
-    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
-    if (confirmCancelBtn) {
-        confirmCancelBtn.addEventListener('click', async () => {
-            const cancelForm = document.getElementById('cancelForm');
-            const orderId = document.getElementById('orderId').value;
-            const productId = document.getElementById('productId').value;
-            const actionType = document.getElementById('actionType').value;
-            const reason = document.getElementById('cancelReason').value === 'Other'
-                ? document.getElementById('otherReason').value
-                : document.getElementById('cancelReason').value;
-
-            if (!cancelForm.checkValidity()) return cancelForm.reportValidity();
-
-            const endpoint = actionType === 'cancel'
-                ? `/orders/${orderId}/cancel-item`
-                : `/orders/${orderId}/return`;
-
+    <script>
+        // ENHANCED: Retry Payment Function
+        async function retryPayment(orderId, finalAmount) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
             try {
-                const res = await fetch(endpoint, {
+                const response = await fetch(`/checkout/retry-payment/${orderId}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId, productId, reason })
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                const result = await res.json();
+                const data = await response.json();
 
-                const modal = document.getElementById('cancelModal');
-                bootstrap.Modal.getInstance(modal).hide();
-
-                if (result.success) {
-                    Swal.fire('Success', result.message, 'success').then(() => {
-                        // Update badge
-                        const card = document.querySelector(`[data-order-id="${orderId}"]`);
-                        if (card && result.orderStatus) {
-                            const badge = card.querySelector('.status-badge');
-                            const status = result.orderStatus.toLowerCase();
-                            const displayText = 
-                                status === 'partially_returned' ? 'Partially Returned' :
-                                status === 'partially_cancelled' ? 'Partially Cancelled' :
-                                status === 'return_requested' ? 'Return Requested' :
-                                status.charAt(0).toUpperCase() + status.slice(1);
-
-                            badge.textContent = displayText;
-                            badge.className = 'status-badge ' + 
-                                (status === 'delivered' || status === 'completed' ? 'status-completed' :
-                                 ['returned', 'partially_returned'].includes(status) ? 'status-returned' :
-                                 ['cancelled', 'partially_cancelled'].includes(status) ? 'status-cancelled' :
-                                 status === 'return_requested' ? 'status-return-requested' :
-                                 status === 'shipped' ? 'status-shipped' : 'status-processing');
-                            card.dataset.status = status;
-                            applyLiveSearch();
-                        }
-                    });
-                } else {
-                    Swal.fire('Error', result.message || 'Failed', 'error');
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to create payment order');
                 }
-            } catch (err) {
-                console.error(err);
-                Swal.fire('Error', 'Network error', 'error');
+
+                // Show payment initialization message
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'Payment Initialized',
+                    text: 'Opening payment gateway...',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                const options = {
+                    key: data.key_id,
+                    amount: data.amount,
+                    currency: "INR",
+                    name: "Beauty Cart",
+                    description: "Complete Order Payment",
+                    order_id: data.razorpayOrderId,
+                    retry: false,
+                    handler: async function (response) {
+                        try {
+                            // Show verification loading
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Verifying Payment...',
+                                text: 'Please wait while we confirm your payment',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+
+                            const verifyRes = await fetch("/checkout/verify-razorpay", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    orderId: orderId
+                                })
+                            });
+                            const vData = await verifyRes.json();
+
+                            if (vData.success) {
+                                await Swal.fire({
+                                    icon: "success", 
+                                    title: "Payment Successful!", 
+                                    text: "Your order has been confirmed. Redirecting...",
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                // Refresh page to update order status
+                                setTimeout(() => location.reload(), 2000);
+                            } else {
+                                throw new Error(vData.message || "Payment verification failed");
+                            }
+                        } catch (error) {
+                            console.error('Payment verification error:', error);
+                            await Swal.fire({
+                                icon: "error", 
+                                title: "Payment Verification Failed", 
+                                text: error.message || "Please contact support if amount was debited.",
+                                confirmButtonText: "OK"
+                            });
+                            // Reset button state
+                            button.disabled = false;
+                            button.innerHTML = originalText;
+                        }
+                    },
+                    prefill: {},
+                    theme: { color: "#000000" },
+                    modal: {
+                        ondismiss: () => {
+                            // Reset button state
+                            button.disabled = false;
+                            button.innerHTML = originalText;
+                            
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Payment Cancelled',
+                                text: 'You can retry payment anytime from this page.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', async (resp) => {
+                    console.error('Payment failed:', resp.error);
+                    
+                    // Record payment failure
+                    try {
+                        await fetch('/checkout/handle-payment-failure', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                orderId: orderId,
+                                error: resp.error
+                            })
+                        });
+                    } catch (e) {
+                        console.error('Failed to record payment failure:', e);
+                    }
+
+                    // Reset button state
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+
+                    await Swal.fire({ 
+                        icon: 'error', 
+                        title: 'Payment Failed', 
+                        text: resp.error?.description || 'Payment failed. Please try again.',
+                        confirmButtonText: 'Retry Later'
+                    });
+                });
+                
+                // Open Razorpay checkout
+                rzp.open();
+
+            } catch (error) {
+                console.error('Error retrying payment:', error);
+                
+                // Reset button state
+                button.disabled = false;
+                button.innerHTML = originalText;
+                
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Unable to Process Payment',
+                    text: error.message || 'Failed to initialize payment. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('orderSearch');
+            const searchBtn = document.getElementById('searchBtn');
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+            const orderGrid = document.getElementById('orderGrid');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+            const pageButtons = document.querySelectorAll('.pagination-btn[data-page]');
+
+            // ── FETCH ORDERS FROM SERVER ──
+            async function fetchOrders(page = 1, search = '') {
+                const url = new URL('/orders', window.location.origin);
+                url.searchParams.set('page', page);
+                if (search) url.searchParams.set('search', search);
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Network error');
+                    const html = await response.text();
+
+                    // Parse HTML and extract only the order grid + pagination
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newGrid = doc.querySelector('#orderGrid');
+                    const newPagination = doc.querySelector('.pagination-container');
+
+                    if (newGrid) orderGrid.innerHTML = newGrid.innerHTML;
+                    if (newPagination) {
+                        document.querySelector('.pagination-container').outerHTML = newPagination.outerHTML;
+                    }
+
+                    // Re-attach event listeners
+                    attachPaginationListeners();
+                    applyLiveSearch(); // Re-apply live search on new cards
+                } catch (err) {
+                    console.error('Fetch error:', err);
+                    Swal.fire('Error', 'Failed to load orders', 'error');
+                }
+            }
+
+            // ── LIVE SEARCH (Client-side) ──
+            function applyLiveSearch() {
+                const query = searchInput.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.order-card');
+
+                cards.forEach(card => {
+                    const product = (card.dataset.product || '').toLowerCase();
+                    const status = (card.dataset.status || '').toLowerCase();
+                    const matches = !query || product.includes(query) || status.includes(query);
+                    card.style.display = matches ? 'block' : 'none';
+                });
+            }
+
+            // ── RE-ATTACH PAGINATION LISTENERS AFTER FETCH ──
+            function attachPaginationListeners() {
+                const newPrev = document.getElementById('prevPage');
+                const newNext = document.getElementById('nextPage');
+                const newPageBtns = document.querySelectorAll('.pagination-btn[data-page]');
+
+                if (newPrev) newPrev.onclick = () => {
+                    const page = parseInt(newPrev.dataset.page || '<%= currentPage %>') - 1;
+                    if (page >= 1) fetchOrders(page, searchInput.value.trim());
+                };
+                if (newNext) newNext.onclick = () => {
+                    const page = parseInt(newNext.dataset.page || '<%= currentPage %>') + 1;
+                    fetchOrders(page, searchInput.value.trim());
+                };
+                newPageBtns.forEach(btn => {
+                    btn.onclick = () => fetchOrders(btn.dataset.page, searchInput.value.trim());
+                });
+            }
+
+            // ── EVENT LISTENERS ──
+            if (searchBtn) {
+                searchBtn.addEventListener('click', () => {
+                    fetchOrders(1, searchInput.value.trim());
+                });
+            }
+
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    fetchOrders(1, '');
+                });
+            }
+
+            searchInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    fetchOrders(1, searchInput.value.trim());
+                }
+            });
+
+            // Live search while typing
+            searchInput.addEventListener('input', applyLiveSearch);
+
+            // Initial pagination
+            attachPaginationListeners();
+
+            // Apply live search on load
+            applyLiveSearch();
+
+            // ────── CANCEL / RETURN (Keep existing fetch) ──────
+            const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+            if (confirmCancelBtn) {
+                confirmCancelBtn.addEventListener('click', async () => {
+                    const cancelForm = document.getElementById('cancelForm');
+                    const orderId = document.getElementById('orderId').value;
+                    const productId = document.getElementById('productId').value;
+                    const actionType = document.getElementById('actionType').value;
+                    const reason = document.getElementById('cancelReason').value === 'Other'
+                        ? document.getElementById('otherReason').value
+                        : document.getElementById('cancelReason').value;
+
+                    if (!cancelForm.checkValidity()) return cancelForm.reportValidity();
+
+                    const endpoint = actionType === 'cancel'
+                        ? `/orders/${orderId}/cancel-item`
+                        : `/orders/${orderId}/return`;
+
+                    try {
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId, productId, reason })
+                        });
+                        const result = await res.json();
+
+                        const modal = document.getElementById('cancelModal');
+                        bootstrap.Modal.getInstance(modal).hide();
+
+                        if (result.success) {
+                            Swal.fire('Success', result.message, 'success').then(() => {
+                                // Update badge
+                                const card = document.querySelector(`[data-order-id="${orderId}"]`);
+                                if (card && result.orderStatus) {
+                                    const badge = card.querySelector('.status-badge');
+                                    const status = result.orderStatus.toLowerCase();
+                                    const displayText = 
+                                        status === 'partially_returned' ? 'Partially Returned' :
+                                        status === 'partially_cancelled' ? 'Partially Cancelled' :
+                                        status === 'return_requested' ? 'Return Requested' :
+                                        status.charAt(0).toUpperCase() + status.slice(1);
+
+                                    badge.textContent = displayText;
+                                    badge.className = 'status-badge ' + 
+                                        (status === 'delivered' || status === 'completed' ? 'status-completed' :
+                                         ['returned', 'partially_returned'].includes(status) ? 'status-returned' :
+                                         ['cancelled', 'partially_cancelled'].includes(status) ? 'status-cancelled' :
+                                         status === 'return_requested' ? 'status-return-requested' :
+                                         status === 'shipped' ? 'status-shipped' : 'status-processing');
+                                    card.dataset.status = status;
+                                    applyLiveSearch();
+                                }
+                            });
+                        } else {
+                            Swal.fire('Error', result.message || 'Failed', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Network error', 'error');
+                    }
+                });
             }
         });
-    }
-});
-</script>
+    </script>
 </body>
 </html>

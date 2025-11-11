@@ -62,10 +62,43 @@ async function updateOrderStatus(order, session = null) {
   await order.save({ session });
 
   // Auto-set paymentStatus to 'paid' when ALL items are delivered
-if (newStatus === 'delivered' && order.paymentStatus !== 'paid') {
-  order.paymentStatus = 'paid';
-  await order.save();
+  if (newStatus === 'delivered' && order.paymentStatus !== 'paid') {
+    order.paymentStatus = 'paid';
+    await order.save();
+  }
 }
+
+// FIXED: Correct payment status logic
+function getDisplayPaymentStatus(order) {
+  // Priority-based payment status logic
+  if (order.paymentStatus === 'paid') return 'Paid';
+  if (order.paymentStatus === 'failed') return 'Failed';
+  if (order.paymentStatus === 'pending' && ['payment_pending', 'payment_failed'].includes(order.status)) {
+    return order.status === 'payment_failed' ? 'Failed' : 'Pending';
+  }
+  
+  // Special cases for different payment methods
+  if (order.paymentMethod === 'wallet' && order.paidViaWallet) return 'Paid';
+  if (order.paymentMethod === 'cod') {
+    return order.status === 'delivered' ? 'Paid' : 'Pending';
+  }
+  
+  // For online payments, rely on paymentStatus field only
+  if (['razorpay', 'online'].includes(order.paymentMethod)) {
+    return order.paymentStatus === 'paid' ? 'Paid' : 
+           order.paymentStatus === 'failed' ? 'Failed' : 'Pending';
+  }
+  
+  return 'Pending';
+}
+
+// FIXED: Check if payment can be retried
+function canRetryPayment(order) {
+  const isPaymentPendingOrFailed = ['payment_pending', 'payment_failed'].includes(order.status);
+  const isOnlinePayment = ['razorpay', 'online'].includes(order.paymentMethod);
+  const hasNotExpired = !order.paymentRetryExpiry || new Date() < new Date(order.paymentRetryExpiry);
+  
+  return isPaymentPendingOrFailed && isOnlinePayment && hasNotExpired;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -109,7 +142,7 @@ exports.loadOrderPage = async (req, res) => {
 
     const orders = await Order.find(filter)
       .select(
-        "orderId createdOn status finalAmount paymentMethod paymentId paymentStatus orderItems"
+        "orderId createdOn status finalAmount paymentMethod paymentId paymentStatus paymentRetryExpiry orderItems paidViaWallet"
       )
       .populate({
         path: "orderItems.product",
@@ -123,7 +156,7 @@ exports.loadOrderPage = async (req, res) => {
     // ----- Sync computed status (keeps DB in sync) -----
     for (const order of orders) {
       const newStatus = computeOrderStatus(order.orderItems);
-      if (order.status !== newStatus) {
+      if (order.status !== newStatus && !['payment_pending', 'payment_failed'].includes(order.status)) {
         order.status = newStatus;
         await Order.updateOne({ _id: order._id }, { status: newStatus });
       }
@@ -143,15 +176,9 @@ exports.loadOrderPage = async (req, res) => {
         _id: order._id,
         orderID: order.orderId,
         createdAt: order.createdOn,
-        // ---- NEW PAYMENT STATUS LOGIC ----
-        paymentStatus:
-          order.paymentStatus === "paid"
-            ? "Paid"
-            : order.paymentStatus === "failed"
-            ? "Failed"
-            : order.paymentId && order.paymentStatus !== "pending"
-            ? "Paid"
-            : "Pending",
+        // FIXED: Use proper payment status logic
+        paymentStatus: getDisplayPaymentStatus(order),
+        canRetryPayment: canRetryPayment(order),
         status: order.status || "processing",
         finalAmount: order.finalAmount || 0,
         orderItems: order.orderItems.map((item) => ({
@@ -200,15 +227,11 @@ exports.getOrderDetailsPage = async (req, res) => {
       return res.status(404).send("Order not found");
     }
 
-    // SYNC ORDER STATUS BEFORE RENDERING
+    // SYNC ORDER STATUS BEFORE RENDERING (but don't override payment status)
     const computedStatus = computeOrderStatus(order.orderItems);
-    if (order.status !== computedStatus) {
+    if (order.status !== computedStatus && !['payment_pending', 'payment_failed'].includes(order.status)) {
       order.status = computedStatus;
       await order.save(); // Save updated status to DB
-    }
-
-    if (!order) {
-      return res.status(404).send("Order not found");
     }
 
     let recalculatedSubtotal = 0;
@@ -283,15 +306,10 @@ exports.getOrderDetailsPage = async (req, res) => {
       orderDate: order.createdOn,
       invoiceDate: order.invoiceDate || order.createdOn,
       paymentMethod: order.paymentMethod || "N/A",
-      // ---- NEW PAYMENT STATUS LOGIC (same as list) ----
-paymentStatus: (() => {
-  if (order.paymentStatus === 'paid') return 'Paid';
-  if (order.paymentStatus === 'failed') return 'Failed';
-  if (order.paymentMethod === 'wallet') return 'Paid';
-  if (order.paymentMethod === 'cod' && order.status === 'delivered') return 'Paid';
-  if (order.paymentId) return 'Paid';
-  return 'Pending';
-})(),
+      // FIXED: Use proper payment status logic
+      paymentStatus: getDisplayPaymentStatus(order),
+      canRetryPayment: canRetryPayment(order),
+      paymentRetryExpiry: order.paymentRetryExpiry,
       transactionId: order.paymentId || "N/A",
       shippingAddress: {
         name: order.address.fullName,
@@ -380,7 +398,8 @@ exports.cancelItem = async (req, res) => {
       $inc: { quantity: item.quantity },
     });
 
-    if (order.paymentMethod !== "cod" || order.paymentId) {
+    // Only refund if payment was successful (not for failed/pending payments)
+    if (order.paymentStatus === 'paid' || order.paidViaWallet) {
       const refundAmount = item.purchasePrice * item.quantity;
 
       await creditWallet(
@@ -404,7 +423,7 @@ exports.cancelItem = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Item cancelled and refunded to wallet",
+      message: "Item cancelled successfully",
       orderStatus: order.status,
     });
   } catch (error) {

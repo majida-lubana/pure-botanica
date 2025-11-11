@@ -94,12 +94,6 @@ router.get('/api/products', shopController.getProductsApi);
 router.get('/product/availability/:id', shopController.checkProductAvailability);       
 router.get('/product/:id',isLoggedIn, shopController.loadProductPage);
 
-// Order management
-router.get('/orders', userAuth, orderController.loadOrderPage);
-router.get('/order-details/:orderId', userAuth, orderController.getOrderDetailsPage);   
-router.post('/orders/:orderId/cancel-item', userAuth, orderController.cancelItem);      
-router.post('/orders/:orderId/return', userAuth, orderController.returnItem);
-
 // Cart management
 router.get('/cart', userAuth, cartController.getCartPage);
 router.post('/cart/add', userAuth, cartController.addToCart);
@@ -115,6 +109,7 @@ router.get('/checkout', userAuth, checkoutController.getCheckoutPage);
 router.post('/checkout/place-order', userAuth, checkoutController.placeOrder);
 router.post('/checkout/verify-razorpay',userAuth,checkoutController.verifyRazorpayPayment)
 router.post('/checkout/retry-payment/:orderId', userAuth, checkoutController.retryPayment);
+router.post('/checkout/handle-payment-failure', userAuth, checkoutController.handlePaymentFailure);
 router.get('/order-success', userAuth, checkoutController.getOrderSuccessPage);
 router.get('/order-error', userAuth, checkoutController.getOrderErrorPage);
 router.post('/add-address', userAuth, checkoutController.addAddress);
@@ -122,10 +117,15 @@ router.get('/get-address/:addressId', userAuth, checkoutController.getAddress);
 router.put('/edit-address/:addressId', userAuth, checkoutController.editAddress);       
 router.delete('/remove-address/:addressId', userAuth, checkoutController.removeAddress);
 
+// Order management
+router.get('/orders', userAuth, orderController.loadOrderPage);
+router.get('/order-details/:orderId', userAuth, orderController.getOrderDetailsPage);   
+router.post('/orders/:orderId/cancel-item', userAuth, orderController.cancelItem);      
+router.post('/orders/:orderId/return', userAuth, orderController.returnItem);
+
 //wallet management
 router.get('/wallet', userAuth, walletController.getWallet);
 router.post('/wallet/toggle-default', userAuth, walletController.toggleDefault);
-
 
 //Wishlist
 router.get('/wishlist',userAuth,wishlistController.getWishlist)
@@ -139,8 +139,6 @@ router.get('/coupons', userAuth, couponController.getCouponsPage);
 router.post('/apply-coupon',userAuth,couponController.applyCoupon)
 router.get('/available-coupons', userAuth, couponController.getAvailableCoupons);
 
-
 router.get('/referral', userAuth, referralController.getReferralPage);
-
 
 module.exports = router

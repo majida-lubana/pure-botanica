@@ -861,7 +861,7 @@
           name: "Beauty Cart",
           description: "Order Payment",
           order_id: result.razorpayOrderId,
-          retry:false,
+          retry: false,
           handler: async function (response) {
             const verifyRes = await fetch("/checkout/verify-razorpay", {
               method: "POST",
@@ -886,34 +886,36 @@
           theme: { color: "#000000" },
           modal: {
             ondismiss: () => {
-              // Instead of just re-enabling the button, redirect to payment pending page
+              // Redirect to order error with orderId for retry
               const orderId = result.orderId;
-              Swal.fire({
-                icon: 'info',
-                title: 'Payment Pending',
-                text: 'Your order has been created but payment is incomplete. You can retry payment from your orders page.',
-                confirmButtonText: 'View Order'
-              }).then(() => {
-                window.location.href = `/order-details/${orderId}`;
-              });
+              const finalAmount = result.finalAmount;
+              window.location.href = `/order-error?message=Payment%20Cancelled&details=You%20cancelled%20the%20payment.%20You%20can%20retry%20from%20orders%20page.&orderId=${orderId}&finalAmount=${finalAmount}`;
             }
           }
         };
 
         const rzp = new Razorpay(options);
-        rzp.on("payment.failed", resp => {
-          // Redirect to order details page with payment pending status
-          const orderId = result.orderId;
-          Swal.fire({
-            icon: 'error', 
-            title: 'Payment Failed', 
-            text: 'Your order has been created but payment failed. You can retry payment from your orders page.',
-            confirmButtonText: 'View Order'
-          }).then(() => {
-            window.location.href = `/order-details/${orderId}`;
+        rzp.on("payment.failed", async (resp) => {
+          // Record payment failure
+          await fetch('/checkout/handle-payment-failure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: result.orderId,
+              error: resp.error
+            })
           });
+
+          // Redirect to error page with retry option
+          const orderId = result.orderId;
+          const finalAmount = result.finalAmount;
+          const errorMsg = resp.error?.description || 'Payment failed';
+          window.location.href = `/order-error?message=Payment%20Failed&details=${encodeURIComponent(errorMsg)}&orderId=${orderId}&finalAmount=${finalAmount}`;
         });
+
         rzp.open();
+        btn.disabled = false;
+        btn.textContent = "Place Order";
 
       } catch (err) {
         console.error(err);

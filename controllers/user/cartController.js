@@ -168,7 +168,7 @@ exports.getCartPage = async (req, res) => {
   }
 };
 
-const MAX_PER_PRODUCT = 5;
+const MAX_PER_PRODUCT = 3;
 
 exports.getCountInCart = async (req, res) => {
   try {
