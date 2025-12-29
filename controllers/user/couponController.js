@@ -1,6 +1,7 @@
 const Coupon = require('../../models/couponSchema');
 const Order = require('../../models/orderSchema');
-
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 exports.applyCoupon = async (req, res) => {
     try {
@@ -8,57 +9,71 @@ exports.applyCoupon = async (req, res) => {
         const userId = req.user?._id;
 
         if (!userId) {
-            return res.status(401).json({ success: false, message: 'Please login to apply coupon' });
+            return res.status(STATUS.UNAUTHORIZED).json({
+                success: false,
+                message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login to apply coupon'
+            });
         }
 
-        if (!couponCode || !cartTotal) {
-            return res.status(400).json({ success: false, message: 'Coupon code and cart total are required' });
+        if (!couponCode || !cartTotal || cartTotal < 0) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.VALIDATION.INVALID_INPUT || 'Valid coupon code and cart total required'
+            });
         }
 
-  
-        const coupon = await Coupon.findOne({ 
-            couponCode: couponCode.toUpperCase(),
-            isListed: true 
+        const code = couponCode.trim().toUpperCase();
+
+        const coupon = await Coupon.findOne({
+            couponCode: code,
+            isListed: true
         });
 
         if (!coupon) {
-            return res.status(404).json({ success: false, message: 'Invalid coupon code' });
-        }
-
-
-        const currentDate = new Date();
-        const startDate = new Date(coupon.startDate);
-        const expireDate = new Date(coupon.expireOn);
-
-        if (currentDate < startDate) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Coupon is not yet active. Valid from ${startDate.toLocaleDateString()}` 
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: MESSAGES.COUPON.INVALID || 'Invalid coupon code'
             });
         }
 
-        if (currentDate > expireDate) {
-            return res.status(400).json({ success: false, message: 'Coupon has expired' });
+        const now = new Date();
+        const startDate = new Date(coupon.startDate);
+        const expireDate = new Date(coupon.expireOn);
+        const expireEndOfDay = new Date(expireDate.setHours(23, 59, 59, 999));
+
+        if (now < startDate) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.COUPON.NOT_ACTIVE_YET || `Coupon not active yet. Valid from ${startDate.toLocaleDateString()}`
+            });
+        }
+
+        if (now > expireEndOfDay) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.COUPON.EXPIRED || 'Coupon has expired'
+            });
         }
 
         if (cartTotal < coupon.minimumPrice) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Minimum order value of ₹${coupon.minimumPrice} required` 
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.COUPON.MINIMUM_NOT_MET || `Minimum order of ₹${coupon.minimumPrice} required`
             });
         }
 
-
-        const userUsedCoupon = await Order.findOne({
+        const userUsed = await Order.findOne({
             user: userId,
             couponCode: coupon.couponCode,
             status: { $nin: ['cancelled', 'payment_failed'] }
         });
 
-        if (userUsedCoupon) {
-            return res.status(400).json({ success: false, message: 'You have already used this coupon' });
+        if (userUsed) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.COUPON.ALREADY_USED || 'You have already used this coupon'
+            });
         }
-
 
         const totalUsed = await Order.countDocuments({
             couponCode: coupon.couponCode,
@@ -66,10 +81,12 @@ exports.applyCoupon = async (req, res) => {
         });
 
         if (totalUsed >= coupon.usageLimit) {
-            return res.status(400).json({ success: false, message: 'Coupon usage limit exceeded' });
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: MESSAGES.COUPON.LIMIT_EXCEEDED || 'Coupon usage limit reached'
+            });
         }
 
-     
         let discountAmount = 0;
         if (coupon.discountType === 'percentage') {
             discountAmount = (cartTotal * coupon.offerPrice) / 100;
@@ -77,135 +94,164 @@ exports.applyCoupon = async (req, res) => {
             discountAmount = coupon.offerPrice;
         }
 
-   
         discountAmount = Math.min(discountAmount, cartTotal);
 
         res.json({
             success: true,
-            message: 'Coupon applied successfully',
+            message: MESSAGES.COUPON.APPLIED_SUCCESS || 'Coupon applied successfully',
             coupon: {
                 code: coupon.couponCode,
                 name: coupon.name,
-                discountAmount: discountAmount,
+                discountAmount: Math.round(discountAmount),
                 discountType: coupon.discountType,
                 offerPrice: coupon.offerPrice
             }
         });
+
     } catch (error) {
         console.error('Error applying coupon:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+        });
     }
 };
 
 exports.getAvailableCoupons = async (req, res) => {
     try {
         const userId = req.user?._id;
-        const cartTotal = parseFloat(req.query.cartTotal) || 0;
+        let cartTotal = parseFloat(req.query.cartTotal) || 0;
+        if (cartTotal < 0) cartTotal = 0;
 
         if (!userId) {
-            return res.status(401).json({ success: false, message: 'Please login' });
+            return res.status(STATUS.UNAUTHORIZED).json({
+                success: false,
+                message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
+            });
         }
 
-        const currentDate = new Date();
-        
-  
+        const now = new Date();
+
         const coupons = await Coupon.find({
             isListed: true,
-            startDate: { $lte: currentDate },
-            expireOn: { $gte: currentDate }
+            startDate: { $lte: now },
+            expireOn: { $gte: now }
         }).sort({ createdOn: -1 });
 
-     
-        const usedCoupons = await Order.find({
-            user: userId,
-            couponCode: { $exists: true, $ne: null },
-            status: { $nin: ['cancelled', 'payment_failed'] }
-        }).distinct('couponCode');
-
-    
-        const availableCoupons = [];
-        
-        for (const coupon of coupons) {
-            const totalUsed = await Order.countDocuments({
-                couponCode: coupon.couponCode,
+        const usedCouponCodes = new Set(
+            await Order.find({
+                user: userId,
+                couponCode: { $exists: true, $ne: null },
                 status: { $nin: ['cancelled', 'payment_failed'] }
-            });
+            }).distinct('couponCode')
+        );
 
-            const isUsable = !usedCoupons.includes(coupon.couponCode) && 
-                           totalUsed < coupon.usageLimit &&
-                           cartTotal >= coupon.minimumPrice;
+        const usageStats = await Order.aggregate([
+            {
+                $match: {
+                    couponCode: { $in: coupons.map(c => c.couponCode) },
+                    status: { $nin: ['cancelled', 'payment_failed'] }
+                }
+            },
+            { $group: { _id: '$couponCode', count: { $sum: 1 } } }
+        ]);
+
+        const usageMap = {};
+        usageStats.forEach(stat => usageMap[stat._id] = stat.count);
+
+        const availableCoupons = coupons.map(coupon => {
+            const totalUsed = usageMap[coupon.couponCode] || 0;
+            const alreadyUsed = usedCouponCodes.has(coupon.couponCode);
+            const limitReached = totalUsed >= coupon.usageLimit;
+            const minNotMet = cartTotal < coupon.minimumPrice;
+
+            const isUsable = !alreadyUsed && !limitReached && !minNotMet;
 
             let discountAmount = 0;
-            if (coupon.discountType === 'percentage') {
-                discountAmount = Math.min((cartTotal * coupon.offerPrice) / 100, cartTotal);
-            } else {
-                discountAmount = Math.min(coupon.offerPrice, cartTotal);
+            let reason = null;
+
+            if (alreadyUsed) reason = MESSAGES.COUPON.REASON_ALREADY_USED || 'Already used';
+            else if (limitReached) reason = MESSAGES.COUPON.REASON_LIMIT_REACHED || 'Usage limit reached';
+            else if (minNotMet) reason = MESSAGES.COUPON.REASON_MINIMUM || `Minimum ₹${coupon.minimumPrice} required`;
+
+            if (isUsable) {
+                if (coupon.discountType === 'percentage') {
+                    discountAmount = (cartTotal * coupon.offerPrice) / 100;
+                } else {
+                    discountAmount = coupon.offerPrice;
+                }
+                discountAmount = Math.min(discountAmount, cartTotal);
             }
 
-            availableCoupons.push({
+            return {
                 ...coupon.toObject(),
                 isUsable,
                 discountAmount: Math.floor(discountAmount),
-                reason: !isUsable ? (
-                    usedCoupons.includes(coupon.couponCode) ? 'Already used' :
-                    totalUsed >= coupon.usageLimit ? 'Usage limit reached' :
-                    cartTotal < coupon.minimumPrice ? `Minimum ₹${coupon.minimumPrice} required` : ''
-                ) : null
-            });
-        }
+                reason
+            };
+        });
 
         res.json({ success: true, coupons: availableCoupons });
+
     } catch (error) {
-        console.error('Error getting available coupons:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('Error fetching available coupons:', error);
+        res.status(STATUS.INTERNAL_ERROR).json({
+            success: false,
+            message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+        });
     }
 };
-
 
 exports.getCouponsPage = async (req, res) => {
     try {
         const userId = req.user?._id;
-        const currentDate = new Date();
-        
+        const now = new Date();
 
         const coupons = await Coupon.find({
             isListed: true,
-            startDate: { $lte: currentDate },
-            expireOn: { $gte: currentDate }
+            startDate: { $lte: now },
+            expireOn: { $gte: now }
         }).sort({ createdOn: -1 });
 
-        const usedCoupons = userId ? await Order.find({
-            user: userId,
-            couponCode: { $exists: true, $ne: null },
-            status: { $nin: ['cancelled', 'payment_failed'] }
-        }).distinct('couponCode') : [];
-
-
-        const couponData = [];
-        
-        for (const coupon of coupons) {
-            const totalUsed = await Order.countDocuments({
-                couponCode: coupon.couponCode,
+        let usedCouponCodes = [];
+        if (userId) {
+            usedCouponCodes = await Order.find({
+                user: userId,
+                couponCode: { $exists: true, $ne: null },
                 status: { $nin: ['cancelled', 'payment_failed'] }
-            });
-
-            const isUsed = usedCoupons.includes(coupon.couponCode);
-            const isAvailable = totalUsed < coupon.usageLimit;
-
-            couponData.push({
-                ...coupon.toObject(),
-                isUsed,
-                isAvailable,
-                usedCount: totalUsed
-            });
+            }).distinct('couponCode');
         }
+
+        const usageStats = await Order.aggregate([
+            {
+                $match: {
+                    couponCode: { $in: coupons.map(c => c.couponCode) },
+                    status: { $nin: ['cancelled', 'payment_failed'] }
+                }
+            },
+            { $group: { _id: '$couponCode', usedCount: { $sum: 1 } } }
+        ]);
+
+        const usageMap = {};
+        usageStats.forEach(s => usageMap[s._id] = s.usedCount);
+
+        const couponData = coupons.map(coupon => ({
+            ...coupon.toObject(),
+            isUsed: usedCouponCodes.includes(coupon.couponCode),
+            isAvailable: (usageMap[coupon.couponCode] || 0) < coupon.usageLimit,
+            usedCount: usageMap[coupon.couponCode] || 0
+        }));
 
         res.render('user/coupons', {
             coupons: couponData,
             user: req.user
         });
+
     } catch (error) {
         console.error('Error loading coupons page:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
+            message: MESSAGES.COUPON.LOAD_FAILED || 'An error occurred while loading coupons.',
+            pageTitle: 'Error'
+        });
     }
 };

@@ -3,11 +3,12 @@ const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema');
 const mongoose = require('mongoose');
 const { calculatePricing } = require('../../utils/calculatePricing');
-
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 const calculateTotals = (items) => {
-  let subtotal = 0;       
-  let originalSubtotal = 0; 
+  let subtotal = 0;
+  let originalSubtotal = 0;
 
   items.forEach(item => {
     const p = item.productId;
@@ -22,7 +23,7 @@ const calculateTotals = (items) => {
   const tax = subtotal * 0.1;
   const total = subtotal + shippingCost + tax;
 
-  return { 
+  return {
     subtotal: Number(subtotal.toFixed(2)),
     originalSubtotal: Number(originalSubtotal.toFixed(2)),
     discount: Number(discount.toFixed(2)),
@@ -34,10 +35,10 @@ const calculateTotals = (items) => {
 
 exports.getCartPage = async (req, res) => {
   try {
-    const userId = req.user?._id; 
+    const userId = req.user?._id;
     if (!userId) {
-      return res.status(401).render('user/login', {
-        message: 'Please login to view your cart.',
+      return res.status(STATUS.UNAUTHORIZED).render('user/login', {
+        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login to view your cart.',
         pageTitle: 'Login Page',
       });
     }
@@ -59,12 +60,10 @@ exports.getCartPage = async (req, res) => {
     let total = 0;
     let totalItems = 0;
     let paginatedItems = [];
-
     let cartCount = 0;
 
     if (cart && cart.items && cart.items.length > 0) {
       let cartUpdated = false;
-
 
       cart.items = cart.items.filter(item => {
         const p = item.productId;
@@ -76,7 +75,6 @@ exports.getCartPage = async (req, res) => {
           p.quantity > 0
         );
       });
-
 
       cart.items = cart.items.map(item => {
         const p = item.productId;
@@ -98,7 +96,6 @@ exports.getCartPage = async (req, res) => {
       cart.items = cart.items.reverse();
       paginatedItems = cart.items.slice(skip, skip + limit);
 
-  
       cart.items.forEach(item => {
         if (item.productId) {
           item.productId.pricing = calculatePricing(item.productId);
@@ -117,10 +114,9 @@ exports.getCartPage = async (req, res) => {
       tax = totals.tax;
       total = totals.total;
 
-
       cartCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     } else {
-      cart = { items: [], userId }; 
+      cart = { items: [], userId };
       cartCount = 0;
     }
 
@@ -146,7 +142,7 @@ exports.getCartPage = async (req, res) => {
     };
 
     res.render('user/cart', {
-      cart: { ...cart, items: paginatedItems }, 
+      cart: { ...cart, items: paginatedItems },
       user: req.user,
       subtotal,
       originalSubtotal,
@@ -156,19 +152,19 @@ exports.getCartPage = async (req, res) => {
       discount,
       relatedProducts,
       pagination,
-      pageTitle: 'Your Shopping Cart', 
+      pageTitle: 'Your Shopping Cart',
       cartCount
     });
   } catch (error) {
     console.error('Error loading cart page:', error.stack);
-    res.status(500).render('user/page-404', {
-      message: 'An error occurred while loading the cart page.',
+    res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
+      message: MESSAGES.CART.LOAD_FAILED || 'An error occurred while loading the cart page.',
       pageTitle: 'Error',
     });
   }
 };
 
-const MAX_PER_PRODUCT = 3;
+const MAX_PER_PRODUCT = 5;
 
 exports.getCountInCart = async (req, res) => {
   try {
@@ -177,7 +173,7 @@ exports.getCountInCart = async (req, res) => {
     const item = cart?.items?.find(i => i.productId.toString() === productId);
     res.json({ count: item ? item.quantity : 0 });
   } catch (e) {
-    res.status(500).json({ count: 0 });
+    res.status(STATUS.INTERNAL_ERROR).json({ count: 0 });
   }
 };
 
@@ -187,16 +183,19 @@ exports.addToCart = async (req, res) => {
     const userId = req.user?._id;
 
     if (!userId) {
-      return res.status(401).json({
+      return res.status(STATUS.UNAUTHORIZED).json({
         success: false,
-        message: 'Please login to add products to your cart.',
+        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login to add products to your cart.',
         redirectUrl: '/login',
       });
     }
 
     const qty = parseInt(quantity, 10);
     if (!productId || qty < 1) {
-      return res.status(400).json({ success: false, message: 'Invalid request' });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.CART.INVALID_REQUEST || 'Invalid request'
+      });
     }
 
     const product = await Product.findOne({
@@ -206,16 +205,17 @@ exports.addToCart = async (req, res) => {
       isBlocked: false,
     }).populate('category').lean();
 
-    
-
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product unavailable' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.PRODUCT.NOT_AVAILABLE || 'Product unavailable'
+      });
     }
 
     if (product.quantity < qty) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: `Only ${product.quantity} unit(s) left in stock`,
+        message: MESSAGES.CART.INSUFFICIENT_STOCK || `Only ${product.quantity} unit(s) left in stock`
       });
     }
 
@@ -227,12 +227,11 @@ exports.addToCart = async (req, res) => {
     const newQty = currentQty + qty;
 
     if (newQty > MAX_PER_PRODUCT) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: `You can only purchase up to ${MAX_PER_PRODUCT} units of this product`,
+        message: MESSAGES.CART.MAX_PER_PRODUCT || `You can only purchase up to ${MAX_PER_PRODUCT} units of this product`
       });
     }
-
 
     const pricing = calculatePricing(product);
     const itemPrice = pricing.displayPrice;
@@ -256,32 +255,49 @@ exports.addToCart = async (req, res) => {
     const cartCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
     return res.json({
-  success: true,
-  message: 'Product added to cart!',
-  cartCount,
-  
-});
+      success: true,
+      message: MESSAGES.CART.ADDED_SUCCESS || 'Product added to cart!',
+      cartCount,
+    });
   } catch (error) {
     console.error('Add to Cart Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
-
 
 exports.updateCartQuantity = async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: 'Login required' });
+    if (!userId) {
+      return res.status(STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Login required'
+      });
+    }
 
-    const { productId, action } = req.body;       
+    const { productId, action } = req.body;
     const cart = await Cart.findOne({ userId }).populate({
       path: 'items.productId',
       populate: { path: 'category' },
     });
-    if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
+
+    if (!cart) {
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.CART.NOT_FOUND || 'Cart not found'
+      });
+    }
 
     const cartItem = cart.items.find(i => i.productId._id.toString() === productId);
-    if (!cartItem) return res.status(404).json({ success: false, message: 'Item not in cart' });
+    if (!cartItem) {
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.CART.ITEM_NOT_FOUND || 'Item not in cart'
+      });
+    }
 
     const product = cartItem.productId;
     const stock = product.quantity;
@@ -292,27 +308,29 @@ exports.updateCartQuantity = async (req, res) => {
     else if (action === 'decrease') newQty--;
 
     if (newQty < 1) {
-      return res.status(400).json({ success: false, message: 'Quantity cannot be less than 1' });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.CART.MIN_QUANTITY || 'Quantity cannot be less than 1'
+      });
     }
 
     if (newQty > stock) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: `Only ${stock} unit(s) available`,
+        message: MESSAGES.CART.INSUFFICIENT_STOCK || `Only ${stock} unit(s) available`
       });
     }
 
     if (newQty > MAX_PER_PRODUCT) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: `Maximum ${MAX_PER_PRODUCT} units allowed per product`,
+        message: MESSAGES.CART.MAX_PER_PRODUCT || `Maximum ${MAX_PER_PRODUCT} units allowed per product`
       });
     }
 
     cartItem.quantity = newQty;
     await cart.save();
 
-    
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -328,7 +346,10 @@ exports.updateCartQuantity = async (req, res) => {
     });
   } catch (error) {
     console.error('updateCartQuantity error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
 
@@ -336,23 +357,28 @@ exports.removeFromCart = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
-      return res.status(401).json({ success: false, message: 'Please login' });
+      return res.status(STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
+      });
     }
 
     const { productId } = req.body;
     const cart = await Cart.findOne({ userId }).populate({
-      path: 'items.productId', 
+      path: 'items.productId',
       populate: { path: 'category' },
     });
 
     if (!cart) {
-      return res.status(404).json({ success: false, message: 'Cart not found' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.CART.NOT_FOUND || 'Cart not found'
+      });
     }
 
     cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
     await cart.save();
 
-    
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -368,26 +394,28 @@ exports.removeFromCart = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing from cart:', error.stack);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Internal Server Error'
+    });
   }
 };
 
 exports.getCartContents = async (req, res) => {
   try {
     if (!req.session.user) {
-      return res.status(401).send('');
+      return res.status(STATUS.UNAUTHORIZED).send('');
     }
 
     const userId = req.session.user._id;
     const cart = await Cart.findOne({ userId }).populate({
-      path: 'items.productId', 
+      path: 'items.productId',
       populate: { path: 'category' },
     });
 
     if (!cart || !cart.items.length) {
       return res.send('<p class="text-gray-500">Your cart is empty</p>');
     }
-
 
     cart.items.forEach(item => {
       if (item.productId) {
@@ -414,7 +442,7 @@ exports.getCartContents = async (req, res) => {
     res.send(html);
   } catch (error) {
     console.error('Error fetching cart contents:', error.stack);
-    res.status(500).send('<p class="text-red-500">Error loading cart</p>');
+    res.status(STATUS.INTERNAL_ERROR).send('<p class="text-red-500">Error loading cart</p>');
   }
 };
 
@@ -423,11 +451,13 @@ exports.getCartQuantity = async (req, res) => {
     const userId = req.user?._id;
     const { productId } = req.body;
     const cart = await Cart.findOne({ userId });
-    const cartItem = cart?.items.find(item => item.productId.toString() === productId); 
+    const cartItem = cart?.items.find(item => item.productId.toString() === productId);
     res.json({ quantity: cartItem ? cartItem.quantity : 0 });
   } catch (error) {
     console.error('Error fetching cart quantity:', error.stack);
-    res.status(500).json({ message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
 
@@ -435,7 +465,10 @@ exports.getCartSummary = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
-      return res.status(401).json({ success: false, message: 'Please login' });
+      return res.status(STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
+      });
     }
 
     const cart = await Cart.findOne({ userId }).populate({
@@ -445,7 +478,6 @@ exports.getCartSummary = async (req, res) => {
 
     cart.items = cart.items.filter(item => item.productId);
 
-   
     cart.items.forEach(item => {
       if (item.productId) {
         item.productId.pricing = calculatePricing(item.productId);
@@ -461,6 +493,9 @@ exports.getCartSummary = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching cart summary:', error.stack);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };

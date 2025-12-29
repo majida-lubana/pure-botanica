@@ -24,7 +24,7 @@ router.get('/users',adminAuth,customerController.customerInfo)
 router.post('/block/:id',adminAuth,customerController.customerBlocked)
 router.post('/unblock/:id',adminAuth,customerController.customerUnblocked)
 
-//category management
+//category management 
 router.get('/category',adminAuth,categoryController.categoryInfo)
 router.post('/addCategory',adminAuth,categoryController.addCategory)
 router.put('/listCategory',adminAuth,categoryController.getListCategory);
@@ -61,7 +61,6 @@ router.put('/coupon/toggle/:id', adminAuth, couponController.toggleCouponStatus)
 router.delete('/coupon/:id', adminAuth, couponController.deleteCoupon);
 
 
-// Add these routes to your admin routes file
 router.get('/dashboard', dashboardController.loadSalesReport);
 router.get('/dashboard/download', dashboardController.downloadSalesReport);
 

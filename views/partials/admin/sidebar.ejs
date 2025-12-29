@@ -7,9 +7,10 @@
     position: fixed;
     left: 0;
     top: 0;
-    z-index: 40;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
+    transition: transform 0.3s ease;
   }
 
   .sidebar-header {
@@ -37,11 +38,42 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
+    display: none;
   }
 
   .menu-button i {
     color: black;
     font-size: 18px;
+  }
+
+  /* Mobile menu trigger button */
+  .mobile-menu-trigger {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background-color: #a9c4c3;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .mobile-menu-trigger:hover {
+    background-color: #8fb3b2;
+    transform: scale(1.05);
+  }
+
+  .mobile-menu-trigger i {
+    color: black;
+    font-size: 20px;
+  }
+
+  .mobile-menu-trigger.hidden {
+    display: none;
   }
 
   .sidebar-nav {
@@ -50,6 +82,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
   }
 
   .nav-links-container {
@@ -113,26 +146,157 @@
     width: 16px;
     text-align: center;
   }
+
+  /* Overlay for mobile */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+  }
+
+  /* Responsive Design */
+  
+  /* Tablets (1024px and below) */
+  @media (max-width: 1024px) {
+    .sidebar {
+      width: 220px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+    }
+
+    .nav-link {
+      font-size: 13px;
+    }
+
+    .logout-button {
+      font-size: 13px;
+    }
+  }
+
+  /* Mobile devices (768px and below) */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+      width: 280px;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .menu-button {
+      display: block;
+    }
+
+    .mobile-menu-trigger {
+      display: block;
+    }
+
+    .mobile-menu-trigger.hidden {
+      display: none;
+    }
+
+    .sidebar-overlay {
+      display: block;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+    }
+
+    .sidebar-title {
+      font-size: 18px;
+    }
+
+    .nav-link {
+      font-size: 14px;
+      padding: 12px 8px;
+      margin-bottom: 8px;
+    }
+
+    .logout-button {
+      font-size: 14px;
+      padding: 12px 8px;
+    }
+  }
+
+  /* Small mobile devices (576px and below) */
+  @media (max-width: 576px) {
+    .sidebar {
+      width: 260px;
+    }
+
+    .sidebar-header {
+      padding: 14px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+    }
+
+    .nav-link {
+      font-size: 13px;
+      padding: 10px 8px;
+    }
+
+    .logout-button {
+      font-size: 13px;
+      padding: 10px 8px;
+    }
+  }
+
+  /* Very small devices (400px and below) */
+  @media (max-width: 400px) {
+    .sidebar {
+      width: 240px;
+    }
+
+    .sidebar-nav {
+      padding: 0 12px;
+    }
+  }
 </style>
 
-<div class="sidebar">
+<!-- Mobile menu button (visible only on mobile) -->
+<button class="mobile-menu-trigger" id="mobileTrigger">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Overlay for mobile menu -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar" id="sidebar">
   <!-- Top header -->
   <div class="sidebar-header">
     <h1 class="sidebar-title">
       Pure botanica<span class="dot">.</span>
     </h1>
-    <button class="menu-button">
-      <i class="fas fa-bars"></i>
+    <button class="menu-button" id="menuToggle">
+      <i class="fas fa-times"></i>
     </button>
   </div>
 
   <!-- Navigation links -->
   <nav class="sidebar-nav">
     <div class="nav-links-container">
-<a href="/admin/dashboard" class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>">
-  <i class="fas fa-chart-line"></i>
-  <span>Sales Report</span>
-</a>
+      <a href="/admin/dashboard" class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>">
+        <i class="fas fa-chart-line"></i>
+        <span>Dashboard</span>
+      </a>
       <a href="/admin/users" class="nav-link <%= currentPage === 'users' || currentPage === 'customers' ? 'active' : '' %>">
         <i class="fas fa-user"></i>
         <span>Users</span>
@@ -141,10 +305,7 @@
         <i class="fas fa-star"></i>
         <span>Category</span>
       </a>
-      <a href="/admin/brands" class="nav-link <%= currentPage === 'brands' ? 'active' : '' %>">
-        <i class="fas fa-star"></i>
-        <span>Brands</span>
-      </a>
+      
       <a href="/admin/add-product" class="nav-link <%= currentPage === 'add-product' ? 'active' : '' %>">
         <i class="fas fa-plus"></i>
         <span>Add Products</span>
@@ -157,10 +318,7 @@
         <i class="fas fa-file-alt"></i>
         <span>Coupon</span>
       </a>
-      <a href="/admin/banner" class="nav-link <%= currentPage === 'banner' ? 'active' : '' %>">
-        <i class="fas fa-file-alt"></i>
-        <span>Banner</span>
-      </a>
+      
       <a href="/admin/orders" class="nav-link <%= currentPage === 'orders' ? 'active' : '' %>">
         <i class="fas fa-shopping-cart"></i>
         <span>Orders</span>
@@ -185,6 +343,43 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 <script>
+  // Mobile menu toggle functionality
+  const menuToggle = document.getElementById('menuToggle');
+  const mobileTrigger = document.getElementById('mobileTrigger');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  
+  function openSidebar() {
+    sidebar.classList.add('active');
+    sidebarOverlay.classList.add('active');
+    mobileTrigger.classList.add('hidden');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+    mobileTrigger.classList.remove('hidden');
+  }
+  
+  // Open sidebar when mobile trigger is clicked
+  mobileTrigger.addEventListener('click', openSidebar);
+  
+  // Close sidebar when X button is clicked
+  menuToggle.addEventListener('click', closeSidebar);
+  
+  // Close sidebar when overlay is clicked
+  sidebarOverlay.addEventListener('click', closeSidebar);
+  
+  // Close sidebar when a nav link is clicked on mobile
+  const navLinks = document.querySelectorAll('.nav-link');
+  navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+        closeSidebar();
+      }
+    });
+  });
+
   // Ensure SweetAlert2 is loaded
   if (typeof Swal === 'undefined') {
     console.error('SweetAlert2 is not loaded.');

@@ -132,35 +132,20 @@
     .status-badge i {font-size:.7rem;}
     .status-pending {background:rgba(241,196,15,.1); color:#e67e22;}
     .status-completed {background:rgba(46,204,113,.1); color:var(--success);}
-    .share-buttons {
-      display:flex;
-      flex-wrap:wrap;
-      gap:.75rem;
-      justify-content:center;
-      margin-top:1.5rem;
-    }
-    .share-btn {
-      display:flex;
-      align-items:center;
-      gap:.5rem;
-      padding:.6rem 1rem;
-      border-radius:2rem;
-      font-size:.9rem;
-      font-weight:600;
-      text-decoration:none;
-      transition:.2s;
-    }
-    .share-btn.whatsapp {background:#25d366; color:#fff;}
-    .share-btn.email {background:#ea4335; color:#fff;}
-    .share-btn.facebook {background:#1877f2; color:#fff;}
-    .share-btn.twitter {background:#1da1f2; color:#fff;}
-    .share-btn:hover {opacity:.9; transform:scale(1.03);}
     .empty-state {
       text-align:center;
       padding:3rem 1rem;
       color:var(--light-text);
     }
     .empty-state i {font-size:3rem; margin-bottom:1rem; opacity:.5;}
+    .instant-badge {
+      font-size: 0.7rem;
+      background: rgba(46, 204, 113, 0.2);
+      color: var(--success);
+      padding: 2px 6px;
+      border-radius: 1rem;
+      margin-left: 4px;
+    }
     @media (max-width:767px){
       .partial .sidebar {margin-left:0;}
       .content {margin-left:0; padding:1.5rem; padding-top:calc(1.5rem + var(--header-height));}
@@ -197,7 +182,7 @@
           </button>
           <p class="mt-3 mb-0 small opacity-75">
             Share this code – your friend gets <strong>₹100 off</strong> on first order, 
-            you get <strong>₹100 wallet credit</strong> when they complete a purchase.
+            you get <strong>₹100 instantly + ₹100</strong> when they complete a purchase.
           </p>
         </div>
 
@@ -210,7 +195,7 @@
           </div>
           <div class="stat-card">
             <div class="icon"><i class="fas fa-gift"></i></div>
-            <div class="value">₹<%= referral.earned %></div>
+            <div class="value">₹<%= referral.totalEarned %></div>
             <div class="label">Earned So Far</div>
           </div>
           <div class="stat-card">
@@ -220,25 +205,17 @@
           </div>
         </div>
 
-        <!-- Share Buttons
-        <div class="share-buttons">
-          <a href="https://api.whatsapp.com/send?text=Use my code <%= referral.code %> and get ₹100 off your first order at Pure Botanica! 🌿 <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
-             target="_blank" class="share-btn whatsapp">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-          </a>
-          <a href="mailto:?subject=Get ₹100 off at Pure Botanica!&body=Hi! Use my referral code <%= referral.code %> when you sign up and get ₹100 off your first order.%0A%0ASign up here: <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
-             class="share-btn email">
-            <i class="fas fa-envelope"></i> Email
-          </a>
-          <a href="https://www.facebook.com/sharer/sharer.php?u=<%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
-             target="_blank" class="share-btn facebook">
-            <i class="fab fa-facebook-f"></i> Facebook
-          </a>
-          <a href="https://twitter.com/intent/tweet?text=Get ₹100 off your first order at Pure Botanica with my code <%= referral.code %>! 🌿 <%= `${process.env.BASE_URL || 'http://localhost:3000'}/signup` %>" 
-             target="_blank" class="share-btn twitter">
-            <i class="fab fa-twitter"></i> Twitter
-          </a>
-        </div> -->
+        <!-- Instant Bonus Alert -->
+        <% if (referral.invitedCount > 0) { %>
+          <div class="alert alert-success d-flex align-items-center mb-4">
+            <i class="fas fa-bolt me-2"></i>
+            <div>
+              <strong>Instant Bonus!</strong> You’ve already earned 
+              <strong>₹<%= referral.invitedCount * 100 %></strong> 
+              for inviting <%= referral.invitedCount %> friend<%= referral.invitedCount > 1 ? 's' : '' %>!
+            </div>
+          </div>
+        <% } %>
 
         <!-- Referral History -->
         <h5 class="mt-5 mb-3">Referral History</h5>
@@ -254,7 +231,7 @@
                 <tr>
                   <th>Friend</th>
                   <th>Date Invited</th>
-                  <th>Status</th>
+                  <!-- <th>Status</th> -->
                   <th>Earned</th>
                 </tr>
               </thead>
@@ -272,14 +249,18 @@
                         year:'numeric'
                       }) %>
                     </td>
-                    <td>
+                    <!-- <td>
                       <span class="status-badge <%= h.status === 'completed' ? 'status-completed' : 'status-pending' %>">
                         <i class="<%= h.status === 'completed' ? 'fas fa-check-circle' : 'fas fa-clock' %>"></i>
                         <%= h.status.charAt(0).toUpperCase() + h.status.slice(1) %>
                       </span>
-                    </td>
+                    </td> -->
                     <td class="fw-bold <%= h.status === 'completed' ? 'text-success' : '' %>">
-                      <%= h.status === 'completed' ? '+₹100' : '—' %>
+                      <% if (h.status === 'completed') { %>
+                        +₹100 <small class="text-success">(Order)</small>
+                      <% } else { %>
+                        +₹100 <span class="instant-badge">Instant</span>
+                      <% } %>
                     </td>
                   </tr>
                 <% }) %>
@@ -295,9 +276,9 @@
               <h6><i class="fas fa-info-circle text-primary"></i> How It Works</h6>
               <ul class="small text-muted mb-0">
                 <li>Share your code with friends</li>
-                <li>They get ₹100 off on signup</li>
-                <li>You get ₹100 when they place first order</li>
-              </ul>
+                <li>They get ₹100 off on first order</li>
+                <li>You get <strong>₹100 instantly</strong> + <strong>₹100 when they order</strong></li>
+              </div>
             </div>
           </div>
           <div class="col-md-6 mb-3">

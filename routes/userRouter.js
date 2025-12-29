@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const passport = require('passport')
-const { isLoggedIn } = require('../middlewares/auth');
+const { isLoggedIn ,isCheckAuth} = require('../middlewares/auth');
 
 const userController = require('../controllers/user/userController')
 const profileController = require('../controllers/user/profileController')
@@ -17,12 +17,14 @@ const wishlistController = require('../controllers/user/wishlistController')
 const couponController = require('../controllers/user/couponController')
 const referralController = require('../controllers/user/referralController')
 
+
+
 const { userAuth } = require('../middlewares/auth');
 const validate = require('../middlewares/validate');
 
 router.get('/',userController.loadHomePage)
 router.get('/pageNotFound',userController.pageNotFound)
-router.get('/signup',userController.loadSignup)
+router.get('/signup',isCheckAuth,userController.loadSignup)
 router.post('/signup',validate(signupSchema, 'user/signup'),userController.signup)      
 router.get('/getVerify-otp',userController.loadOtp)
 router.post('/verify-otp',userController.verifyOtp)
@@ -37,9 +39,16 @@ router.post('/resendForgotPassword-otp', forgotPassController.forgotResendOtp);
 router.get('/reset-password', forgotPassController.loadResetPasswordPage);
 router.post('/reset-password', forgotPassController.resetPassword);
 
-router.get('/login',userController.loadLogin)
+router.get('/login',isCheckAuth,userController.loadLogin)
 router.post('/login',validate(loginSchema, 'user/login'),userController.login)
-router.get('/logout',userController.logout)
+
+router.get('/logout', (req, res) => {
+  res.redirect('/'); 
+});
+
+
+router.post('/logout', userAuth, userController.logout);
+
 
 // Google authentication
 router.get('/auth/google',
@@ -67,7 +76,9 @@ router.get('/google/callback',
       })
     }else{
       req.session.user = req.user._id
-      res.redirect('/');
+      req.session.save(()=>{
+          res.redirect('/');
+      })
     }
   }
 );
@@ -89,8 +100,8 @@ router.put('/address/edit/:id', userAuth, addressController.editAddress);
 router.delete('/address/:id', userAuth, addressController.deleteAddress);
 
 // Shop
-router.get('/shop', userAuth, shopController.loadShopPage);
-router.get('/api/products', shopController.getProductsApi);
+router.get('/shop', isLoggedIn, shopController.loadShopPage);
+router.get('/api/products',isLoggedIn, shopController.getProductsApi);
 router.get('/product/availability/:id', shopController.checkProductAvailability);       
 router.get('/product/:id',isLoggedIn, shopController.loadProductPage);
 

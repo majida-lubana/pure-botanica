@@ -3,47 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><%= pageTitle || Dashboard %></title>
+  <title><%= pageTitle || 'Dashboard' %></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in {
-      animation: fadeIn 0.3s ease-in-out;
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
   </style>
 </head>
 <body class="m-0 p-0 bg-gray-100">
-  
-  <!-- Include Sidebar -->
   <%- include('../partials/admin/sidebar') %>
-  
-  <!-- Main content -->
+
   <main class="ml-64 min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <div class="p-8">
-      <!-- Page Header -->
+      <!-- Header -->
       <div class="mb-8 fade-in">
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-3xl font-bold text-gray-900 mb-2">
-              <i class="fas fa-chart-line text-blue-600 mr-2"></i>Sales Report
+              <i class="fas fa-chart-line text-blue-600 mr-2"></i>Sales Dashboard
             </h1>
-            <p class="text-gray-600">Generate comprehensive sales reports with customizable filters</p>
+            <p class="text-gray-600">Comprehensive analytics and sales insights</p>
           </div>
           <% if (salesData) { %>
           <div class="flex gap-3">
             <a href="/admin/dashboard/download?type=pdf&<%= queryString %>" 
-               class="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg">
-              <i class="fas fa-file-pdf"></i>
-              <span>Download PDF</span>
+               class="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md">
+              <i class="fas fa-file-pdf"></i> PDF
             </a>
             <a href="/admin/dashboard/download?type=excel&<%= queryString %>" 
-               class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg">
-              <i class="fas fa-file-excel"></i>
-              <span>Download Excel</span>
+               class="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition-all shadow-md">
+              <i class="fas fa-file-excel"></i> Excel
             </a>
           </div>
           <% } %>
@@ -54,61 +45,43 @@
       <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 fade-in">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <i class="fas fa-filter text-blue-600"></i>
-            Filter Options
+            <i class="fas fa-filter text-blue-600"></i> Filter Options
           </h3>
           <% if (salesData) { %>
           <a href="/admin/dashboard" class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-            <i class="fas fa-redo"></i>
-            Reset Filters
+            <i class="fas fa-redo"></i> Reset
           </a>
           <% } %>
         </div>
-        
+
         <form id="salesFilterForm" action="/admin/dashboard" method="GET">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Period Selector -->
-            <div class="md:col-span-1">
-              <label for="period" class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-calendar-alt text-gray-500 mr-1"></i>Period
-              </label>
-              <select id="period" name="period" 
-                      class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                <option value="">Select Period</option>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Period</label>
+              <select id="period" name="period" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">Select</option>
                 <option value="daily" <%= currentFilter?.period === 'daily' ? 'selected' : '' %>>Today</option>
                 <option value="weekly" <%= currentFilter?.period === 'weekly' ? 'selected' : '' %>>Last 7 Days</option>
                 <option value="monthly" <%= currentFilter?.period === 'monthly' ? 'selected' : '' %>>Last 30 Days</option>
                 <option value="yearly" <%= currentFilter?.period === 'yearly' ? 'selected' : '' %>>This Year</option>
-                <option value="custom" <%= currentFilter?.period === 'custom' ? 'selected' : '' %>>Custom Range</option>
+                <option value="custom" <%= currentFilter?.period === 'custom' ? 'selected' : '' %>>Custom</option>
               </select>
             </div>
 
-            <!-- Custom Date Range -->
             <div id="customDateRange" class="<%= currentFilter?.period !== 'custom' ? 'hidden' : '' %> md:col-span-2 grid grid-cols-2 gap-4">
               <div>
-                <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">
-                  <i class="fas fa-calendar-day text-gray-500 mr-1"></i>Start Date
-                </label>
-                <input type="date" id="startDate" name="startDate" 
-                       value="<%= currentFilter?.startDate || '' %>"
-                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
+                <label class="block text-sm font-medium text-gray-700 mb-2">Start</label>
+                <input type="date" id="startDate" name="startDate" value="<%= currentFilter?.startDate || '' %>" class="w-full px-4 py-2.5 border rounded-lg">
               </div>
               <div>
-                <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">
-                  <i class="fas fa-calendar-check text-gray-500 mr-1"></i>End Date
-                </label>
-                <input type="date" id="endDate" name="endDate" 
-                       value="<%= currentFilter?.endDate || '' %>"
-                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
+                <label class="block text-sm font-medium text-gray-700 mb-2">End</label>
+                <input type="date" id="endDate" name="endDate" value="<%= currentFilter?.endDate || '' %>" class="w-full px-4 py-2.5 border rounded-lg">
               </div>
             </div>
 
-            <!-- Submit Button -->
             <div class="flex items-end">
-              <button type="submit" 
-                      class="w-full bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
-                <i class="fas fa-search"></i>
-                <span>Generate Report</span>
+              <button type="submit" class="w-full bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <i class="fas fa-search"></i> Generate
               </button>
             </div>
           </div>
@@ -116,96 +89,124 @@
       </div>
 
       <% if (salesData) { %>
-      <!-- Period Label -->
       <div class="mb-6 fade-in">
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p class="text-sm text-blue-900 flex items-center gap-2">
-            <i class="fas fa-info-circle"></i>
-            <span>Showing results for: <strong><%= salesData.periodLabel %></strong></span>
-          </p>
+          <p class="text-sm text-blue-900"><strong><%= salesData.periodLabel %></strong></p>
         </div>
       </div>
 
-      <!-- Statistics Cards -->
+      <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Orders -->
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white fade-in">
-          <div class="flex items-center justify-between mb-4">
-            <div class="bg-white/20 p-3 rounded-lg">
-              <i class="fas fa-shopping-cart text-2xl"></i>
-            </div>
+          <div class="flex justify-between mb-4">
+            <div class="bg-white/20 p-3 rounded-lg"><i class="fas fa-shopping-cart text-2xl"></i></div>
             <div class="text-right">
-              <p class="text-sm opacity-90 mb-1">Total Orders</p>
+              <p class="text-sm opacity-90">Total Orders</p>
               <p class="text-3xl font-bold"><%= salesData.totalOrders %></p>
             </div>
           </div>
-          <div class="flex items-center gap-2 text-sm opacity-90">
-            <i class="fas fa-chart-line"></i>
-            <span>Delivered orders only</span>
-          </div>
         </div>
-
-        <!-- Total Revenue -->
         <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white fade-in">
-          <div class="flex items-center justify-between mb-4">
-            <div class="bg-white/20 p-3 rounded-lg">
-              <i class="fas fa-rupee-sign text-2xl"></i>
-            </div>
+          <div class="flex justify-between mb-4">
+            <div class="bg-white/20 p-3 rounded-lg"><i class="fas fa-rupee-sign text-2xl"></i></div>
             <div class="text-right">
-              <p class="text-sm opacity-90 mb-1">Total Revenue</p>
-              <p class="text-3xl font-bold">₹<%= salesData.totalAmount%></p>
+              <p class="text-sm opacity-90">Total Revenue</p>
+              <p class="text-3xl font-bold">₹<%= salesData.totalAmount %></p>
             </div>
-          </div>
-          <div class="flex items-center gap-2 text-sm opacity-90">
-            <i class="fas fa-arrow-up"></i>
-            <span>Gross sales amount</span>
           </div>
         </div>
-
-        <!-- Total Discount -->
         <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-xl shadow-lg text-white fade-in">
-          <div class="flex items-center justify-between mb-4">
-            <div class="bg-white/20 p-3 rounded-lg">
-              <i class="fas fa-tags text-2xl"></i>
-            </div>
+          <div class="flex justify-between mb-4">
+            <div class="bg-white/20 p-3 rounded-lg"><i class="fas fa-tags text-2xl"></i></div>
             <div class="text-right">
-              <p class="text-sm opacity-90 mb-1">Total Discount</p>
+              <p class="text-sm opacity-90">Total Discount</p>
               <p class="text-3xl font-bold">₹<%= salesData.totalDiscount %></p>
             </div>
           </div>
-          <div class="flex items-center gap-2 text-sm opacity-90">
-            <i class="fas fa-percent"></i>
-            <span>Product + Coupon discounts</span>
-          </div>
         </div>
-
-        <!-- Average Order Value -->
         <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white fade-in">
-          <div class="flex items-center justify-between mb-4">
-            <div class="bg-white/20 p-3 rounded-lg">
-              <i class="fas fa-chart-bar text-2xl"></i>
-            </div>
+          <div class="flex justify-between mb-4">
+            <div class="bg-white/20 p-3 rounded-lg"><i class="fas fa-chart-bar text-2xl"></i></div>
             <div class="text-right">
-              <p class="text-sm opacity-90 mb-1">Avg Order Value</p>
-              <p class="text-3xl font-bold">₹<%= salesData.avgOrderValue%></p>
+              <p class="text-sm opacity-90">Avg Order Value</p>
+              <p class="text-3xl font-bold">₹<%= salesData.avgOrderValue %></p>
             </div>
-          </div>
-          <div class="flex items-center gap-2 text-sm opacity-90">
-            <i class="fas fa-calculator"></i>
-            <span>Per order average</span>
           </div>
         </div>
       </div>
 
-      <!-- Sales Table -->
-      <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden fade-in">
-        <div class="p-6 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <i class="fas fa-table text-blue-600"></i>
-            Order Details
-          </h3>
+      <!-- Charts -->
+      <% if (chartData) { %>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+          <h3 class="text-lg font-semibold mb-4">Revenue Trend</h3>
+          <canvas id="revenueChart"></canvas>
         </div>
-        
+        <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+          <h3 class="text-lg font-semibold mb-4">Order Count</h3>
+          <canvas id="orderChart"></canvas>
+        </div>
+      </div>
+
+      <script id="chart-data" type="application/json"><%- JSON.stringify(chartData) %></script>
+      <% } %>
+
+      <!-- Top Products & Categories -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Best Products -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+          <div class="p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50">
+            <h3 class="text-lg font-semibold">Top 10 Products</h3>
+          </div>
+          <div class="p-6">
+            <% if (bestSellingProducts?.length) { %>
+              <% bestSellingProducts.forEach((p, i) => { %>
+              <div class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full text-white flex items-center justify-center font-bold"><%= i+1 %></div>
+                <!-- <% if (p.image) { %><img src="<%= p.image %>" class="w-12 h-12 object-cover rounded-lg"><% } else { %><div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center"><i class="fas fa-box"></i></div><% } %> -->
+                <div class="flex-1">
+                  <p class="font-semibold truncate"><%= p.name %></p>
+                  <p class="text-xs text-gray-500">Sold: <%= p.totalQuantity %> units</p>
+                </div>
+                <p class="font-bold text-green-600">₹<%= p.totalRevenue %></p>
+              </div>
+              <% }) %>
+            <% } else { %>
+              <p class="text-center text-gray-500 py-8">No data</p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Best Categories -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+          <div class="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 class="text-lg font-semibold">Top 10 Categories</h3>
+          </div>
+          <div class="p-6">
+            <% if (bestSellingCategories?.length) { %>
+              <% bestSellingCategories.forEach((c, i) => { %>
+              <div class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full text-white flex items-center justify-center font-bold"><%= i+1 %></div>
+                <% if (c.image) { %><img src="<%= c.image %>" class="w-12 h-12 object-cover rounded-lg"><% } else { %><div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center"><i class="fas fa-tags"></i></div><% } %>
+                <div class="flex-1">
+                  <p class="font-semibold capitalize"><%= c.name %></p>
+                  <p class="text-xs text-gray-500"><%= c.orderCount %> orders • <%= c.totalQuantity %> units</p>
+                </div>
+                <p class="font-bold text-green-600">₹<%= c.totalRevenue %></p>
+              </div>
+              <% }) %>
+            <% } else { %>
+              <p class="text-center text-gray-500 py-8">No data</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table + Pagination -->
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+        <div class="p-6 border-b">
+          <h3 class="text-lg font-semibold">Order Details</h3>
+        </div>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-gray-50">
@@ -213,251 +214,127 @@
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Order ID</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Customer</th>
-                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total Price</th>
+                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Discount</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Coupon</th>
-                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Final Amount</th>
+                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Final</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-              <% if (salesData.orders.length > 0) { %>
-                <% salesData.orders.forEach(order => { %>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                    <span class="font-mono">#<%= order.orderId || 'N/A' %></span>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-gray-600">
-                    <%= new Date(order.createdOn).toLocaleDateString('en-IN', { 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    }) %>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-gray-900">
-                    <%= order.user?.name || 'Unknown' %>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">
-                    ₹<%= (order.totalPrice || 0).toFixed(2) %>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-right text-orange-600 font-medium">
-                    -₹<%= (order.discount || 0).toFixed(2) %>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-right text-orange-600 font-medium">
-                    -₹<%= (order.couponDiscount || 0).toFixed(2) %>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-right font-bold text-green-600">
-                    ₹<%= (order.finalAmount || 0).toFixed(2) %>
-                  </td>
-                </tr>
-                <% }) %>
-              <% } else { %>
-                <tr>
-                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                    <i class="fas fa-inbox text-4xl mb-3 text-gray-300"></i>
-                    <p class="text-lg">No orders found for this period</p>
-                  </td>
-                </tr>
-              <% } %>
+              <% salesData.orders.forEach(order => { %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">#<%= order.orderId || 'N/A' %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= new Date(order.createdOn).toLocaleDateString('en-IN') %></td>
+                <td class="px-6 py-4 text-sm text-gray-900"><%= order.user?.name || 'Unknown' %></td>
+                <td class="px-6 py-4 text-sm text-right">₹<%= (order.totalPrice || 0).toFixed(2) %></td>
+                <td class="px-6 py-4 text-sm text-right text-orange-600">-₹<%= (order.discount || 0).toFixed(2) %></td>
+                <td class="px-6 py-4 text-sm text-right text-orange-600">-₹<%= (order.couponDiscount || 0).toFixed(2) %></td>
+                <td class="px-6 py-4 text-sm text-right font-bold text-green-600">₹<%= (order.finalAmount || 0).toFixed(2) %></td>
+              </tr>
+              <% }) %>
             </tbody>
           </table>
         </div>
 
-        <!-- Pagination -->
         <% if (pagination && pagination.totalPages > 1) { %>
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div class="px-6 py-4 border-t bg-gray-50">
           <div class="flex items-center justify-between">
             <p class="text-sm text-gray-700">
-              Showing page <strong><%= pagination.currentPage %></strong> of <strong><%= pagination.totalPages %></strong>
-              (<%= pagination.totalOrders %> total orders)
+              Page <%= pagination.currentPage %> of <%= pagination.totalPages %> (<%= pagination.totalOrders %> orders)
             </p>
             <div class="flex gap-2">
               <% if (pagination.hasPrev) { %>
-              <a href="/admin/dashboard<%= queryString %>&page=<%= pagination.currentPage - 1 %>" 
-                 class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <i class="fas fa-chevron-left"></i> Previous
-              </a>
+              <a href="/admin/dashboard?<%= queryString %>&page=<%= pagination.currentPage - 1 %>" 
+                 class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50">Previous</a>
               <% } %>
               <% if (pagination.hasNext) { %>
               <a href="/admin/dashboard?<%= queryString %>&page=<%= pagination.currentPage + 1 %>" 
-                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Next <i class="fas fa-chevron-right"></i>
-              </a>
+                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Next</a>
               <% } %>
             </div>
           </div>
         </div>
         <% } %>
       </div>
+
       <% } else { %>
-      <!-- Empty State -->
-      <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center fade-in">
-        <div class="max-w-md mx-auto">
-          <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-chart-line text-4xl text-blue-600"></i>
-          </div>
-          <h3 class="text-2xl font-semibold text-gray-900 mb-3">No Report Generated Yet</h3>
-          <p class="text-gray-600 mb-6">Select a time period and click "Generate Report" to view sales data</p>
-          <div class="flex justify-center gap-3">
-            <button onclick="document.getElementById('period').value='daily'; document.getElementById('salesFilterForm').submit();" 
-                    class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
-              View Today's Sales
-            </button>
-            <button onclick="document.getElementById('period').value='monthly'; document.getElementById('salesFilterForm').submit();" 
-                    class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
-              View Monthly Sales
-            </button>
-          </div>
-        </div>
+      <div class="bg-white rounded-xl shadow-lg p-12 text-center fade-in">
+        <h3 class="text-2xl font-semibold mb-3">No Report Yet</h3>
+        <p class="text-gray-600 mb-6">Select a period to generate</p>
+        <button onclick="document.getElementById('period').value='daily'; document.getElementById('salesFilterForm').submit();" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg">Today</button>
       </div>
       <% } %>
     </div>
   </main>
 
- <script>
-  // ---------- 1. Elements ----------
-  const periodSelect      = document.getElementById('period');
-  const customDateRange   = document.getElementById('customDateRange');
-  const startDateInput    = document.getElementById('startDate');
-  const endDateInput      = document.getElementById('endDate');
-  const filterForm        = document.getElementById('salesFilterForm');
-  const resetLink         = document.querySelector('a[href="/admin/dashboard"]'); // Reset Filters link
-  const mainContainer     = document.querySelector('main .p-8');
+  <script>
+    let revenueChart, orderChart;
 
-  // ---------- 2. Toggle custom dates ----------
-  periodSelect.addEventListener('change', () => {
-    const show = periodSelect.value === 'custom';
-    customDateRange.classList.toggle('hidden', !show);
-    startDateInput.required = show;
-    endDateInput.required   = show;
-  });
+    function initCharts(data) {
+      if (revenueChart) revenueChart.destroy();
+      if (orderChart) orderChart.destroy();
 
-  // ---------- 3. Build query string (preserves pagination) ----------
-  function buildQueryString(extra = {}) {
-    const params = new URLSearchParams(extra);
-
-    // keep any existing pagination / other params
-    const url = new URL(window.location);
-    url.searchParams.forEach((v, k) => {
-      if (!['period','startDate','endDate'].includes(k)) params.set(k, v);
-    });
-
-    return params.toString();
-  }
-
-  // ---------- 4. Load report via fetch ----------
-  async function loadReport(query = '') {
-    const url = `/admin/dashboard${query ? '?' + query : ''}`;
-
-    try {
-      const res = await fetch(url, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const html = await res.text();
-      const doc  = new DOMParser().parseFromString(html, 'text/html');
-      const newMain = doc.querySelector('main');
-
-      if (newMain) {
-        document.querySelector('main').innerHTML = newMain.innerHTML;
-        attachAllListeners();                 // re-attach after DOM swap
-        history.replaceState(null, '', url);  // keep URL in sync
+      const revCtx = document.getElementById('revenueChart');
+      if (revCtx) {
+        revenueChart = new Chart(revCtx, { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Revenue (₹)', data: data.revenue, borderColor: 'rgb(34,197,94)', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.4, fill: true }] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v } } } } });
       }
-    } catch (err) {
-      alert('Failed to load report: ' + err.message);
-    }
-  }
 
-  // ---------- 5. Form submit ----------
-  function handleSubmit(e) {
-    e.preventDefault();
-
-    const period = periodSelect.value;
-    if (!period) return alert('Please select a period');
-
-    if (period === 'custom') {
-      const s = startDateInput.value, e = endDateInput.value;
-      if (!s || !e) return alert('Both start and end dates are required');
-      if (new Date(s) > new Date(e)) return alert('Start date cannot be after end date');
+      const ordCtx = document.getElementById('orderChart');
+      if (ordCtx) {
+        orderChart = new Chart(ordCtx, { type: 'bar', data: { labels: data.labels, datasets: [{ label: 'Orders', data: data.orderCount, backgroundColor: 'rgba(59,130,246,0.8)' }] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+      }
     }
 
-    const qs = buildQueryString({
-      period: periodSelect.value,
-      ...(period === 'custom' && {
-        startDate: startDateInput.value,
-        endDate:   endDateInput.value
-      })
+    function attachAllListeners() {
+      const form = document.getElementById('salesFilterForm');
+      if (form) form.onsubmit = e => { e.preventDefault(); loadReport(buildQuery()); };
+
+      document.querySelector('a[href="/admin/dashboard"]')?.addEventListener('click', e => { e.preventDefault(); loadReport(''); });
+
+      document.addEventListener('click', e => {
+        const link = e.target.closest('a[href^="/admin/dashboard"]');
+        if (link && link.href.includes('page=')) { e.preventDefault(); loadReport(new URL(link.href).searchParams.toString()); }
+      });
+
+      const chartScript = document.getElementById('chart-data');
+      if (chartScript) initCharts(JSON.parse(chartScript.textContent));
+    }
+
+    function buildQuery() {
+      const p = document.getElementById('period').value;
+      const params = new URLSearchParams();
+      if (p) params.set('period', p);
+      if (p === 'custom') {
+        const s = document.getElementById('startDate').value;
+        const e = document.getElementById('endDate').value;
+        if (s && e) { params.set('startDate', s); params.set('endDate', e); }
+      }
+      return params.toString();
+    }
+
+    async function loadReport(query) {
+      const url = `/admin/dashboard${query ? '?' + query : ''}`;
+      try {
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const newMain = doc.querySelector('main');
+        if (newMain) {
+          if (revenueChart) revenueChart.destroy();
+          if (orderChart) orderChart.destroy();
+          document.querySelector('main').innerHTML = newMain.innerHTML;
+          attachAllListeners();
+          history.replaceState(null, '', url);
+        }
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      attachAllListeners();
+      document.getElementById('period').addEventListener('change', () => {
+        document.getElementById('customDateRange').classList.toggle('hidden', document.getElementById('period').value !== 'custom');
+      });
     });
-
-    loadReport(qs);
-  }
-
-  // ---------- 6. Reset Filters ----------
-  function handleReset(e) {
-    if (e) e.preventDefault();
-
-    // 1. Clear form fields
-    periodSelect.value = '';
-    startDateInput.value = '';
-    endDateInput.value = '';
-    customDateRange.classList.add('hidden');
-
-    // 2. Load the clean dashboard (no query params except pagination)
-    const qs = buildQueryString(); // only keeps page= if present
-    loadReport(qs);
-  }
-
-  // ---------- 7. Pagination ----------
-  function handlePagination(e) {
-    const link = e.target.closest('a[href^="/admin/dashboard"]');
-    if (!link || !link.href.includes('page=')) return;
-
-    e.preventDefault();
-    const url = new URL(link.href);
-    loadReport(url.searchParams.toString());
-  }
-
-  // ---------- 8. Quick-view buttons (Today / Monthly) ----------
-  function handleQuickButton(btn) {
-    const match = btn.getAttribute('onclick')?.match(/'([^']+)'/);
-    if (!match) return;
-    const val = match[1];
-
-    periodSelect.value = val;
-    periodSelect.dispatchEvent(new Event('change'));
-    loadReport(buildQueryString({ period: val }));
-  }
-
-  // ---------- 9. Attach all listeners (call after every DOM replace) ----------
-  function attachAllListeners() {
-    // Form
-    const form = document.getElementById('salesFilterForm');
-    if (form) {
-      form.removeEventListener('submit', handleSubmit);
-      form.addEventListener('submit', handleSubmit);
-    }
-
-    // Reset link
-    const reset = document.querySelector('a[href="/admin/dashboard"]');
-    if (reset) {
-      reset.removeEventListener('click', handleReset);
-      reset.addEventListener('click', handleReset);
-    }
-
-    // Pagination
-    document.removeEventListener('click', handlePagination);
-    document.addEventListener('click', handlePagination);
-
-    // Quick buttons
-    document.querySelectorAll('[onclick*="period"]').forEach(btn => {
-      btn.replaceWith(btn.cloneNode(true)); // remove old onclick
-      const newBtn = document.querySelector(`[onclick*="${btn.getAttribute('onclick')}"]`);
-      if (newBtn) newBtn.addEventListener('click', () => handleQuickButton(newBtn));
-    });
-  }
-
-  // ---------- 10. Initial attach ----------
-  attachAllListeners();
-</script>
+  </script>
 </body>
 </html>

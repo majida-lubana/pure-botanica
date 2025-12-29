@@ -19,7 +19,9 @@
               <span class="block font-medium text-gray-800">Hello, <%= user.name %></span>
             </div>
             <a href="/orders" class="block px-4 py-2 hover:bg-gray-100">profile</a>
-            <a href="/logout" class="block px-4 py-2 hover:bg-gray-100 text-red-500">Logout</a>
+            <form action="/logout" method="POST" class="block px-4 py-2">
+           <button type="submit" class="w-full text-left hover:bg-gray-100 text-red-500">Logout</button>
+              </form>
           <% } else { %>
             <a href="/signup" class="block px-4 py-2 hover:bg-gray-100">Sign Up</a>
             <a href="/login" class="block px-4 py-2 hover:bg-gray-100">Login</a>

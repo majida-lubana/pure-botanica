@@ -1,8 +1,10 @@
 const Product = require("../../models/productSchema");
 const Category = require("../../models/categorySchema");
 const WishList = require("../../models/wishlistSchema");
-const { calculatePricing } = require('../../utils/calculatePricing')
-const Cart = require('../../models/cartSchema')
+const { calculatePricing } = require('../../utils/calculatePricing');
+const Cart = require('../../models/cartSchema');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 exports.loadShopPage = async (req, res) => {
   try {
@@ -51,23 +53,22 @@ exports.loadShopPage = async (req, res) => {
     query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
 
     let sortOption = {};
-switch (sort) {
-  case "price-asc":
-    sortOption = { salePrice: 1 }; 
-    break;
-  case "price-desc":
-    sortOption = { salePrice: -1 }; 
-    break;
-  case "name-asc":
-    sortOption = { productName: 1 };
-    break;
-  case "name-desc":
-    sortOption = { productName: -1 };
-    break;
-  default:
-    sortOption = { createdAt: -1 };
-}
-
+    switch (sort) {
+      case "price-asc":
+        sortOption = { salePrice: 1 };
+        break;
+      case "price-desc":
+        sortOption = { salePrice: -1 };
+        break;
+      case "name-asc":
+        sortOption = { productName: 1 };
+        break;
+      case "name-desc":
+        sortOption = { productName: -1 };
+        break;
+      default:
+        sortOption = { createdAt: -1 };
+    }
 
     const pageNum = +page || 1;
     const limitNum = +limit || 12;
@@ -93,12 +94,13 @@ switch (sort) {
     const skinTypeOptions = ["Oily","Dry","Combination","Sensitive","Normal","All Skin Types"];
     const skinConcernOptions = ["Acne","Dryness","Oiliness","Aging","Pigmentation","Sensitivity"];
 
-
     let wishlistProductIds = [];
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
       if (wl?.products?.length) wishlistProductIds = wl.products.map(i => i.productId.toString());
     }
+
+    
 
     res.render("user/shop", {
       user: req.user || null,
@@ -120,7 +122,10 @@ switch (sort) {
     });
   } catch (error) {
     console.error("loadShopPage error:", error);
-    res.status(500).render("pageNotFound", { message: "Shop page error" });
+    res.status(STATUS.INTERNAL_ERROR).render("user/page-404", {
+      message: MESSAGES.SHOP.LOAD_FAILED || "An error occurred while loading the shop.",
+      pageTitle: 'Error'
+    });
   }
 };
 
@@ -170,33 +175,30 @@ exports.getProductsApi = async (req, res) => {
 
     query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
 
-
     let products = await Product.find(query)
-      .populate("category")
-      .lean();
+      .populate("category",
+        "categoryOffer offerStart offerEnd offerActive categoryName"
+      )
 
+      .lean();
 
     let wishlistIds = [];
     let cartProductIds = [];
-    
+
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
       if (wl?.products?.length) wishlistIds = wl.products.map(i => i.productId.toString());
-      
- 
-      const Cart = require("../../models/cartSchema");
+
       const cart = await Cart.findOne({ user: req.user._id }).lean();
       if (cart?.items?.length) cartProductIds = cart.items.map(item => item.product.toString());
     }
 
-  
     products = products.map(p => ({
       ...p,
       pricing: calculatePricing(p),
       isInWishlist: wishlistIds.includes(p._id.toString()),
       isInCart: cartProductIds.includes(p._id.toString())
     }));
-
 
     switch (sort) {
       case "price-asc":
@@ -231,10 +233,11 @@ exports.getProductsApi = async (req, res) => {
     });
   } catch (error) {
     console.error("getProductsApi error:", error);
-    res.status(500).json({ error: "Failed to load products" });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      error: MESSAGES.SHOP.API_LOAD_FAILED || "Failed to load products"
+    });
   }
 };
-
 
 exports.checkProductAvailability = async (req, res) => {
   try {
@@ -244,19 +247,20 @@ exports.checkProductAvailability = async (req, res) => {
       isActive: true,
       isBlocked: false,
     }).select("quantity");
-    res.json({ available: !!product && product.quantity > 0, quantity: product?.quantity || 0 });
+
+    res.json({
+      available: !!product && product.quantity > 0,
+      quantity: product?.quantity || 0
+    });
   } catch (error) {
-    console.error(error);
+    console.error("checkProductAvailability error:", error);
     res.json({ available: false, quantity: 0 });
   }
 };
 
-
 exports.loadProductPage = async (req, res) => {
   try {
     const productId = req.params.id;
-    console.log("Loading product page for ID:", productId);
-
 
     const product = await Product.findOne({
       _id: productId,
@@ -268,20 +272,17 @@ exports.loadProductPage = async (req, res) => {
       .lean();
 
     if (!product) {
-      console.log("Product not found or unavailable:", productId);
-      return res.status(404).render("pageNotFound", {
+      return res.status(STATUS.NOT_FOUND).render("user/page-404", {
         pageTitle: "Product Not Found",
-        message: "The product you are looking for is not available.",
+        message: MESSAGES.PRODUCT.NOT_FOUND || "The product you are looking for is not available."
       });
     }
-
 
     product.pricing = calculatePricing(product);
 
     const discountsApplied = product.pricing.isOnOffer
       ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
       : "";
-
 
     const relatedProducts = await Product.find({
       category: product.category._id,
@@ -298,34 +299,21 @@ exports.loadProductPage = async (req, res) => {
       rel.pricing = calculatePricing(rel);
     });
 
-
-    const wishlistProductIds = req.user?.wishlist
-      ? req.user.wishlist.map(w => w.product.toString())
-      : [];
-
- 
+    let wishlistProductIds = [];
     let inCart = false;
-    if (req.user) {
+
+    if (req.user?._id) {
+      const wl = await WishList.findOne({ user: req.user._id }).lean();
+      if (wl?.products?.length) wishlistProductIds = wl.products.map(i => i.productId.toString());
+
       const cart = await Cart.findOne({ user: req.user._id }).lean();
       if (cart) {
-        inCart = cart.items.some(item => 
-          item.product.toString() === productId
-        );
-      }
-    }
-
-
-    if (req.user) {
-      const cart = await Cart.findOne({ user: req.user._id }).lean();
-      if (cart) {
+        inCart = cart.items.some(item => item.productId.toString() === productId);
         relatedProducts.forEach(rel => {
-          rel.inCart = cart.items.some(item => 
-            item.product.toString() === rel._id.toString()
-          );
+          rel.inCart = cart.items.some(item => item.productId.toString() === rel._id.toString());
         });
       }
     }
-
 
     res.render("user/product-details", {
       product,
@@ -333,15 +321,14 @@ exports.loadProductPage = async (req, res) => {
       wishlistProductIds,
       discountsApplied,
       user: req.user,
-      inCart,                   
+      inCart,
     });
 
   } catch (error) {
     console.error("Error loading product page:", error.stack);
-    res.status(500).render("pageNotFound", {
+    res.status(STATUS.INTERNAL_ERROR).render("user/page-404", {
       pageTitle: "Error",
-      message: "An error occurred while loading the product page.",
+      message: MESSAGES.PRODUCT.LOAD_FAILED || "An error occurred while loading the product page."
     });
   }
 };
-

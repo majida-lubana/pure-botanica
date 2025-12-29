@@ -5,6 +5,8 @@ const Wallet = require('../../models/walletSchema');
 const Transaction = require('../../models/transactionSchema');
 const User = require('../../models/userSchema');
 const referralController = require('../user/referralController');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map(i => i.status);
@@ -57,14 +59,12 @@ async function updateOrderStatus(order, session = null) {
   await order.save({ session });
 }
 
-
 exports.placeOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const userId = req.session.user || req.user._id;
-    
 
     const {
       orderItems,
@@ -74,9 +74,7 @@ exports.placeOrder = async (req, res) => {
       discount,
       couponDiscount,
       finalAmount,
- 
     } = req.body;
-
 
     const newOrder = await Order.create([{
       user: userId,
@@ -89,7 +87,6 @@ exports.placeOrder = async (req, res) => {
       finalAmount: finalAmount,
       status: 'pending',
       paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid',
-
     }], { session });
 
     const order = newOrder[0];
@@ -102,32 +99,25 @@ exports.placeOrder = async (req, res) => {
       );
     }
 
-
     const previousOrdersCount = await Order.countDocuments({
       user: userId,
       _id: { $ne: order._id } 
     });
 
-    console.log(`User ${userId} has ${previousOrdersCount} previous orders`);
-
-
     if (previousOrdersCount === 0) {
-      console.log('🎉 First order detected! Processing referral reward...');
       try {
         await referralController.processReferralReward(userId);
-        console.log('✅ Referral reward processed successfully');
       } catch (referralError) {
-        console.error('⚠️ Referral reward processing failed (non-critical):', referralError);
-
+        console.error('Referral reward processing failed (non-critical):', referralError);
       }
     }
 
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({
+    res.status(STATUS.OK).json({
       success: true,
-      message: 'Order placed successfully',
+      message: MESSAGES.ORDER.PLACED_SUCCESS || 'Order placed successfully',
       orderId: order.orderId,
       orderNumber: order.orderNumber || order.orderId
     });
@@ -136,55 +126,62 @@ exports.placeOrder = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error('Order placement error:', error);
-    res.status(500).json({
+    res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: 'Failed to place order',
+      message: MESSAGES.ORDER.PLACED_FAILED || 'Failed to place order',
       error: error.message
     });
   }
 };
 
-
 exports.updateOrderStatus = async (req, res) => {
-  console.log('updateOrderStatus hit', req.params, req.body);
-  
   try {
     const { itemId, status } = req.body;
     const { orderId } = req.params;
 
     const validStatuses = ['ordered', 'shipped', 'delivered', 'cancelled', 'returned'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+      return res.status(STATUS.BAD_REQUEST).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.INVALID_STATUS || 'Invalid status' 
+      });
     }
 
     const order = await Order.findOne({ orderId }).populate('user');
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(STATUS.NOT_FOUND).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.NOT_FOUND || 'Order not found' 
+      });
     }
 
     const item = order.orderItems.find(item => item.ord_id.toString() === itemId);
     if (!item) {
-      return res.status(404).json({ message: 'Item not found in order' });
+      return res.status(STATUS.NOT_FOUND).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.ITEM_NOT_FOUND || 'Item not found in order' 
+      });
     }
 
-    const previousStatus = item.status;
     item.status = status;
 
     await updateOrderStatus(order);
 
-    res.status(200).json({
+    res.status(STATUS.OK).json({
       success: true,
-      message: 'Item status updated successfully',
+      message: MESSAGES.ORDER.STATUS_UPDATED || 'Item status updated successfully',
       orderStatus: order.status,
       orderId: order._id
     });
 
   } catch (error) {
     console.error('Error updating item status:', error.stack);
-    res.status(500).json({ message: 'An error occurred while updating the status.' });
+    res.status(STATUS.INTERNAL_ERROR).json({ 
+      success: false, 
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG 
+    });
   }
 };
-
 
 exports.renderOrderManage = async (req, res) => {
   try {
@@ -193,7 +190,6 @@ exports.renderOrderManage = async (req, res) => {
     let skip = (page - 1) * limit;
 
     const totalOrders = await Order.countDocuments();
-
 
     const orders = await Order.find()
       .populate('user', 'name email')
@@ -207,28 +203,17 @@ exports.renderOrderManage = async (req, res) => {
       .limit(limit)
       .lean(); 
 
-
     for (const order of orders) {
-    
       const newStatus = computeOrderStatus(order.orderItems);
       if (order.status !== newStatus) {
         order.status = newStatus;
         await Order.updateOne({ _id: order._id }, { status: newStatus });
       }
 
-
       order.orderItems.forEach(item => {
         const product = item.product;
-
-
-        if (!product) {
-          console.warn(`Order ${order.orderId} has item with missing product. Item ID: ${item._id}`);
-        }
-
-
         item.displayName = product?.productName || 'Unknown Product';
 
-       
         const imageFile = product?.productImages?.[0];
         item.displayImage = imageFile
           ? `/Uploads/product-images/${imageFile}`
@@ -244,10 +229,15 @@ exports.renderOrderManage = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching orders:', error);
-    res.status(500).send('Internal Server Error');
+    res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
+      pageTitle: 'Admin Error',
+      heading: 'Oops! Something Went Wrong',
+      userName: 'Admin',
+      imageURL: '/images/admin-avatar.jpg',
+      errorMessage: MESSAGES.ORDER.LOAD_FAILED || 'Failed to load orders'
+    });
   }
 };
-
 
 exports.renderOrderDetails = async (req, res) => {
   try {
@@ -259,8 +249,15 @@ exports.renderOrderDetails = async (req, res) => {
       })
       .lean();
 
-    if (!order) return res.status(404).send('Order not found');
-
+    if (!order) {
+      return res.status(STATUS.NOT_FOUND).render('admin/admin-error', {
+        pageTitle: 'Admin Error',
+        heading: 'Order Not Found',
+        userName: 'Admin',
+        imageURL: '/images/admin-avatar.jpg',
+        errorMessage: MESSAGES.ORDER.NOT_FOUND || 'Order not found'
+      });
+    }
 
     const newStatus = computeOrderStatus(order.orderItems);
     if (order.status !== newStatus) {
@@ -296,7 +293,13 @@ exports.renderOrderDetails = async (req, res) => {
     res.render('admin/orderDetails', { order, admin: req.session.admin });
   } catch (error) {
     console.error('Error fetching order details:', error);
-    res.status(500).send('Server Error');
+    res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
+      pageTitle: 'Admin Error',
+      heading: 'Oops! Something Went Wrong',
+      userName: 'Admin',
+      imageURL: '/images/admin-avatar.jpg',
+      errorMessage: MESSAGES.COMMON.SOMETHING_WENT_WRONG
+    });
   }
 };
 
@@ -311,7 +314,10 @@ exports.getOrderById = async (req, res) => {
       .lean();
 
     if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+      return res.status(STATUS.NOT_FOUND).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.NOT_FOUND || 'Order not found' 
+      });
     }
 
     order.orderItems = order.orderItems.map(item => ({
@@ -340,32 +346,32 @@ exports.getOrderById = async (req, res) => {
     res.json({ success: true, order });
   } catch (error) {
     console.error('Error fetching order:', error);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+    res.status(STATUS.INTERNAL_ERROR).json({ 
+      success: false, 
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG 
+    });
   }
 };
 
-
 exports.verifyReturn = async (req, res) => {
-  console.log("verifyReturn hit");
-  console.log("Params:", req.params);
-  console.log("Body:", req.body);
-
   try {
     const { orderId } = req.params;
     const { itemId, action } = req.body;
 
     const order = await Order.findOne({ orderId });
-    console.log("Order found?", !!order);
-
     if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+      return res.status(STATUS.NOT_FOUND).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.NOT_FOUND || 'Order not found' 
+      });
     }
 
     const item = order.orderItems.find(i => i.ord_id.toString() === itemId);
-    console.log("Item found?", !!item, "Status:", item?.status);
-
     if (!item || item.status !== 'return requested') {
-      return res.status(400).json({ success: false, message: 'Invalid item or status' });
+      return res.status(STATUS.BAD_REQUEST).json({ 
+        success: false, 
+        message: MESSAGES.ORDER.INVALID_RETURN_REQUEST || 'Invalid item or status' 
+      });
     }
 
     if (action === 'accepted') {
@@ -403,6 +409,14 @@ exports.verifyReturn = async (req, res) => {
         });
       }
 
+      await updateOrderStatus(order);
+
+      return res.status(STATUS.OK).json({
+        success: true,
+        message: MESSAGES.ORDER.RETURN_ACCEPTED || 'Return request accepted and refunded to wallet',
+        orderStatus: order.status
+      });
+
     } else if (action === 'rejected') {
       item.status = 'return rejected';
 
@@ -419,23 +433,25 @@ exports.verifyReturn = async (req, res) => {
         }
       );
 
+      await updateOrderStatus(order);
+
+      return res.status(STATUS.OK).json({
+        success: true,
+        message: MESSAGES.ORDER.RETURN_REJECTED || 'Return request rejected',
+        orderStatus: order.status
+      });
+
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid action' });
+      return res.status(STATUS.BAD_REQUEST).json({ 
+        success: false, 
+        message: MESSAGES.COMMON.INVALID_REQUEST || 'Invalid action' 
+      });
     }
-
-    await updateOrderStatus(order);
-    console.log("Order saved");
-
-    return res.status(200).json({
-      success: true,
-      message: `Return request ${action}ed successfully${action === 'accepted' ? ' and refunded to wallet' : ''}`,
-      orderStatus: order.status
-    });
   } catch (error) {
     console.error('Error verifying return:', error);
-    return res.status(500).json({
+    return res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: 'Internal Server Error',
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG
     });
   }
 };

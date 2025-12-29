@@ -1,7 +1,8 @@
-
 const Wallet = require("../../models/walletSchema");
 const Transaction = require("../../models/transactionSchema");
 const { creditWallet } = require('../../utils/walletUtils');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 const generateDescription = (txn) => {
   const map = {
@@ -47,7 +48,7 @@ exports.getWallet = async (req, res) => {
 
   } catch (err) {
     console.error('Wallet Error:', err);
-    req.flash('error', 'Failed to load wallet');
+    req.flash('error', MESSAGES.WALLET.LOAD_FAILED || 'Failed to load wallet');
     res.redirect('/');
   }
 };
@@ -60,9 +61,15 @@ exports.toggleDefault = async (req, res) => {
       { $set: { useInCheckout: Boolean(useInCheckout) } },
       { upsert: true }
     );
-    res.json({ success: true });
+    res.json({ 
+      success: true,
+      message: MESSAGES.WALLET.TOGGLE_SUCCESS || 'Wallet settings updated'
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error('Wallet toggle error:', err);
+    res.status(STATUS.INTERNAL_ERROR).json({ 
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Failed to update wallet settings'
+    });
   }
 };

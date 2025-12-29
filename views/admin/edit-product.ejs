@@ -95,7 +95,6 @@
           <textarea
             id="productDescription"
             name="productDescription"
-            required
             rows="3"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg form-input focus:border-indigo-500 transition-colors"
             placeholder="Describe the product"
@@ -108,7 +107,6 @@
           <textarea
             id="howToUse"
             name="howToUse"
-            required
             rows="2"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg form-input focus:border-indigo-500 transition-colors"
             placeholder="Instructions for use"
@@ -123,7 +121,6 @@
             <select
               id="category"
               name="category"
-              required
               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg form-input focus:border-indigo-500 transition-colors"
             >
               <option value="">Select a category</option>
@@ -209,7 +206,6 @@
               id="stock"
               name="stock"
               value="<%= product.quantity %>"
-            
               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg form-input focus:border-indigo-500 transition-colors"
               placeholder="Enter stock quantity"
             />
@@ -320,265 +316,234 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
   <script>
-  $(document).ready(function () {
-    // Initialize Cropper.js for each image
-    const croppers = {};
+$(document).ready(function () {
+  // --------------------------------------------------------------
+  // 1. Cropper initialisation (unchanged, only tiny refactor)
+  // --------------------------------------------------------------
+  const croppers = {};
 
-    // Function to initialize Cropper.js for an image input
-    function initializeCropper(
-      inputId,
-      previewId,
-      cropperContainerId,
-      saveButtonId,
-      cancelButtonId,
-      croppedImgId,
-      existingImage = null,
-      index
-    ) {
-      const input = document.getElementById(inputId);
-      const preview = document.getElementById(previewId);
-      const cropperContainer = document.querySelector(`.${cropperContainerId}`);
-      const saveButton = document.getElementById(saveButtonId);
-      const cancelButton = document.getElementById(cancelButtonId);
-      const croppedImg = document.getElementById(croppedImgId);
-      let cropper = null;
+  function initializeCropper(
+    inputId, previewId, cropperContainerClass,
+    saveBtnId, cancelBtnId, croppedImgId,
+    existingImage = null
+  ) {
+    const $input   = $(`#${inputId}`);
+    const $preview = $(`#${previewId}`);
+    const $cropper = $(`.${cropperContainerClass}`);
+    const $save    = $(`#${saveBtnId}`);
+    const $cancel  = $(`#${cancelBtnId}`);
+    const $cropped = $(`#${croppedImgId}`);
 
-      // If there is an existing image, display it in the cropped image element
-      if (existingImage) {
-        croppedImg.src = existingImage;
-        croppedImg.style.display = 'block';
-      }
-
-      input.addEventListener('change', function (e) {
-        const files = e.target.files;
-        if (files && files.length > 0) {
-          const file = files[0];
-          const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-          // if (!validImageTypes.includes(file.type)) {
-          //   Swal.fire({
-          //     icon: 'error',
-          //     title: 'Invalid File',
-          //     text: 'Please upload a valid image file (JPEG, PNG, or GIF).',
-          //     confirmButtonColor: '#14b8a6',
-          //   });
-          //   input.value = '';
-          //   return;
-          // }
-
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            croppedImg.style.display = 'none'; // Hide cropped image while cropping
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-            cropperContainer.style.display = 'block';
-
-            // Destroy existing cropper if any
-            if (cropper) {
-              cropper.destroy();
-            }
-
-            // Initialize Cropper.js
-            cropper = new Cropper(preview, {
-              aspectRatio: 1,
-              viewMode: 1,
-              autoCropArea: 0.8,
-              responsive: true,
-              ready() {
-                cropperContainer.style.display = 'block';
-              },
-            });
-            croppers[inputId] = cropper;
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-
-      saveButton.addEventListener('click', function () {
-        if (cropper) {
-          const canvas = cropper.getCroppedCanvas({
-            width: 300,
-            height: 300,
-            imageSmoothingQuality: 'high',
-          });
-          if (canvas) {
-            preview.style.display = 'none'; // Hide preview after save
-            croppedImg.src = canvas.toDataURL('image/jpeg');
-            croppedImg.style.display = 'block';
-            cropperContainer.style.display = 'none';
-            cropper.destroy();
-            cropper = null;
-
-            // Add cropped image data to a hidden input
-            let hiddenInput = document.querySelector(
-              `input[name="croppedImage${inputId.replace('input', '')}"]`
-            );
-            if (!hiddenInput) {
-              hiddenInput = document.createElement('input');
-              hiddenInput.type = 'hidden';
-              hiddenInput.name = `croppedImage${inputId.replace('input', '')}`;
-              input.form.appendChild(hiddenInput);
-            }
-            hiddenInput.value = canvas.toDataURL('image/jpeg');
-          }
-        }
-      });
-
-      cancelButton.addEventListener('click', function () {
-        if (cropper) {
-          cropper.destroy();
-          cropper = null;
-          preview.src = '';
-          preview.style.display = 'none';
-          cropperContainer.style.display = 'none';
-          input.value = '';
-          croppedImg.src = existingImage || '';
-          croppedImg.style.display = existingImage ? 'block' : 'none';
-        }
-      });
+    if (existingImage) {
+      $cropped.attr('src', existingImage).show();
     }
 
-    // Initialize croppers for all images
-    const existingImages = <%- JSON.stringify(product.productImages || []) %>;
-    initializeCropper(
-      'input1',
-      'imgView1',
-      'image-cropper-container-1',
-      'saveButton1',
-      'cancelButton1',
-      'croppedImg1',
-      existingImages[0] ? `/uploads/product-images/${existingImages[0]}` : null,
-      0
-    );
-    initializeCropper(
-      'input2',
-      'imgView2',
-      'image-cropper-container-2',
-      'saveButton2',
-      'cancelButton2',
-      'croppedImg2',
-      existingImages[1] ? `/uploads/product-images/${existingImages[1]}` : null,
-      1
-    );
-    initializeCropper(
-      'input3',
-      'imgView3',
-      'image-cropper-container-3',
-      'saveButton3',
-      'cancelButton3',
-      'croppedImg3',
-      existingImages[2] ? `/uploads/product-images/${existingImages[2]}` : null,
-      2
-    );
-    initializeCropper(
-      'input4',
-      'imgView4',
-      'image-cropper-container-4',
-      'saveButton4',
-      'cancelButton4',
-      'croppedImg4',
-      existingImages[3] ? `/uploads/product-images/${existingImages[3]}` : null,
-      3
-    );
+    $input.on('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    // Form submission
-    $('form').submit(function (e) {
-      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        $cropped.hide();
+        $preview.attr('src', ev.target.result).show();
+        $cropper.show();
 
-      // Validate at least three images
-      const requiredInputs = ['input1', 'input2', 'input3'];
-      let valid = true;
-      const errorDiv = $('#images-error');
-      errorDiv.text('');
+        if (croppers[inputId]) croppers[inputId].destroy();
 
-      requiredInputs.forEach((id, index) => {
-        const croppedImg = document.getElementById(
-          `croppedImg${id.replace('input', '')}`
-        );
-        if (!croppedImg.src && !existingImages[index]) {
-          valid = false;
-          errorDiv.text('Please upload or retain all required images.');
-        }
+        croppers[inputId] = new Cropper($preview[0], {
+          aspectRatio: 1,
+          viewMode: 1,
+          autoCropArea: 0.8,
+          responsive: true
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $save.on('click', function () {
+      const cropper = croppers[inputId];
+      if (!cropper) return;
+
+      const canvas = cropper.getCroppedCanvas({
+        width: 600,
+        height: 600,
+        imageSmoothingQuality: 'high'
       });
 
-      if (!valid) return;
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      $preview.hide();
+      $cropped.attr('src', dataUrl).show();
+      $cropper.hide();
+      cropper.destroy();
+      delete croppers[inputId];
 
-      // Create FormData
-      const formData = new FormData(this);
-      const allInputs = [...requiredInputs, 'input4'];
-      allInputs.forEach((id, index) => {
-        const croppedImg = document.getElementById(
-          `croppedImg${id.replace('input', '')}`
-        );
-        const hiddenInput = document.querySelector(
-          `input[name="croppedImage${id.replace('input', '')}"]`
-        );
-        if (hiddenInput && croppedImg.src && croppedImg.src.startsWith('data:')) {
-          const base64 = croppedImg.src;
-          const byteString = atob(base64.split(',')[1]);
-          const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-          }
-          const blob = new Blob([ab], { type: mimeString });
-          formData.append('images', blob, `image${index + 1}.jpg`);
-        } else if (existingImages[index]) {
-          formData.append('existingImages', existingImages[index]);
-        }
-      });
+      // store the base64 string in a hidden field (used later)
+      let $hidden = $(`input[name="croppedImage${inputId.slice(-1)}"]`);
+      if ($hidden.length === 0) {
+        $hidden = $('<input>', {
+          type: 'hidden',
+          name: `croppedImage${inputId.slice(-1)}`
+        }).appendTo($input.closest('form'));
+      }
+      $hidden.val(dataUrl);
+    });
 
-      // Log FormData for debugging
-      for (let [key, value] of formData.entries()) {
-        console.log(`FormData: ${key} =`, value);
+    $cancel.on('click', function () {
+      if (croppers[inputId]) {
+        croppers[inputId].destroy();
+        delete croppers[inputId];
+      }
+      $preview.attr('src', '').hide();
+      $cropper.hide();
+      $input.val('');
+      $cropped.attr('src', existingImage || '').toggle(!!existingImage);
+    });
+  }
+
+  const existingImages = <%- JSON.stringify(product.productImages || []) %>;
+  ['1','2','3','4'].forEach(n => {
+    initializeCropper(
+      `input${n}`,
+      `imgView${n}`,
+      `image-cropper-container-${n}`,
+      `saveButton${n}`,
+      `cancelButton${n}`,
+      `croppedImg${n}`,
+      existingImages[n-1] ? `/uploads/product-images/${existingImages[n-1]}` : null
+    );
+  });
+
+  // --------------------------------------------------------------
+  // 2. Helper: does slot i have a usable image?
+  // --------------------------------------------------------------
+  function hasImage(idx) {               // idx = 0..3  (1-based in HTML)
+    const cropped = $(`#croppedImg${idx+1}`).attr('src');
+    return (cropped && cropped.startsWith('data:')) || !!existingImages[idx];
+  }
+
+  // --------------------------------------------------------------
+  // 3. Inline error containers (added once)
+  // --------------------------------------------------------------
+  $('input[required], textarea[required], select[required]').each(function () {
+    if (!$(this).next('.field-error').length) {
+      $('<div class="field-error text-red-600 text-xs mt-1"></div>').insertAfter(this);
+    }
+  });
+  if (!$('#images-error').length) {
+    $('<div id="images-error" class="error-message"></div>').insertBefore('.image-section .grid');
+  }
+
+  // --------------------------------------------------------------
+  // 4. Form submit – **full validation**
+  // --------------------------------------------------------------
+  $('form').on('submit', function (e) {
+    e.preventDefault();
+
+    const $form = $(this);
+    let valid = true;
+    const errorDiv = $('#images-error');
+    errorDiv.text('');
+
+    // ---- 4.1 Text / number / select fields ----
+    $form.find('input[required], textarea[required], select[required]').each(function () {
+      const $el = $(this);
+      const val = $el.val().trim();
+      $el.next('.field-error').text('');
+
+      if (!val) {
+        $el.next('.field-error').text('This field is required.');
+        valid = false;
+        return;
       }
 
-      // Submit form via AJAX
-      $.ajax({
-        url: `/admin/update-product/<%= product._id %>`,
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-          console.log('Success Response:', response);
-          if (response.success) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Product Updated!',
-              text: 'Your product has been successfully updated.',
-              showConfirmButton: false,
-              timer: 1500,
-            }).then(() => {
-              window.location.href = '/admin/product-list';
-            });
-          } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error!',
-              text: response.message || 'Failed to update product.',
-              confirmButtonColor: '#14b8a6',
-            });
-          }
-        },
-        error: function (xhr, status, error) {
-          let errorMessage = 'An error occurred while updating the product.';
-          if (xhr.responseJSON && xhr.responseJSON.message) {
-            errorMessage = xhr.responseJSON.message;
-          } else if (xhr.status) {
-            errorMessage += ` (Status: ${xhr.status})`;
-          }
-          console.error('AJAX Error:', { status, error, response: xhr.responseJSON });
+      // extra numeric checks
+      if ($el.attr('type') === 'number') {
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+          $el.next('.field-error').text('Enter a number ≥ 0.');
+          valid = false;
+        }
+      }
+    });
+
+    if (!valid) return;
+
+    // ---- 4.2 Stock specific (already covered above, but keep explicit) ----
+    const stock = Number($('#stock').val());
+    if (isNaN(stock) || stock < 0) {
+      $('#stock').next('.field-error').text('Stock must be 0 or higher.');
+      return;
+    }
+
+    // ---- 4.3 Images – at least first 3 required ----
+    const requiredImgCount = 3;
+    for (let i = 0; i < requiredImgCount; i++) {
+      if (!hasImage(i)) {
+        errorDiv.text('Please provide (or keep) the first three product images.');
+        valid = false;
+        break;
+      }
+    }
+    if (!valid) return;
+
+    // ---- 4.4 Build FormData (only cropped blobs + existing filenames) ----
+    const fd = new FormData();
+
+    // regular fields (text, numbers, select…)
+    $form.serializeArray().forEach(item => fd.append(item.name, item.value));
+
+    // images
+    for (let i = 0; i < 4; i++) {
+      const $hidden = $(`input[name="croppedImage${i+1}"]`);
+      if ($hidden.length && $hidden.val().startsWith('data:')) {
+        // convert base64 → Blob
+        const b64 = $hidden.val();
+        const byteString = atob(b64.split(',')[1]);
+        const mime = b64.split(',')[0].match(/:(.*?);/)[1];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+        const blob = new Blob([ab], { type: mime });
+        fd.append('images', blob, `product_image_${i+1}.jpg`);
+      } else if (existingImages[i]) {
+        fd.append('existingImages', existingImages[i]);
+      }
+    }
+
+    // --------------------------------------------------------------
+    // 5. AJAX submit
+    // --------------------------------------------------------------
+    $.ajax({
+      url: `/admin/update-product/<%= product._id %>`,
+      method: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      success: res => {
+        if (res.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: 'Product saved successfully.',
+            timer: 1500,
+            showConfirmButton: false
+          }).then(() => location.href = '/admin/product-list');
+        } else {
           Swal.fire({
             icon: 'error',
-            title: 'Error!',
-            text: errorMessage,
-            confirmButtonColor: '#14b8a6',
+            title: 'Failed',
+            text: res.message || 'Something went wrong.',
+            confirmButtonColor: '#14b8a6'
           });
-        },
-      });
+        }
+      },
+      error: (xhr) => {
+        const msg = xhr.responseJSON?.message || 'Server error';
+        Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#14b8a6' });
+      }
     });
   });
+});
 </script>
 </body>
 </html>

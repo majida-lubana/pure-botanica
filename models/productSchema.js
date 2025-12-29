@@ -87,13 +87,13 @@ const productSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// === ADD VIRTUAL HERE ===
+
 productSchema.virtual('finalPrice').get(function () {
   const offerPrice = this.regularPrice - (this.regularPrice * (this.productOffer || 0) / 100);
   return Math.min(this.regularPrice, this.salePrice || this.regularPrice, offerPrice).toFixed(2);
 });
 
-// Enable virtuals in JSON output
+
 productSchema.set('toJSON', { virtuals: true });
 productSchema.set('toObject', { virtuals: true });
 // =========================

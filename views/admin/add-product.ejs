@@ -16,6 +16,7 @@
       background-color: #f5f5f5;
       min-height: 100vh;
       width: calc(100% - 250px);
+      transition: all 0.3s ease;
     }
 
     .sidebar {
@@ -131,7 +132,30 @@
       gap: 20px;
     }
 
+    /* Ensure proper spacing */
+    .d-grid {
+      margin-top: 20px;
+    }
+
     /* Responsive Design */
+    
+    /* Tablets and medium devices (768px - 1024px) */
+    @media (max-width: 1024px) {
+      .content-main {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+      }
+
+      .sidebar {
+        width: 200px;
+      }
+
+      .form-container, .image-section {
+        padding: 25px;
+      }
+    }
+
+    /* Small tablets (768px and below) */
     @media (max-width: 768px) {
       .content-main {
         margin-left: 0;
@@ -139,14 +163,89 @@
         width: 100%;
       }
 
+      .sidebar {
+        width: 100%;
+        position: fixed;
+        z-index: 1000;
+      }
+
       .form-grid {
         grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .form-container, .image-section {
+        padding: 20px;
+      }
+
+      .content-title {
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        border-radius: 15px;
       }
     }
 
-    /* Ensure proper spacing */
-    .d-grid {
-      margin-top: 20px;
+    /* Mobile devices (576px and below) */
+    @media (max-width: 576px) {
+      .content-main {
+        padding: 15px;
+      }
+
+      .form-container, .image-section {
+        padding: 15px;
+      }
+
+      .form-control {
+        padding: 10px 12px;
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      .form-label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      .btn-primary {
+        padding: 10px 0;
+        font-size: 13px;
+      }
+
+      .content-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+      }
+
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      textarea.form-control {
+        min-height: 80px;
+      }
+
+      .image-preview, .cropped-image {
+        max-height: 120px;
+      }
+    }
+
+    /* Very small devices (400px and below) */
+    @media (max-width: 400px) {
+      .content-main {
+        padding: 10px;
+      }
+
+      .form-container, .image-section {
+        padding: 12px;
+      }
+
+      .content-title {
+        font-size: 16px;
+      }
     }
   </style>
 </head>

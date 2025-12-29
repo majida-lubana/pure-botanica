@@ -1,12 +1,21 @@
-
-const bcrypt = require('bcrypt') 
-const Product = require('../../models/productSchema')
-const User = require('../../models/userSchema')
-
-const {generateOtp, sendVerificationEmail } = require('../../utils/emailService')
-const referralController = require('../../controllers/user/referralController')
+const bcrypt = require('bcrypt');
+const Product = require('../../models/productSchema');
+const User = require('../../models/userSchema');
+const { generateOtp, sendVerificationEmail } = require('../../utils/emailService');
+const referralController = require('../../controllers/user/referralController');
 const { calculatePricing } = require('../../utils/calculatePricing');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
+const securePassword = async (password) => {
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    return passwordHash;
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw error;
+  }
+};
 
 exports.loadHomePage = async (req, res) => {
   try {
@@ -19,14 +28,13 @@ exports.loadHomePage = async (req, res) => {
     });
     const totalPages = Math.ceil(totalProducts / productsPerPage);
 
-
     const products = await Product.find({
       isActive: true,
       isBlocked: false,
       status: 'Available',
-      quantity:{$gt:0}
+      quantity: { $gt: 0 }
     })
-      .sort({createdAt:-1})
+      .sort({ createdAt: -1 })
       .limit(8)
       .populate('category')
       .lean();
@@ -36,36 +44,38 @@ exports.loadHomePage = async (req, res) => {
       pricing: calculatePricing(product)
     }));
 
-
     const formattedProducts = productsWithPricing.map(product => ({
       id: product._id.toString(),
       name: product.productName,
       image: product.productImages?.length > 0
         ? '/Uploads/product-images/' + product.productImages[0]
         : 'https://storage.googleapis.com/a1aa/image/placeholder.jpg',
-      price: product.salePrice, 
+      price: product.salePrice,
       rating: product.rating ?? 4,
       reviews: product.reviews ?? 0,
-      pricing: product.pricing 
+      pricing: product.pricing
     }));
-      console.log(req.session.user)
 
-      let findUserData = null
-      if (req.session.user) {
-         findUserData = await User.findById(req.session.user)
-      }
+    let findUserData = null;
+    if (req.session.user) {
+      findUserData = await User.findById(req.session.user);
+    }
+    let cartCount = 0;
+    if (req.user?._id) {
+      const cart = await Cart.findOne({ user: req.user._id }).lean();
+      cartCount = cart?.items?.length || 0;
+    }
 
-      
- 
     res.render('user/home', {
       title: 'Beauty Pronounced',
       paginatedProducts: formattedProducts,
-      user:findUserData
+      user: findUserData,
+      cartCount
     });
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).render('error', {
-      message: 'An error occurred while loading the homepage.'
+    res.status(STATUS.INTERNAL_ERROR).render('error', {
+      message: MESSAGES.HOME.LOAD_FAILED || 'An error occurred while loading the homepage.'
     });
   }
 };
@@ -73,64 +83,65 @@ exports.loadHomePage = async (req, res) => {
 exports.loadSignup = async (req, res) => {
   try {
     if (req.session.user) {
-      return res.redirect('user/home');
+      return res.redirect('/user/home');
     }
     res.render('user/signup', { errors: {}, old: {}, message: '' });
   } catch (error) {
     console.error('Signup page error:', error);
-    res.status(500).render('user/signup', { errors: { general: 'Server error' }, old: {}, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).render('user/signup', {
+      errors: { general: MESSAGES.COMMON.SERVER_ERROR || 'Server error' },
+      old: {},
+      message: MESSAGES.COMMON.SERVER_ERROR || 'Server error'
+    });
   }
 };
 
 exports.loadOtp = (req, res) => {
-    res.render("user/verify-otp", {
-        pageTitle: 'OTP Verification',
-        heading: 'OTP Verification',
-        description: 'Enter the 4-digit code sent to your phone number',
-        buttonText: 'VERIFY OTP',
-        formAction: '/verify-otp',
-        loginUrl: '/login',
-        initialTimer: '00:30',
-        backgroundImage: 'https://storage.googleapis.com/a1aa/image/aff8b111-8925-4b75-503a-b5fdc7cbeab9.jpg',
-        initialTime: 30,
-        resendTimer: 30,
-        resendUrl: '/resend-otp'
-    });
-}
+  res.render("user/verify-otp", {
+    pageTitle: 'OTP Verification',
+    heading: 'OTP Verification',
+    description: 'Enter the 4-digit code sent to your phone number',
+    buttonText: 'VERIFY OTP',
+    formAction: '/verify-otp',
+    loginUrl: '/login',
+    initialTimer: '00:30',
+    backgroundImage: 'https://storage.googleapis.com/a1aa/image/aff8b111-8925-4b75-503a-b5fdc7cbeab9.jpg',
+    initialTime: 30,
+    resendTimer: 30,
+    resendUrl: '/resend-otp'
+  });
+};
 
-exports.pageNotFound = async (req,res)=>{
-    try{
-       return res.render("page-404")
-    }catch(error){
-        res.redirect("/pageNotFound")
-    }
-}
-
-
+exports.pageNotFound = async (req, res) => {
+  try {
+    return res.render("page-404");
+  } catch (error) {
+    res.redirect("/pageNotFound");
+  }
+};
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password, confirmPassword, referralCode } = req.body; 
-    
+    const { name, email, phone, password, confirmPassword, referralCode } = req.body;
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.render('user/signup', {
-        errors: { email: 'Email already registered' },
+        errors: { email: MESSAGES.AUTH.EMAIL_EXISTS || 'Email already registered' },
         old: req.body,
-        message: 'Email already registered'
+        message: MESSAGES.AUTH.EMAIL_EXISTS || 'Email already registered'
       });
     }
 
-  
     if (referralCode) {
-      const referrer = await User.findOne({ 
-        referralCode: referralCode.toUpperCase() 
+      const referrer = await User.findOne({
+        referralCode: referralCode.toUpperCase()
       });
       if (!referrer) {
         return res.render('user/signup', {
-          errors: { referralCode: 'Invalid referral code' },
+          errors: { referralCode: MESSAGES.REFERRAL.INVALID || 'Invalid referral code' },
           old: req.body,
-          message: 'Invalid referral code'
+          message: MESSAGES.REFERRAL.INVALID || 'Invalid referral code'
         });
       }
 
@@ -142,9 +153,9 @@ exports.signup = async (req, res) => {
     const emailSent = await sendVerificationEmail(email, otp);
     if (!emailSent) {
       return res.render('user/signup', {
-        errors: { general: 'Failed to send verification email' },
+        errors: { general: MESSAGES.OTP.SEND_FAILED || 'Failed to send verification email' },
         old: req.body,
-        message: 'Failed to send verification email'
+        message: MESSAGES.OTP.SEND_FAILED || 'Failed to send verification email'
       });
     }
 
@@ -152,7 +163,7 @@ exports.signup = async (req, res) => {
     req.session.userData = { email, password, name, phone };
 
     return res.render('user/verify-otp', {
-      message: 'OTP sent to your email',
+      message: MESSAGES.OTP.SENT_SUCCESS || 'OTP sent to your email',
       pageTitle: 'OTP Verification',
       heading: 'OTP Verification',
       description: 'Enter the 4-digit code sent to your phone number',
@@ -168,9 +179,9 @@ exports.signup = async (req, res) => {
   } catch (error) {
     console.error('Signup error:', error);
     res.render('user/signup', {
-      errors: { general: 'Server error' },
+      errors: { general: MESSAGES.COMMON.SERVER_ERROR || 'Server error' },
       old: req.body,
-      message: 'Server error'
+      message: MESSAGES.COMMON.SERVER_ERROR || 'Server error'
     });
   }
 };
@@ -178,8 +189,6 @@ exports.signup = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { otp } = req.body;
-    console.log("Received OTP:", otp);
-    console.log("Session OTP:", req.session.userOtp);
 
     if (String(otp) === String(req.session.userOtp)) {
       const user = req.session.userData;
@@ -195,7 +204,6 @@ exports.verifyOtp = async (req, res) => {
       await saveUserData.save();
       req.session.user = saveUserData._id;
 
-  
       if (req.session.referralCode) {
         await referralController.processReferralSignup(
           saveUserData._id,
@@ -209,51 +217,55 @@ exports.verifyOtp = async (req, res) => {
 
       res.json({ success: true, redirectUrl: "/" });
     } else {
-      res.status(400).json({ success: false, message: "Invalid OTP, try again" });
+      res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.OTP.INVALID || "Invalid OTP, try again"
+      });
     }
   } catch (error) {
     console.error("Error verifying OTP:", error);
-    res.status(500).json({ success: false, message: "An error occurred" });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "An error occurred"
+    });
   }
 };
- 
-const securePassword = async(password) => {
+
+exports.resendOtp = async (req, res) => {
   try {
-    const passwordHash = await bcrypt.hash(password, 10);
-    return passwordHash;
-  } catch(error) {
-    console.error("Error hashing password:", error);
-    throw error;
-  }
-}
-
-
-
-exports.resendOtp = async(req,res)=>{
-  try{
-    console.log("kandu")
-    const {email} = req.session.userData || {};
-    if(!email){
-      return res.status(400).json({success:false, message:"Email not found in session"})
+    const { email } = req.session.userData || {};
+    if (!email) {
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.SESSION.EMAIL_NOT_FOUND || "Email not found in session"
+      });
     }
 
-    const otp = generateOtp()
-    req.session.userOtp = otp
+    const otp = generateOtp();
+    req.session.userOtp = otp;
 
     const emailSent = await sendVerificationEmail(email, otp);
-    
-    if(emailSent){
-      console.log("Resend OTP:", otp)
-      return res.status(200).json({success:true, message:"OTP resent successfully"})
-    }else{
-      return res.status(500).json({success:false, message:"Failed to resend OTP, Please try again"})
-    }
-  }catch(error){
-    console.error("Error retry sending OTP:", error)
-    return res.status(500).json({success:false, message:"Internal Server Error, Please try again"})
-  }
-}
 
+    if (emailSent) {
+      console.log("Resend OTP:", otp);
+      return res.status(STATUS.OK).json({
+        success: true,
+        message: MESSAGES.OTP.RESENT_SUCCESS || "OTP resent successfully"
+      });
+    } else {
+      return res.status(STATUS.INTERNAL_ERROR).json({
+        success: false,
+        message: MESSAGES.OTP.SEND_FAILED || "Failed to resend OTP, Please try again"
+      });
+    }
+  } catch (error) {
+    console.error("Error retry sending OTP:", error);
+    return res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Internal Server Error, Please try again"
+    });
+  }
+};
 
 exports.loadLogin = async (req, res) => {
   try {
@@ -271,26 +283,23 @@ exports.loadLogin = async (req, res) => {
   }
 };
 
-
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-
     const findUser = await User.findOne({ isAdmin: 0, email }).select('+password');
-    
+
     if (!findUser) {
       return res.render('user/login', {
-        message: 'User not found',
+        message: MESSAGES.AUTH.USER_NOT_FOUND || 'User not found',
         pageTitle: 'Login Page',
-        old: req.body 
+        old: req.body
       });
     }
 
     if (findUser.isBlocked) {
       return res.render('user/login', {
-        message: 'User is blocked by admin',
+        message: MESSAGES.AUTH.BLOCKED || 'User is blocked by admin',
         pageTitle: 'Login Page',
         old: req.body
       });
@@ -300,12 +309,11 @@ exports.login = async (req, res) => {
 
     if (!passwordMatch) {
       return res.render('user/login', {
-        message: 'Incorrect password',
+        message: MESSAGES.AUTH.INCORRECT_PASSWORD || 'Incorrect password',
         pageTitle: 'Login Page',
-        old: req.body 
+        old: req.body
       });
     }
-
 
     req.session.user = findUser._id;
     console.log('Login successful, session.user set to:', findUser._id);
@@ -313,32 +321,29 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.render('user/login', {
-      message: 'Login failed, please try again later',
+      message: MESSAGES.AUTH.LOGIN_FAILED || 'Login failed, please try again later',
       pageTitle: 'Login Page',
-      old: req.body 
+      old: req.body
     });
   }
 };
 
+exports.logout = async (req, res) => {
+  try {
+    console.log("Logout reached");
 
-
-
-exports.logout = async(req,res)=>{
-  try{
-
-    req.session.destroy((err)=>{
-      if(err){
-        console.log('session destruction error',err.message)
-        return res.redirect('user/pageNotFound')
+    req.session.destroy(err => {
+      if (err) {
+        console.log('Session destruction error', err.message);
+        return res.redirect('/'); // fallback
       }
-      return res.redirect('/')
-    })
 
-  }catch(error){
-    console.log('Logout error',error)
-    res.redirect('user/pageNotFound')
+      res.clearCookie('userSessionId');
+      return res.redirect('/login');
+    });
+
+  } catch (error) {
+    console.log('Logout error', error);
+    res.redirect('/'); // fallback
   }
-}
-
-
-
+};

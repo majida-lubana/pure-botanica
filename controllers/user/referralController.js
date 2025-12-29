@@ -1,9 +1,10 @@
-
 const Referral = require('../../models/referralSchema');
 const User = require('../../models/userSchema');
 const Wallet = require('../../models/walletSchema');
 const Transaction = require('../../models/transactionSchema');
-
+const { creditWallet } = require('../../utils/walletUtils');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 exports.getReferralPage = async (req, res) => {
   try {
@@ -17,7 +18,6 @@ exports.getReferralPage = async (req, res) => {
     if (!user) {
       return res.redirect('/login');
     }
-
 
     let referral = await Referral.findOne({ userId }).populate('invitedUsers.userId', 'name email');
     
@@ -34,7 +34,6 @@ exports.getReferralPage = async (req, res) => {
       });
     }
 
-  
     const invitedCount = referral.invitedUsers.length;
     const pendingCount = referral.invitedUsers.filter(u => u.status === 'pending').length;
 
@@ -61,49 +60,24 @@ exports.getReferralPage = async (req, res) => {
 
   } catch (error) {
     console.error('Referral page error:', error);
-    res.redirect('/pageNotFound');
+    res.render('user/page-404', {
+      message: MESSAGES.REFERRAL.LOAD_FAILED || 'An error occurred while loading the referral page.',
+      pageTitle: 'Error'
+    });
   }
 };
 
-
 exports.processReferralSignup = async (newUserId, referralCode) => {
   try {
-    if (!referralCode) {
-      console.log('No referral code provided');
-      return;
-    }
+    if (!referralCode) return;
 
-    console.log('🔍 Processing referral signup for code:', referralCode);
-
-
-    const referrerDoc = await Referral.findOne({ 
-      referralCode: referralCode.toUpperCase() 
-    });
-
-    if (!referrerDoc) {
-      console.log('Invalid referral code:', referralCode);
-      return;
-    }
-
-    console.log(' Found referrer:', referrerDoc.userId);
+    const referrerDoc = await Referral.findOne({ referralCode: referralCode.toUpperCase() });
+    if (!referrerDoc) return;
 
     const newUser = await User.findById(newUserId);
-    if (!newUser) {
-      console.log('New user not found');
-      return;
-    }
+    if (!newUser || newUser.hasUsedReferral) return;
+    if (referrerDoc.userId.toString() === newUserId.toString()) return;
 
-    if (newUser.hasUsedReferral) {
-      console.log(' User already used a referral');
-      return;
-    }
-
-    if (referrerDoc.userId.toString() === newUserId.toString()) {
-      console.log('Cannot refer yourself');
-      return;
-    }
-
- 
     referrerDoc.invitedUsers.push({
       userId: newUserId,
       email: newUser.email,
@@ -116,111 +90,32 @@ exports.processReferralSignup = async (newUserId, referralCode) => {
 
     referrerDoc.totalInvites += 1;
     referrerDoc.pendingRewards += 100;
-
     await referrerDoc.save();
-    console.log('Referral document updated');
 
-    
     await User.findByIdAndUpdate(newUserId, {
       referredBy: referrerDoc.userId,
       hasUsedReferral: true
     });
 
-    console.log(`Referral signup recorded: ${newUser.email} referred by ${referralCode}`);
+    // Instant signup bonuses
+    await creditWallet(referrerDoc.userId, 100, null, `Referral Bonus – ${newUser.email} signed up`);
+    await creditWallet(newUserId, 50, null, `Welcome Bonus – ${referrerDoc.referralCode}`);
 
-  } catch (error) {
-    console.error(' Process referral signup error:', error);
-  }
-};
-
-
-exports.processReferralReward = async (newUserId) => {
-  try {
- 
-
-    const newUser = await User.findById(newUserId);
-    if (!newUser) {
-      console.log('User not found');
-      return;
-    }
-
-    console.log('User found:', newUser.email);
-    console.log('Referred by:', newUser.referredBy);
-
-    if (!newUser.referredBy) {
-      console.log(' User not referred by anyone');
-      return;
-    }
-
-   
-    const referrerDoc = await Referral.findOne({ userId: newUser.referredBy });
-    if (!referrerDoc) {
-      console.log('Referrer document not found for:', newUser.referredBy);
-      return;
-    }
-
-
-    const inviteIndex = referrerDoc.invitedUsers.findIndex(
-      u => u.userId && u.userId.toString() === newUserId.toString()
-    );
-
-    if (inviteIndex === -1) {
-     
-      return;
-    }
-
-    
-
-    const invite = referrerDoc.invitedUsers[inviteIndex];
-
-
-
-    if (invite.status === 'completed' || invite.firstOrderCompleted) {
-      console.log('Reward already processed for this user');
-      return;
-    }
-
-
-    referrerDoc.invitedUsers[inviteIndex].status = 'completed';
-    referrerDoc.invitedUsers[inviteIndex].firstOrderCompleted = true;
-    referrerDoc.invitedUsers[inviteIndex].firstOrderAt = new Date();
-    
-    referrerDoc.markModified('invitedUsers');
-
-    referrerDoc.totalEarned += invite.rewardAmount;
-    referrerDoc.pendingRewards -= invite.rewardAmount;
-
-
+    referrerDoc.totalEarned += 100;
     await referrerDoc.save();
-    console.log('Referral document saved');
-    
-   
-    const verifyDoc = await Referral.findOne({ userId: newUser.referredBy });
-    const verifyInvite = verifyDoc.invitedUsers.find(
-      u => u.userId && u.userId.toString() === newUserId.toString()
-    );
-    
 
-  
-    await creditReferralReward(referrerDoc.userId, invite.rewardAmount, newUser.email);
+    console.log(`Referral signup OK – ${newUser.email} +50, referrer +100 (totalEarned=${referrerDoc.totalEarned})`);
 
-    
-
-  } catch (error) {
-    
-    throw error; 
+  } catch (err) {
+    console.error('processReferralSignup error:', err);
   }
 };
-
 
 async function creditReferralReward(userId, amount, referredUserEmail) {
   try {
- 
-
-  
     let wallet = await Wallet.findOne({ userId });
     if (!wallet) {
-      console.log('💳 Creating new wallet');
+      console.log('Creating new wallet');
       wallet = await Wallet.create({ 
         userId, 
         balance: 0, 
@@ -228,14 +123,9 @@ async function creditReferralReward(userId, amount, referredUserEmail) {
       });
     }
 
-    console.log('💳 Current balance:', wallet.balance);
-
-   
     wallet.balance += amount;
     await wallet.save();
 
-
- 
     const txn = await Transaction.create({
       userId: userId,
       amount: amount,
@@ -245,19 +135,23 @@ async function creditReferralReward(userId, amount, referredUserEmail) {
       date: new Date()
     });
 
-    console.log('💳 Transaction created:', txn._id);
-    console.log('✅ Wallet credited successfully');
+    console.log('Transaction created:', txn._id);
+    console.log('Wallet credited successfully');
 
   } catch (error) {
-    console.error('❌ Credit referral reward error:', error);
+    console.error('Credit referral reward error:', error);
     throw error;
   }
 }
 
-
 exports.validateReferralCode = async (referralCode) => {
   try {
-    if (!referralCode) return { valid: false };
+    if (!referralCode) {
+      return { 
+        valid: false,
+        message: MESSAGES.REFERRAL.NO_CODE || 'No referral code provided'
+      };
+    }
 
     const referrerDoc = await Referral.findOne({ 
       referralCode: referralCode.toUpperCase() 
@@ -265,12 +159,18 @@ exports.validateReferralCode = async (referralCode) => {
 
     return { 
       valid: !!referrerDoc,
-      referrerId: referrerDoc ? referrerDoc.userId : null
+      referrerId: referrerDoc ? referrerDoc.userId : null,
+      message: referrerDoc 
+        ? MESSAGES.REFERRAL.VALID || 'Valid referral code'
+        : MESSAGES.REFERRAL.INVALID || 'Invalid referral code'
     };
 
   } catch (error) {
     console.error('Validate referral code error:', error);
-    return { valid: false };
+    return { 
+      valid: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Error validating referral code'
+    };
   }
 };
 

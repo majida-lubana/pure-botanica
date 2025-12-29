@@ -9,68 +9,87 @@ const path = require('path');
 const userRouter = require('./routes/userRouter');
 const adminRouter = require('./routes/adminRouter');
 const MongoStore = require('connect-mongo');
+require('dotenv').config();
+
 
 db();
 
-// Body parsers - should be early
+// Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// View engine setup
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
+
+// Views
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// IMPORTANT: Serve static files BEFORE session/passport
-// This prevents unnecessary session lookups for static assets
+// Static
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// Session configuration
-app.use(session({
+// USER SESSION
+const userSession = session({
+  name: "userSessionId",
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions'
+    collectionName: "userSessions",
   }),
   cookie: {
     secure: false,
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000
-  }
-}));
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+});
 
-// Passport initialization
+// ADMIN SESSION
+const adminSession = session({
+  name: "adminSessionId",
+  secret: process.env.ADMIN_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: "adminSessions",
+  }),
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+});
+
+app.use('/admin', adminSession, adminRouter);
+
+
+// ⭐ USER SIDE (Passport needs userSession)
+app.use(userSession);
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Cache control
-app.use((req, res, next) => {
-  res.set('cache-control', 'no-store');
-  next();
-});
-
-// Routes
 app.use('/', userRouter);
-app.use('/admin', adminRouter);
 
-// 404 Handler
+
+
+// 404
 app.use((req, res, next) => {
-  res.status(404).render('user/page-404', {
-    message: 'Page not found',
-    error: process.env.NODE_ENV === 'development' ? {} : {}
-  });
+  res.status(404).render('user/page-404');
 });
 
-// Error Handler
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).render('user/page-404', {
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
+  res.status(500).render('user/page-404');
 });
 
 module.exports = app;

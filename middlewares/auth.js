@@ -1,14 +1,19 @@
 const User = require('../models/userSchema');
+const Cart = require('../models/cartSchema')
+const STATUS = require('../constants/statusCode');
+const MESSAGES = require('../constants/messages'); 
 
 exports.userAuth = async (req, res, next) => {
   try {
-    console.log(`[${req.method} ${req.path}] Session ID:`, req.sessionID);
-    console.log(`[${req.method} ${req.path}] Session:`, req.session);
-    console.log(`[${req.method} ${req.path}] User in session:`, req.session.user);
+    
     if (!req.session.user) {
-      console.log('No user in session');
       if (req.xhr || req.headers.accept.includes('json')) {
-        return res.status(401).json({ success: false, message: 'Please login', redirectUrl: '/login' });
+       
+        return res.status(STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login',
+          redirectUrl: '/login'
+        });
       }
       return res.redirect('/login');
     }
@@ -16,46 +21,70 @@ exports.userAuth = async (req, res, next) => {
     const user = await User.findById(req.session.user);
     if (user && !user.isBlocked) {
       req.user = user;
-      console.log(`[${req.method} ${req.path}] User found:`, user._id);
+      
+
+      
+
+
       return next();
     }
 
+    // User blocked or not found → destroy session
     req.session.destroy(() => {
-      console.log('User blocked or not found, session destroyed');
       if (req.xhr || req.headers.accept.includes('json')) {
-        return res.status(401).json({ success: false, message: 'Please login', redirectUrl: '/login' });
+        return res.status(STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: MESSAGES.AUTH.BLOCKED_OR_INVALID || 'Please login',
+          redirectUrl: '/login'
+        });
       }
       res.redirect('/login');
     });
   } catch (error) {
-    console.error(`[${req.method} ${req.path}] Error in userAuth middleware:`, error);
+    console.error('userAuth middleware error:', error);
     if (req.xhr || req.headers.accept.includes('json')) {
-      return res.status(500).json({ success: false, message: 'Internal server error' });
+      return res.status(STATUS.INTERNAL_ERROR).json({
+        success: false,
+        message: MESSAGES.COMMON.SERVER_ERROR || 'Internal server error'
+      });
     }
-    res.status(500).send('Internal server error');
+    res.status(STATUS.INTERNAL_ERROR).send('Internal server error');
   }
-}
+};
 
 exports.adminAuth = (req, res, next) => {
   try {
-   
     if (req.session.admin === true) {
-    
       req.admin = { role: 'admin' };
       return next();
     }
 
-    // not logged in as admin:
     return res.redirect('/admin/login');
   } catch (error) {
-    console.error('Error in adminAuth middleware:', error);
+    console.error('adminAuth middleware error:', error);
     res.redirect('/admin/login');
   }
 };
 
-exports.isLoggedIn = (req,res,next)=>{
-  if(req.session.user){
-    return next()
+exports.isLoggedIn = (req, res, next) => {
+
+  if (req.session.user) {
+    return next();
   }
-  res.redirect('/login')
-}
+  res.redirect('/login');
+};
+
+exports.isCheckAuth = (req, res, next) => {
+  if (req.session.user) {
+    console.log("i am work")
+    console.log(req.session.user)
+    // user already logged in → go home
+    return res.redirect("/");
+  }
+  // no user in session → allow back/login page
+  next();
+};
+
+
+
+module.exports = exports;

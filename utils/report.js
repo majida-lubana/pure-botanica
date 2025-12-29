@@ -40,7 +40,7 @@ exports.buildDateFilter = (quickSelect, startDate, endDate) => {
       start = new Date(today.getFullYear(), 0, 1);
       return { createdAt: setRange(start, today) };
     default: {
-      // fallback – last 30 days
+   
       const def = new Date(today);
       def.setDate(today.getDate() - 29);
       return { createdAt: setRange(def, today) };

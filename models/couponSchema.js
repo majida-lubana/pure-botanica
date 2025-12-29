@@ -25,10 +25,19 @@ const couponSchema = new Schema(
       required: true,
     },
     offerPrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    type: Number,
+    required: true,
+    min: [0.01, 'Offer price must be positive'],
+    validate: {
+        validator: function(v) {
+            if (this.discountType === 'percentage') {
+                return v >= 1 && v <= 100;
+            }
+            return v > 0;
+        },
+        message: 'Percentage discount must be between 1 and 100'
+    }
+},
     minimumPrice: {
       type: Number,
       required: true,
@@ -45,15 +54,41 @@ const couponSchema = new Schema(
       type: Boolean,
       default: true,
     },
-    description: {
-      type: String,
-      trim: true,
-    },
-    discountType: {
-      type: String,
-      enum: ['fixed', 'percentage'],
-      default: 'fixed',
-    },
+    // In your models/couponSchema.js
+
+discountType: {
+    type: String,
+    enum: ['fixed', 'percentage'],
+    default: 'fixed',
+    required: true
+},
+
+offerPrice: {
+    type: Number,
+    required: true,
+    min: [0.01, 'Offer price must be greater than 0'],
+
+    // Custom validator that depends on discountType
+    validate: {
+        validator: function(value) {
+            // If percentage → must be between 1 and 100 (inclusive)
+            if (this.discountType === 'percentage') {
+                return value >= 1 && value <= 100;
+            }
+            // If fixed (flat) → just greater than 0
+            return value > 0;
+        },
+        message: props => {
+            if (props.value > 100 && this.discountType === 'percentage') {
+                return 'Percentage discount cannot exceed 100%';
+            }
+            if (props.value < 1 && this.discountType === 'percentage') {
+                return 'Percentage discount must be at least 1%';
+            }
+            return 'Offer price must be a positive number';
+        }
+    }
+},
     /** NEW FIELDS **/
     maxDiscount: {
       // only meaningful for percentage coupons

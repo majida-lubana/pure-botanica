@@ -799,34 +799,40 @@
                     </div>
 
                     <div class="pagination-container">
-                        <!-- Previous -->
-                        <button id="prevPage"
-                                class="pagination-btn <%= currentPage === 1 ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <%= currentPage === 1 ? 'disabled' : '' %>>
-                            Previous
-                        </button>
+  <div class="pagination">
+    <% if (totalPages > 0) { %>
 
-                        <!-- Page 1 -->
-                        <button class="pagination-btn <%= currentPage === 1 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
-                                data-page="1">
-                            1
-                        </button>
+      <% if (currentPage > 1) { %>
+        <a href="?page=<%= currentPage - 1 %>&search=<%= filters.search || '' %>&status=<%= filters.status || '' %>"
+           class="pagination-btn">
+          <i class="fas fa-chevron-left text-xs"></i>
+        </a>
+      <% } %>
 
-                        <!-- Page 2 (only show if totalPages >= 2) -->
-                        <% if (totalPages >= 2) { %>
-                            <button class="pagination-btn <%= currentPage === 2 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"
-                                    data-page="2">
-                                2
-                            </button>
-                        <% } %>
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <% if (i === currentPage) { %>
+          <span class="pagination-btn pagination-current"><%= i %></span>
 
-                        <!-- Next -->
-                        <button id="nextPage"
-                                class="pagination-btn <%= currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : '' %>"
-                                <%= currentPage === totalPages ? 'disabled' : '' %>>
-                            Next
-                        </button>
-                    </div>
+        <% } else if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) { %>
+          <a href="?page=<%= i %>&search=<%= filters.search || '' %>&status=<%= filters.status || '' %>"
+             class="pagination-btn"><%= i %></a>
+
+        <% } else if (i === currentPage - 2 || i === currentPage + 2) { %>
+          <span class="pagination-btn">...</span>
+        <% } %>
+      <% } %>
+
+      <% if (currentPage < totalPages) { %>
+        <a href="?page=<%= currentPage + 1 %>&search=<%= filters.search || '' %>&status=<%= filters.status || '' %>"
+           class="pagination-btn">
+          <i class="fas fa-chevron-right text-xs"></i>
+        </a>
+      <% } %>
+
+    <% } %>
+  </div>
+</div>
+
                 <% } %>
             </div>
         </div>

@@ -1,9 +1,10 @@
-const mongoose = require('mongoose')
-const WishList = require('../../models/wishlistSchema')
-const Product = require('../../models/productSchema')
+const mongoose = require('mongoose');
+const Product = require('../../models/productSchema');
+const WishList = require('../../models/wishlistSchema');
 const User = require('../../models/userSchema');
-
 const { calculatePricing } = require('../../utils/calculatePricing');
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 exports.getWishlist = async (req, res) => {
   try {
@@ -22,10 +23,10 @@ exports.getWishlist = async (req, res) => {
 
     if (wishlistDoc?.products) {
       items = wishlistDoc.products
-        .filter(p => p.productId)                    
+        .filter(p => p.productId)
         .map(p => {
           const prod = p.productId;
-          const pricing = calculatePricing(prod);     
+          const pricing = calculatePricing(prod);
 
           return {
             product: {
@@ -33,15 +34,15 @@ exports.getWishlist = async (req, res) => {
               name: prod.productName || 'Unknown',
               images: Array.isArray(prod.productImages) ? prod.productImages : [],
               stock: prod.quantity ?? 0,
-              assured: prod.assured ?? false,    
-              pricing                                
+              assured: prod.assured ?? false,
+              pricing
             },
             addedOn: p.addedOn
           };
         });
     }
 
-    
+    // Clean up invalid products from wishlist
     if (wishlistDoc && items.length !== wishlistDoc.products.length) {
       const keepIds = items.map(i => i.product._id);
       await WishList.updateOne(
@@ -53,7 +54,10 @@ exports.getWishlist = async (req, res) => {
     res.render('user/wishlist', { wishlist: items, user: req.user });
   } catch (err) {
     console.error('getWishlist error:', err);
-    res.status(500).render('error', { message: 'Failed to load wishlist' });
+    res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
+      message: MESSAGES.WISHLIST.LOAD_FAILED || 'Failed to load wishlist',
+      pageTitle: 'Error'
+    });
   }
 };
 
@@ -63,12 +67,18 @@ exports.toggleWishlist = async (req, res) => {
     const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: 'Invalid product ID' });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.WISHLIST.INVALID_PRODUCT_ID || 'Invalid product ID'
+      });
     }
 
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found'
+      });
     }
 
     let wishlist = await WishList.findOne({ user: userId });
@@ -90,14 +100,21 @@ exports.toggleWishlist = async (req, res) => {
 
     await wishlist.save();
 
-    res.json({ success: true, added });
+    res.json({
+      success: true,
+      added,
+      message: added
+        ? MESSAGES.WISHLIST.ADDED_SUCCESS || 'Added to wishlist'
+        : MESSAGES.WISHLIST.REMOVED_SUCCESS || 'Removed from wishlist'
+    });
   } catch (error) {
     console.error('toggleWishlist error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
-
-
 
 exports.removeFromWishList = async (req, res) => {
   try {
@@ -105,12 +122,18 @@ exports.removeFromWishList = async (req, res) => {
     const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: 'Invalid product ID' });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.WISHLIST.INVALID_PRODUCT_ID || 'Invalid product ID'
+      });
     }
 
     const wishlist = await WishList.findOne({ user: userId });
     if (!wishlist) {
-      return res.status(404).json({ success: false, message: 'Wishlist not found' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.WISHLIST.NOT_FOUND || 'Wishlist not found'
+      });
     }
 
     const idx = wishlist.products.findIndex(
@@ -118,20 +141,27 @@ exports.removeFromWishList = async (req, res) => {
     );
 
     if (idx === -1) {
-      return res.status(404).json({ success: false, message: 'Product not in wishlist' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.WISHLIST.ITEM_NOT_FOUND || 'Product not in wishlist'
+      });
     }
 
     wishlist.products.splice(idx, 1);
     await wishlist.save();
 
-    res.json({ success: true, message: 'Removed from wishlist' });
+    res.json({
+      success: true,
+      message: MESSAGES.WISHLIST.REMOVED_SUCCESS || 'Removed from wishlist'
+    });
   } catch (error) {
     console.error('removeFromWishList error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
-
-
 
 exports.getWishListCount = async (req, res) => {
   try {
@@ -143,11 +173,12 @@ exports.getWishListCount = async (req, res) => {
     res.json({ success: true, count });
   } catch (error) {
     console.error('getWishListCount error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
-
-
 
 exports.clearWishList = async (req, res) => {
   try {
@@ -156,12 +187,21 @@ exports.clearWishList = async (req, res) => {
     const result = await WishList.deleteOne({ user: userId });
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, message: 'Wishlist not found' });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.WISHLIST.NOT_FOUND || 'Wishlist not found'
+      });
     }
 
-    res.json({ success: true, message: 'Wishlist cleared' });
+    res.json({
+      success: true,
+      message: MESSAGES.WISHLIST.CLEARED_SUCCESS || 'Wishlist cleared'
+    });
   } catch (error) {
     console.error('clearWishList error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };

@@ -9,7 +9,8 @@ const path = require('path');
 const sharp = require('sharp')
 const multer  = require('multer')
 const Cart = require('../../models/cartSchema')
-
+const STATUS = require('../../constants/statusCode')
+const MESSAGES = require('../../constants/messages');
 
 
 exports.getproductAddPage = async (req, res) => {
@@ -30,23 +31,25 @@ exports.addProducts = async (req, res) => {
 
       if (!req.files || req.files.length === 0) {
           console.error('No files uploaded');
-          return res.status(400).json({ error: 'At least one product image is required' });
+          return res.status(STATUS.BAD_REQUEST).json({ 
+              success: false,
+              error: MESSAGES.PRODUCT.IMAGE_REQUIRED || 'At least one product image is required'
+          });
       }
 
       const products = req.body;
 
- 
       if (!products.skinType || products.skinType.trim() === '') {
-          return res.status(400).json({ 
+          return res.status(STATUS.BAD_REQUEST).json({ 
               success: false, 
-              error: 'Skin Type is required' 
+              error: MESSAGES.PRODUCT.SKIN_TYPE_REQUIRED || 'Skin Type is required' 
           });
       }
 
       if (!products.skinConcern || products.skinConcern.trim() === '') {
-          return res.status(400).json({ 
+          return res.status(STATUS.BAD_REQUEST).json({ 
               success: false, 
-              error: 'Skin Concern is required' 
+              error: MESSAGES.PRODUCT.SKIN_CONCERN_REQUIRED || 'Skin Concern is required' 
           });
       }
 
@@ -55,9 +58,9 @@ exports.addProducts = async (req, res) => {
           req.files.forEach(file => {
               if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
           });
-          return res.status(400).json({ 
+          return res.status(STATUS.BAD_REQUEST).json({ 
               success: false, 
-              error: 'Product already exists, please try with another name' 
+              error: MESSAGES.PRODUCT.ALREADY_EXISTS || 'Product already exists, please try with another name'
           });
       }
 
@@ -66,7 +69,6 @@ exports.addProducts = async (req, res) => {
           fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-   
       const images = [];
       for (let i = 0; i < req.files.length; i++) {
           try {
@@ -84,22 +86,28 @@ exports.addProducts = async (req, res) => {
 
               images.push(resizedFilename);
 
-            
               if (fs.existsSync(originalImagePath)) {
                   fs.unlinkSync(originalImagePath);
               }
           } catch (err) {
               console.error(`Error processing image ${i + 1}:`, err);
+              // Continue processing other images even if one fails
           }
       }
 
-   
       const categoryId = await Category.findOne({ categoryName: products.category });
       if (!categoryId) {
-          return res.status(400).json({ error: 'Invalid category name' });
+          // Clean up uploaded images if category is invalid
+          images.forEach(img => {
+              const imgPath = path.join(uploadDir, img);
+              if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+          });
+          return res.status(STATUS.BAD_REQUEST).json({ 
+              success: false,
+              error: MESSAGES.PRODUCT.INVALID_CATEGORY || 'Invalid category name'
+          });
       }
 
-      
       const newProduct = new Product({
           productName: products.productName,
           description: products.description,
@@ -119,177 +127,210 @@ exports.addProducts = async (req, res) => {
       const savedProduct = await newProduct.save();
       console.log('Product saved with ID:', savedProduct._id);
 
-     
       const verifyProduct = await Product.findById(savedProduct._id);
       if (!verifyProduct) {
           console.error('Product was not found in database after save');
-          return res.status(500).json({
+          return res.status(STATUS.INTERNAL_ERROR).json({
               success: false,
-              error: 'Failed to verify product in database'
+              error: MESSAGES.PRODUCT.VERIFY_FAILED || 'Failed to verify product in database'
           });
       }
 
       console.log('Verified product in database:', verifyProduct);
 
-      return res.status(200).json({
+      return res.status(STATUS.OK).json({
           success: true,
-          message: 'Product added successfully',
+          message: MESSAGES.PRODUCT.ADDED_SUCCESS || 'Product added successfully',
           redirectUrl: '/admin/product-list',
           productId: savedProduct._id
       });
+
   } catch (error) {
       console.error('Error saving product:', error);
 
+      // Clean up any uploaded/resized images on failure
       if (req.files) {
           req.files.forEach(file => {
               if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
           });
       }
 
-      return res.status(500).json({
+      const uploadDir = path.join(__dirname, '../../public/uploads/product-images');
+      // Optional: clean up any partially saved resized images (if needed)
+
+      return res.status(STATUS.INTERNAL_ERROR).json({
           success: false,
-          error: 'An error occurred while adding the product',
+          error: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'An error occurred while adding the product',
           details: error.message
       });
   }
 };
 
-
-
 exports.blockProduct = async (req, res) => {
   try {
-    let id = req.params.id;
-    await Product.updateOne({ _id: id }, { $set: { isBlocked: true } });
+    const id = req.params.id;
+
+    // Optional: Validate ObjectId to prevent invalid queries
+    if (!mongoose.isValidObjectId(id)) {
+      return res.json({
+        success: false,
+        message: MESSAGES.PRODUCT.INVALID_ID || 'Invalid product ID'
+      });
+    }
+
+    const result = await Product.updateOne(
+      { _id: id },
+      { $set: { isBlocked: true } }
+    );
+
+    // If no document was modified, the product likely doesn't exist
+    if (result.modifiedCount === 0) {
+      return res.json({
+        success: false,
+        message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found'
+      });
+    }
+
     res.json({
       success: true,
       isListed: false,
-      message: 'Product unlisted successfully'
+      message: MESSAGES.PRODUCT.BLOCKED_SUCCESS || 'Product unlisted successfully'
     });
   } catch (error) {
+    console.error('Error blocking product:', error);
     res.json({
       success: false,
-      message: 'Error while unlisting product'
+      message: MESSAGES.PRODUCT.BLOCK_FAILED || 'Error while unlisting product'
     });
   }
 };
 
 exports.unblockProduct = async (req, res) => {
   try {
-    let id = req.params.id;
-    await Product.updateOne({ _id: id }, { $set: { isBlocked: false } });
+    const id = req.params.id;
+
+    // Optional: Validate ObjectId for safety
+    if (!mongoose.isValidObjectId(id)) {
+      return res.json({
+        success: false,
+        message: MESSAGES.PRODUCT.INVALID_ID || 'Invalid product ID'
+      });
+    }
+
+    const result = await Product.updateOne(
+      { _id: id },
+      { $set: { isBlocked: false } }
+    );
+
+    // Check if any document was actually modified
+    if (result.modifiedCount === 0) {
+      return res.json({
+        success: false,
+        message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found'
+      });
+    }
+
     res.json({
       success: true,
       isListed: true,
-      message: 'Product listed successfully'
+      message: MESSAGES.PRODUCT.UNBLOCKED_SUCCESS || 'Product listed successfully'
     });
   } catch (error) {
+    console.error('Error unblocking product:', error);
     res.json({
       success: false,
-      message: 'Error while listing product'
+      message: MESSAGES.PRODUCT.UNBLOCK_FAILED || 'Error while listing product'
     });
   }
 };
-
-
 
 exports.addProductOffer = async (req, res) => {
   try {
     const productId = req.params.id;
 
-   
     if (!productId) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Product ID is required in the URL parameters' 
-      });
-    }
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid product ID format. Must be a valid MongoDB ObjectId' 
+        message: MESSAGES.PRODUCT.OFFER_ID_REQUIRED || 'Product ID is required in the URL parameters' 
       });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(STATUS.BAD_REQUEST).json({ 
+        success: false, 
+        message: MESSAGES.PRODUCT.INVALID_ID || 'Invalid product ID format. Must be a valid MongoDB ObjectId' 
+      });
+    }
 
     const offerPercentageRaw = req.body.offerPercentage;
 
-
     if (offerPercentageRaw === undefined || offerPercentageRaw === null) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage is required in the request body' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_REQUIRED || 'Offer percentage is required in the request body' 
       });
     }
-
 
     if (typeof offerPercentageRaw !== 'string' && typeof offerPercentageRaw !== 'number') {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage must be a number or numeric string' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_TYPE || 'Offer percentage must be a number or numeric string' 
       });
     }
-
 
     const trimmedValue = typeof offerPercentageRaw === 'string' ? offerPercentageRaw.trim() : offerPercentageRaw;
 
-
     if (typeof trimmedValue === 'string' && trimmedValue === '') {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage cannot be empty' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_EMPTY || 'Offer percentage cannot be empty' 
       });
     }
-
 
     const offerPercentage = parseInt(trimmedValue, 10);
 
-
     if (isNaN(offerPercentage)) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage must be a valid numeric value' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_NAN || 'Offer percentage must be a valid numeric value' 
       });
     }
 
-
     if (offerPercentage.toString() !== trimmedValue.toString().replace(/\..*$/, '')) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage must be a whole number (no decimals)' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_WHOLE || 'Offer percentage must be a whole number (no decimals)' 
       });
     }
 
     if (offerPercentage < 1 || offerPercentage > 90) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Offer percentage must be between 1 and 90 inclusive' 
+        message: MESSAGES.PRODUCT.OFFER_PERCENT_RANGE || 'Offer percentage must be between 1 and 90 inclusive' 
       });
     }
-
 
     const product = await Product.findById(productId).select('salePrice productOffer name');
 
     if (!product) {
-      return res.status(404).json({ 
+      return res.status(STATUS.NOT_FOUND).json({ 
         success: false, 
-        message: 'Product not found with the provided ID' 
+        message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found with the provided ID' 
       });
     }
-
 
     if (!product.salePrice || typeof product.salePrice !== 'number' || product.salePrice <= 0) {
-      return res.status(400).json({ 
+      return res.status(STATUS.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Product has an invalid sale price. Cannot apply offer' 
+        message: MESSAGES.PRODUCT.INVALID_SALE_PRICE || 'Product has an invalid sale price. Cannot apply offer' 
       });
     }
 
-
     if (product.productOffer === offerPercentage) {
-      const currentPrice = product.salePrice - (product.salePrice * offerPercentage / 100);
+      const currentPrice = product.salePrice * (1 - offerPercentage / 100);
       return res.json({
         success: true,
-        message: 'Offer already applied at this percentage',
+        message: MESSAGES.PRODUCT.OFFER_ALREADY_APPLIED || 'Offer already applied at this percentage',
         offerPercentage,
         newPrice: currentPrice.toFixed(2),
         originalPrice: product.salePrice.toFixed(2),
@@ -297,15 +338,10 @@ exports.addProductOffer = async (req, res) => {
       });
     }
 
-
     product.productOffer = offerPercentage;
     await product.save();
 
-
-    const discountAmount = (product.salePrice * offerPercentage) / 100;
-    const newPriceRaw = product.salePrice - discountAmount;
-    const newPrice = Number(newPriceRaw.toFixed(2)); 
-
+    const newPrice = Number((product.salePrice * (1 - offerPercentage / 100)).toFixed(2));
 
     const carts = await Cart.find({ 'items.productId': productId });
     let cartsUpdatedCount = 0;
@@ -326,14 +362,13 @@ exports.addProductOffer = async (req, res) => {
       }
     }
 
-
     console.log(`Offer added: ${product.name} (${productId}) → ${offerPercentage}%`);
     console.log(`Discounted price: ₹${newPrice.toFixed(2)} (from ₹${product.salePrice.toFixed(2)})`);
     console.log(`Updated ${cartsUpdatedCount} cart(s)`);
 
     res.json({
       success: true,
-      message: 'Offer applied successfully',
+      message: MESSAGES.PRODUCT.OFFER_ADDED_SUCCESS || 'Offer applied successfully',
       productId,
       productName: product.name,
       offerPercentage,
@@ -351,67 +386,79 @@ exports.addProductOffer = async (req, res) => {
       body: req.body
     });
 
-    res.status(500).json({ 
+    res.status(STATUS.INTERNAL_ERROR).json({ 
       success: false, 
-      message: 'Internal server error. Please try again later.' 
-      
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Internal server error. Please try again later.'
     });
   }
 };
 
-
 exports.removeProductOffer = async (req, res) => {
   try {
     const productId = req.params.id;
-    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: 'Invalid product ID' });
-    }
 
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(STATUS.BAD_REQUEST).json({ 
+        success: false, 
+        message: MESSAGES.PRODUCT.INVALID_ID || 'Invalid product ID' 
+      });
+    }
 
     const product = await Product.findById(productId);
 
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
+      return res.status(STATUS.NOT_FOUND).json({ 
+        success: false, 
+        message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found' 
+      });
     }
 
-   
+    // Remove the offer
     product.productOffer = 0;
     await product.save();
 
-  
     const originalPrice = product.salePrice;
 
-  
+    // Update all carts that contain this product
     const carts = await Cart.find({ 'items.productId': productId });
-    
+    let cartsUpdatedCount = 0;
+
     for (const cart of carts) {
       let updated = false;
       cart.items.forEach(item => {
         if (item.productId.toString() === productId.toString()) {
           item.price = originalPrice;
-          item.totalPrice = originalPrice * item.quantity;
+          item.totalPrice = Number((originalPrice * item.quantity).toFixed(2));
           item.updatedAt = new Date();
           updated = true;
         }
       });
-      
+
       if (updated) {
         await cart.save();
+        cartsUpdatedCount++;
       }
     }
 
-    console.log(`Offer removed: ${productId}`);
-    console.log(`Updated ${carts.length} cart(s) with original price: ₹${originalPrice.toFixed(2)}`);
+    console.log(`Offer removed: ${productId} (${product.name || 'Unknown'})`);
+    console.log(`Restored original price: ₹${originalPrice.toFixed(2)}`);
+    console.log(`Updated ${cartsUpdatedCount} cart(s)`);
 
     res.json({
       success: true,
+      message: MESSAGES.PRODUCT.OFFER_REMOVED_SUCCESS || 'Offer removed successfully',
       offerPercentage: 0,
       newPrice: originalPrice.toFixed(2),
-      cartsUpdated: carts.length
+      originalPrice: originalPrice.toFixed(2),
+      cartsUpdated: cartsUpdatedCount
     });
+
   } catch (error) {
     console.error('Remove Offer Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(STATUS.INTERNAL_ERROR).json({ 
+      success: false, 
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+    });
   }
 };
 
@@ -422,36 +469,36 @@ exports.getEditProduct = async (req, res) => {
 
     if (!mongoose.isValidObjectId(id)) {
       console.error('Invalid product ID:', id);
-      return res.status(400).render('admin/admin-error', {
+      return res.status(STATUS.BAD_REQUEST).render('admin/admin-error', {
         pageTitle: 'Admin Error',
         heading: 'Invalid Product ID',
         userName: 'Admin',
         imageURL: '/images/admin-avatar.jpg',
-        message: 'The provided product ID is invalid.',
+        errorMessage: MESSAGES.PRODUCT.INVALID_ID || 'The provided product ID is invalid.'
       });
     }
 
     const product = await Product.findById(id);
     if (!product) {
       console.error('Product not found for ID:', id);
-      return res.status(404).render('admin/admin-error', {
+      return res.status(STATUS.NOT_FOUND).render('admin/admin-error', {
         pageTitle: 'Admin Error',
         heading: 'Product Not Found',
         userName: 'Admin',
         imageURL: '/images/admin-avatar.jpg',
-        message: 'The requested product was not found.',
+        errorMessage: MESSAGES.PRODUCT.NOT_FOUND || 'The requested product was not found.'
       });
     }
 
     const categories = await Category.find({});
     if (!categories || categories.length === 0) {
       console.error('No categories found');
-      return res.status(404).render('admin/admin-error', {
+      return res.status(STATUS.NOT_FOUND).render('admin/admin-error', {
         pageTitle: 'Admin Error',
         heading: 'No Categories Found',
         userName: 'Admin',
         imageURL: '/images/admin-avatar.jpg',
-        message: 'No categories are available to assign to the product.',
+        errorMessage: MESSAGES.PRODUCT.NO_CATEGORIES || 'No categories are available to assign to the product.'
       });
     }
 
@@ -463,40 +510,38 @@ exports.getEditProduct = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in getEditProduct:', error);
-    res.status(500).render('admin/admin-error', {
+    res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
       pageTitle: 'Admin Error',
       heading: 'Server Error',
       userName: 'Admin',
       imageURL: '/images/admin-avatar.jpg',
-      message: 'A server-side error occurred. Please try again later.',
+      errorMessage: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'A server-side error occurred. Please try again later.'
     });
   }
 };
 
 exports.updateProduct = async (req, res) => {
     try {
-      console.log('dsankndfkjnmfsndkdsfd,f,ksnkfsd:', req.body);
+      console.log('Update product request body:', req.body);
       console.log('Request Files:', req.files);
 
       const id = req.params.id;
-      console.log("product update",id)
+      console.log("Product update ID:", id);
 
-   
       if (!mongoose.isValidObjectId(id)) {
         console.error('Invalid product ID:', id);
-        return res.status(400).json({
+        return res.status(STATUS.BAD_REQUEST).json({
           success: false,
-          message: 'Invalid product ID',
+          message: MESSAGES.PRODUCT.INVALID_ID || 'Invalid product ID'
         });
       }
 
-     
       const product = await Product.findById(id);
       if (!product) {
         console.error('Product not found for ID:', id);
-        return res.status(404).json({
+        return res.status(STATUS.NOT_FOUND).json({
           success: false,
-          message: 'Product not found',
+          message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found'
         });
       }
 
@@ -513,8 +558,6 @@ exports.updateProduct = async (req, res) => {
         existingImages,
       } = req.body;
 
-       console.log("i am reached",req.body)
-    
       if (
         !productName ||
         !productDescription ||
@@ -524,57 +567,45 @@ exports.updateProduct = async (req, res) => {
         !skinConcern ||
         !regularPrice ||
         !salePrice ||
-        !stock
+        stock === undefined || stock === ''
       ) {
-        console.error('Missing required fields:', {
-          productName,
-          productDescription,
-          howToUse,
-          category,
-          skinType,
-          skinConcern,
-          regularPrice,
-          salePrice,
-          stock,
-        });
-        return res.status(400).json({
+        console.error('Missing required fields');
+        return res.status(STATUS.BAD_REQUEST).json({
           success: false,
-          message: 'All required fields must be provided',
+          message: MESSAGES.PRODUCT.REQUIRED_FIELDS || 'All required fields must be provided'
         });
       }
-      if(stock<0){
-        return res.status(400).json({
-          success :false,
-          message:'Quantity cannot be negative',
-        })
+
+      const parsedStock = Number(stock);
+      if (isNaN(parsedStock) || parsedStock < 0) {
+        return res.status(STATUS.BAD_REQUEST).json({
+          success: false,
+          message: MESSAGES.PRODUCT.INVALID_QUANTITY || 'Quantity must be a valid non-negative number'
+        });
       }
-  
+
       let productImages = [...(product.productImages || [])];
-
-
 
       const existingImagesArray = Array.isArray(existingImages)
         ? existingImages
-        : existingImages
-        ? [existingImages]
-        : [];
+        : existingImages ? [existingImages] : [];
+
       existingImagesArray.forEach((img, index) => {
         if (img && index < productImages.length) {
           productImages[index] = img;
         }
       });
 
-
       if (req.files && req.files.length > 0) {
         req.files.forEach((file) => {
           const match = file.originalname.match(/^image(\d+)\.jpg$/);
           if (match) {
             const index = parseInt(match[1]) - 1;
-     
+
             if (productImages[index]) {
               const oldImagePath = path.join(
                 __dirname,
-                '../public/uploads/product-images',
+                '../../public/uploads/product-images',  // Fixed path to match addProducts
                 productImages[index]
               );
               if (fs.existsSync(oldImagePath)) {
@@ -588,12 +619,11 @@ exports.updateProduct = async (req, res) => {
         });
       }
 
-
       if (productImages.filter(Boolean).length < 3) {
         console.error('Insufficient images:', productImages);
-        return res.status(400).json({
+        return res.status(STATUS.BAD_REQUEST).json({
           success: false,
-          message: 'At least three product images are required',
+          message: MESSAGES.PRODUCT.MIN_IMAGES_REQUIRED || 'At least three product images are required'
         });
       }
 
@@ -608,7 +638,7 @@ exports.updateProduct = async (req, res) => {
           skinConcern,
           regularPrice,
           salePrice,
-          quantity: stock,
+          quantity: parsedStock,
           productImages,
         },
         { new: true, runValidators: true }
@@ -616,63 +646,74 @@ exports.updateProduct = async (req, res) => {
 
       if (!updatedProduct) {
         console.error('Failed to update product for ID:', id);
-        return res.status(404).json({
+        return res.status(STATUS.NOT_FOUND).json({
           success: false,
-          message: 'Product not found',
+          message: MESSAGES.PRODUCT.NOT_FOUND || 'Product not found'
         });
       }
 
       console.log('Product updated successfully:', updatedProduct._id);
       return res.json({
         success: true,
-        message: 'Product updated successfully',
+        message: MESSAGES.PRODUCT.UPDATED_SUCCESS || 'Product updated successfully'
       });
+
     } catch (error) {
       console.error('Error updating product:', error.stack);
-      return res.status(500).json({
+      return res.status(STATUS.INTERNAL_ERROR).json({
         success: false,
-        message: error.message || 'An error occurred while updating the product',
+        message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'An error occurred while updating the product'
       });
     }
-  }
+};
 exports.getAllproducts = async (req, res) => {
   try {
-    const search = req.query.search || "";
+    const search = req.query.search?.trim() || "";
     const page = parseInt(req.query.page) || 1;
     const limit = 4;
+    const skip = (page - 1) * limit;
 
-    const query = {
-      $or: [
-        { productName: { $regex: new RegExp(search, "i") } },
-        { brand: { $regex: new RegExp(search, "i") } },
-      ],
-    };
+    // Build query only if search is provided
+    const query = search
+      ? {
+          $or: [
+            { productName: { $regex: new RegExp(search, "i") } },
+            { brand: { $regex: new RegExp(search, "i") } },
+          ],
+        }
+      : {};
 
     const productData = await Product.find(query)
-      .limit(limit)
-      .skip((page - 1) * limit)
       .populate("category")
-     
+      .sort({ createdOn: -1 }) // Optional: better UX with newest first
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     const count = await Product.countDocuments(query);
 
-    const category = await Category.find({ isListed: true });
-    const brand = await Brand.find({ isBlocked: false });
+    const category = await Category.find({ isListed: true }).lean();
+    const brand = await Brand.find({ isBlocked: false }).lean();
 
-    if (category && brand) {
-      res.render("admin/product-list", {
-        products: productData,
-        currentPage: page,
-        totalPages: Math.ceil(count / limit),
-        totalProducts: count, 
-        cat: category,
-        brand: brand,
-      });
-    } else {
-      res.render("page-404");
-    }
+    // Always render the product list — even if no categories/brands (admin can still manage products)
+    res.render("admin/product-list", {
+      products: productData,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit) || 1,
+      totalProducts: count,
+      cat: category,
+      brand: brand,
+      search, // Pass search term back to view for persistence
+    });
+
   } catch (error) {
-    console.error("Error in getAllproducts:", error.message);
-    res.redirect("/admin/add-product");
+    console.error("Error in getAllproducts:", error);
+    res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
+      pageTitle: 'Admin Error',
+      heading: 'Oops! Something Went Wrong',
+      userName: 'Admin',
+      imageURL: '/images/admin-avatar.jpg',
+      errorMessage: MESSAGES.PRODUCT.LOAD_FAILED || 'Failed to load products. Please try again later.'
+    });
   }
 };

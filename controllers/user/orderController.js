@@ -5,6 +5,8 @@ const Order = require("../../models/orderSchema");
 const Transaction = require("../../models/transactionSchema");
 const { creditWallet } = require("../../utils/walletUtils");
 const { calculatePricing } = require("../../utils/calculatePricing");
+const STATUS = require('../../constants/statusCode');
+const MESSAGES = require('../../constants/messages'); // Centralized messages
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map((i) => i.status);
@@ -61,29 +63,24 @@ async function updateOrderStatus(order, session = null) {
 
   await order.save({ session });
 
-  // Auto-set paymentStatus to 'paid' when ALL items are delivered
   if (newStatus === 'delivered' && order.paymentStatus !== 'paid') {
     order.paymentStatus = 'paid';
     await order.save();
   }
 }
 
-// FIXED: Correct payment status logic
 function getDisplayPaymentStatus(order) {
-  // Priority-based payment status logic
   if (order.paymentStatus === 'paid') return 'Paid';
   if (order.paymentStatus === 'failed') return 'Failed';
   if (order.paymentStatus === 'pending' && ['payment_pending', 'payment_failed'].includes(order.status)) {
     return order.status === 'payment_failed' ? 'Failed' : 'Pending';
   }
   
-  // Special cases for different payment methods
   if (order.paymentMethod === 'wallet' && order.paidViaWallet) return 'Paid';
   if (order.paymentMethod === 'cod') {
     return order.status === 'delivered' ? 'Paid' : 'Pending';
   }
   
-  // For online payments, rely on paymentStatus field only
   if (['razorpay', 'online'].includes(order.paymentMethod)) {
     return order.paymentStatus === 'paid' ? 'Paid' : 
            order.paymentStatus === 'failed' ? 'Failed' : 'Pending';
@@ -92,7 +89,6 @@ function getDisplayPaymentStatus(order) {
   return 'Pending';
 }
 
-// FIXED: Check if payment can be retried
 function canRetryPayment(order) {
   const isPaymentPendingOrFailed = ['payment_pending', 'payment_failed'].includes(order.status);
   const isOnlinePayment = ['razorpay', 'online'].includes(order.paymentMethod);
@@ -110,7 +106,7 @@ exports.loadOrderPage = async (req, res) => {
     if (!userId) return res.redirect("/login");
 
     const user = await User.findById(userId).select("avatar name email phone");
-    if (!user) return res.status(404).send("User not found");
+    if (!user) return res.status(STATUS.NOT_FOUND).send(MESSAGES.AUTH.USER_NOT_FOUND || "User not found");
 
     const page = parseInt(req.query.page) || 1;
     const limit = 3;
@@ -153,7 +149,12 @@ exports.loadOrderPage = async (req, res) => {
       .limit(limit)
       .lean();
 
-    // ----- Sync computed status (keeps DB in sync) -----
+      // prevent empty pages
+     if (orders.length === 0 && page > 1) {
+        return res.redirect(`/orders?page=${page - 1}&search=${req.query.search || ''}&status=${req.query.status || ''}`);
+     }
+
+
     for (const order of orders) {
       const newStatus = computeOrderStatus(order.orderItems);
       if (order.status !== newStatus && !['payment_pending', 'payment_failed'].includes(order.status)) {
@@ -163,7 +164,7 @@ exports.loadOrderPage = async (req, res) => {
     }
 
     const message =
-      orders.length === 0 ? "No orders found for selected filter" : null;
+      orders.length === 0 ? MESSAGES.ORDER.NO_ORDERS_FOUND || "No orders found for selected filter" : null;
 
     res.render("user/orders", {
       user: {
@@ -176,7 +177,6 @@ exports.loadOrderPage = async (req, res) => {
         _id: order._id,
         orderID: order.orderId,
         createdAt: order.createdOn,
-        // FIXED: Use proper payment status logic
         paymentStatus: getDisplayPaymentStatus(order),
         canRetryPayment: canRetryPayment(order),
         status: order.status || "processing",
@@ -195,13 +195,13 @@ exports.loadOrderPage = async (req, res) => {
     });
   } catch (err) {
     console.error("Error loading orders page:", err);
-    res.status(500).send("Internal Server Error");
+    res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
+      message: MESSAGES.ORDER.LOAD_FAILED || "Internal Server Error",
+      pageTitle: 'Error'
+    });
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/*                           ORDER DETAILS PAGE                               */
-/* -------------------------------------------------------------------------- */
 exports.getOrderDetailsPage = async (req, res) => {
   try {
     const userId = req.session.user;
@@ -224,14 +224,16 @@ exports.getOrderDetailsPage = async (req, res) => {
       });
 
     if (!order) {
-      return res.status(404).send("Order not found");
+      return res.status(STATUS.NOT_FOUND).render('user/page-404', {
+        message: MESSAGES.ORDER.NOT_FOUND || "Order not found",
+        pageTitle: 'Error'
+      });
     }
 
-    // SYNC ORDER STATUS BEFORE RENDERING (but don't override payment status)
     const computedStatus = computeOrderStatus(order.orderItems);
     if (order.status !== computedStatus && !['payment_pending', 'payment_failed'].includes(order.status)) {
       order.status = computedStatus;
-      await order.save(); // Save updated status to DB
+      await order.save();
     }
 
     let recalculatedSubtotal = 0;
@@ -306,7 +308,6 @@ exports.getOrderDetailsPage = async (req, res) => {
       orderDate: order.createdOn,
       invoiceDate: order.invoiceDate || order.createdOn,
       paymentMethod: order.paymentMethod || "N/A",
-      // FIXED: Use proper payment status logic
       paymentStatus: getDisplayPaymentStatus(order),
       canRetryPayment: canRetryPayment(order),
       paymentRetryExpiry: order.paymentRetryExpiry,
@@ -344,51 +345,57 @@ exports.getOrderDetailsPage = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching order details:", error);
-    res.status(500).send("Internal Server Error");
+    res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
+      message: MESSAGES.ORDER.LOAD_FAILED || "Internal Server Error",
+      pageTitle: 'Error'
+    });
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/*                               CANCEL ITEM                                   */
-/* -------------------------------------------------------------------------- */
 exports.cancelItem = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
     const userId = req.session.user;
 
     if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      return res.status(STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: MESSAGES.AUTH.UNAUTHORIZED || "Unauthorized"
+      });
     }
 
     if (
       !mongoose.Types.ObjectId.isValid(orderId) ||
       !mongoose.Types.ObjectId.isValid(productId)
     ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid order or product ID" });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.ORDER.INVALID_ID || "Invalid order or product ID"
+      });
     }
 
     const order = await Order.findById(orderId);
     if (!order || order.user.toString() !== userId) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found or unauthorized" });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.ORDER.NOT_FOUND || "Order not found or unauthorized"
+      });
     }
 
     const item = order.orderItems.find(
       (i) => i.product.toString() === productId
     );
     if (!item) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Item not found in order" });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.ORDER.ITEM_NOT_FOUND || "Item not found in order"
+      });
     }
 
     if (!["pending", "ordered"].includes(item.status)) {
-      return res.status(400).json({
+      return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: `Item cannot be cancelled (current status: ${item.status})`,
+        message: MESSAGES.ORDER.CANNOT_CANCEL || `Item cannot be cancelled (current status: ${item.status})`
       });
     }
 
@@ -398,7 +405,6 @@ exports.cancelItem = async (req, res) => {
       $inc: { quantity: item.quantity },
     });
 
-    // Only refund if payment was successful (not for failed/pending payments)
     if (order.paymentStatus === 'paid' || order.paidViaWallet) {
       const refundAmount = item.purchasePrice * item.quantity;
 
@@ -423,48 +429,46 @@ exports.cancelItem = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Item cancelled successfully",
+      message: MESSAGES.ORDER.ITEM_CANCELLED || "Item cancelled successfully",
       orderStatus: order.status,
     });
   } catch (error) {
     console.error("Error cancelling item:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: `Failed to cancel item: ${error.message}`,
-      });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Failed to cancel item"
+    });
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/*                               RETURN ITEM                                   */
-/* -------------------------------------------------------------------------- */
 exports.returnItem = async (req, res) => {
-  console.log("Return request initiated");
-
   try {
     const { orderId, productId, reason } = req.body;
     const userId = req.session.user;
 
     if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      return res.status(STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: MESSAGES.AUTH.UNAUTHORIZED || "Unauthorized"
+      });
     }
 
     const order = await Order.findById(orderId);
     if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
+      return res.status(STATUS.NOT_FOUND).json({
+        success: false,
+        message: MESSAGES.ORDER.NOT_FOUND || "Order not found"
+      });
     }
 
     const item = order.orderItems.find(
       (item) => item.product.toString() === productId
     );
     if (!item || item.status !== "delivered") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Item cannot be returned" });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.ORDER.CANNOT_RETURN || "Item cannot be returned"
+      });
     }
 
     const RETURN_EXPIRY_DAYS = 7;
@@ -475,9 +479,10 @@ exports.returnItem = async (req, res) => {
     expiryDate.setDate(deliveryDate.getDate() + RETURN_EXPIRY_DAYS);
 
     if (new Date() > expiryDate) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Return period has expired" });
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: MESSAGES.ORDER.RETURN_EXPIRED || "Return period has expired"
+      });
     }
 
     item.status = "return requested";
@@ -507,11 +512,14 @@ exports.returnItem = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Return request submitted. Refund pending admin approval.",
+      message: MESSAGES.ORDER.RETURN_REQUESTED || "Return request submitted. Refund pending admin approval.",
       orderStatus: order.status,
     });
   } catch (error) {
     console.error("Error requesting return:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Internal Server Error"
+    });
   }
 };
