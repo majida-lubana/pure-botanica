@@ -1,10 +1,10 @@
-const bcrypt = require('bcrypt');
-const User = require('../../models/userSchema');
-const { generateOtp, sendVerificationEmail } = require('../../utils/emailService');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); 
+import bcrypt from 'bcrypt';
+import User from '../../models/userSchema.js';
+import { generateOtp, sendVerificationEmail } from '../../utils/emailService.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
 
-exports.loadUserProfile = async (req, res) => {
+export const loadUserProfile = async (req, res) => {
     try {
         let userId;
         if (req.session.user) {
@@ -27,7 +27,7 @@ exports.loadUserProfile = async (req, res) => {
     }
 };
 
-exports.userProfile = async (req, res) => {
+export const userProfile = async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findById(userId);
@@ -42,7 +42,7 @@ exports.userProfile = async (req, res) => {
     }
 };
 
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
     try {
         const { name, phone } = req.body;
         let userId;
@@ -102,7 +102,7 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-exports.sendEmailOtp = async (req, res) => {
+export const sendEmailOtp = async (req, res) => {
     try {
         const { email } = req.body;
         let userId;
@@ -171,7 +171,7 @@ exports.sendEmailOtp = async (req, res) => {
     }
 };
 
-exports.verifyEmailOtp = async (req, res) => {
+export const verifyEmailOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
         let userId;
@@ -265,7 +265,7 @@ exports.verifyEmailOtp = async (req, res) => {
     }
 };
 
-exports.resendEmailOtp = async (req, res) => {
+export const resendEmailOtp = async (req, res) => {
     try {
         const email = req.session.emailChangeEmail;
         let userId;
@@ -333,7 +333,7 @@ exports.resendEmailOtp = async (req, res) => {
     }
 };
 
-exports.updatePassword = async (req, res) => {
+export const updatePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword, confirmPassword } = req.body;
         let userId;
@@ -402,4 +402,15 @@ exports.updatePassword = async (req, res) => {
             message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'An error occurred. Please try again.'
         });
     }
+};
+
+
+export default {
+    loadUserProfile,
+    userProfile,
+    updateProfile,
+    sendEmailOtp,
+    verifyEmailOtp,
+    resendEmailOtp,
+    updatePassword
 };

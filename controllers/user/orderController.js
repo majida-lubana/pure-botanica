@@ -1,12 +1,12 @@
-const mongoose = require("mongoose");
-const Product = require("../../models/productSchema");
-const User = require("../../models/userSchema");
-const Order = require("../../models/orderSchema");
-const Transaction = require("../../models/transactionSchema");
-const { creditWallet } = require("../../utils/walletUtils");
-const { calculatePricing } = require("../../utils/calculatePricing");
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import mongoose from 'mongoose';
+import Product from '../../models/productSchema.js';
+import User from '../../models/userSchema.js';
+import Order from '../../models/orderSchema.js';
+import Transaction from '../../models/transactionSchema.js';
+import { creditWallet } from '../../utils/walletUtils.js';
+import calculatePricing from '../../utils/calculatePricing.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map((i) => i.status);
@@ -35,7 +35,7 @@ const computeOrderStatus = (orderItems) => {
   return "pending";
 };
 
-async function updateOrderStatus(order, session = null) {
+const updateOrderStatus = async (order, session = null) => {
   const newStatus = computeOrderStatus(order.orderItems);
 
   if (order.status !== newStatus) {
@@ -65,11 +65,11 @@ async function updateOrderStatus(order, session = null) {
 
   if (newStatus === 'delivered' && order.paymentStatus !== 'paid') {
     order.paymentStatus = 'paid';
-    await order.save();
+    await order.save({ session });
   }
-}
+};
 
-function getDisplayPaymentStatus(order) {
+const getDisplayPaymentStatus = (order) => {
   if (order.paymentStatus === 'paid') return 'Paid';
   if (order.paymentStatus === 'failed') return 'Failed';
   if (order.paymentStatus === 'pending' && ['payment_pending', 'payment_failed'].includes(order.status)) {
@@ -87,20 +87,20 @@ function getDisplayPaymentStatus(order) {
   }
   
   return 'Pending';
-}
+};
 
-function canRetryPayment(order) {
+const canRetryPayment = (order) => {
   const isPaymentPendingOrFailed = ['payment_pending', 'payment_failed'].includes(order.status);
   const isOnlinePayment = ['razorpay', 'online'].includes(order.paymentMethod);
   const hasNotExpired = !order.paymentRetryExpiry || new Date() < new Date(order.paymentRetryExpiry);
   
   return isPaymentPendingOrFailed && isOnlinePayment && hasNotExpired;
-}
+};
 
 /* -------------------------------------------------------------------------- */
 /*                              ORDERS LIST PAGE                              */
 /* -------------------------------------------------------------------------- */
-exports.loadOrderPage = async (req, res) => {
+export const loadOrderPage = async (req, res) => {
   try {
     const userId = req.session.user;
     if (!userId) return res.redirect("/login");
@@ -149,11 +149,10 @@ exports.loadOrderPage = async (req, res) => {
       .limit(limit)
       .lean();
 
-      // prevent empty pages
-     if (orders.length === 0 && page > 1) {
-        return res.redirect(`/orders?page=${page - 1}&search=${req.query.search || ''}&status=${req.query.status || ''}`);
-     }
-
+    
+    if (orders.length === 0 && page > 1) {
+      return res.redirect(`/orders?page=${page - 1}&search=${req.query.search || ''}&status=${req.query.status || ''}`);
+    }
 
     for (const order of orders) {
       const newStatus = computeOrderStatus(order.orderItems);
@@ -182,11 +181,10 @@ exports.loadOrderPage = async (req, res) => {
         status: order.status || "processing",
         finalAmount: order.finalAmount || 0,
         orderItems: order.orderItems.map((item) => ({
-          productId: item.product?._id,
-          productName:
-            item.productName || item.product?.productName || "Unknown Product",
-          image: item.productImage,
-        })),
+  productId: item.product?._id,
+  productName: item.productName || item.product?.productName || "Unknown Product",
+  productImages: item.product?.productImages || [],
+})),
       })),
       message,
       filters: req.query,
@@ -202,7 +200,7 @@ exports.loadOrderPage = async (req, res) => {
   }
 };
 
-exports.getOrderDetailsPage = async (req, res) => {
+export const getOrderDetailsPage = async (req, res) => {
   try {
     const userId = req.session.user;
     if (!userId) {
@@ -257,18 +255,17 @@ exports.getOrderDetailsPage = async (req, res) => {
       originalSubtotal += itemOriginal;
 
       let imagePath = "/images/placeholder.jpg";
-      if (item.productImage) {
-        if (
-          item.productImage.startsWith("/uploads") ||
-          item.productImage.startsWith("http")
-        ) {
-          imagePath = item.productImage;
-        } else {
-          imagePath = `/uploads/product-images/${item.productImage}`;
-        }
-      } else if (product?.productImages?.[0]) {
-        imagePath = `/uploads/product-images/${product.productImages[0]}`;
-      }
+
+if (item.productImage) {
+  imagePath = item.productImage.startsWith("http")
+    ? item.productImage
+    : `/uploads/product-images/${item.productImage}`;
+} else if (product?.productImages?.[0]) {
+  imagePath = product.productImages[0].startsWith("http")
+    ? product.productImages[0]
+    : `/uploads/product-images/${product.productImages[0]}`;
+}
+
 
       return {
         productId: product?._id || item.product,
@@ -352,7 +349,7 @@ exports.getOrderDetailsPage = async (req, res) => {
   }
 };
 
-exports.cancelItem = async (req, res) => {
+export const cancelItem = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
     const userId = req.session.user;
@@ -441,7 +438,7 @@ exports.cancelItem = async (req, res) => {
   }
 };
 
-exports.returnItem = async (req, res) => {
+export const returnItem = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
     const userId = req.session.user;
@@ -522,4 +519,12 @@ exports.returnItem = async (req, res) => {
       message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Internal Server Error"
     });
   }
+};
+
+
+export default {
+  loadOrderPage,
+  getOrderDetailsPage,
+  cancelItem,
+  returnItem
 };

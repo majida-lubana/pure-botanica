@@ -1,11 +1,14 @@
-const bcrypt = require('bcrypt');
-const Product = require('../../models/productSchema');
-const User = require('../../models/userSchema');
-const { generateOtp, sendVerificationEmail } = require('../../utils/emailService');
-const referralController = require('../../controllers/user/referralController');
-const { calculatePricing } = require('../../utils/calculatePricing');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+
+
+import bcrypt from 'bcrypt';
+import Product from '../../models/productSchema.js';
+import User from '../../models/userSchema.js';
+import Cart from '../../models/cartSchema.js';
+import { generateOtp, sendVerificationEmail } from '../../utils/emailService.js';
+import * as referralController from '../../controllers/user/referralController.js'; 
+import calculatePricing from '../../utils/calculatePricing.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
 
 const securePassword = async (password) => {
   try {
@@ -17,7 +20,7 @@ const securePassword = async (password) => {
   }
 };
 
-exports.loadHomePage = async (req, res) => {
+export const loadHomePage = async (req, res) => {
   try {
     const productsPerPage = 9;
     const currentPage = parseInt(req.query.page) || 1;
@@ -46,10 +49,8 @@ exports.loadHomePage = async (req, res) => {
 
     const formattedProducts = productsWithPricing.map(product => ({
       id: product._id.toString(),
-      name: product.productName,
-      image: product.productImages?.length > 0
-        ? '/Uploads/product-images/' + product.productImages[0]
-        : 'https://storage.googleapis.com/a1aa/image/placeholder.jpg',
+      productName: product.productName,
+      productImages: product.productImages,
       price: product.salePrice,
       rating: product.rating ?? 4,
       reviews: product.reviews ?? 0,
@@ -60,6 +61,7 @@ exports.loadHomePage = async (req, res) => {
     if (req.session.user) {
       findUserData = await User.findById(req.session.user);
     }
+
     let cartCount = 0;
     if (req.user?._id) {
       const cart = await Cart.findOne({ user: req.user._id }).lean();
@@ -69,8 +71,11 @@ exports.loadHomePage = async (req, res) => {
     res.render('user/home', {
       title: 'Beauty Pronounced',
       paginatedProducts: formattedProducts,
+      heroImage: 'https://res.cloudinary.com/du0krnsgb/image/upload/v1767/home/hero.jpg',
       user: findUserData,
-      cartCount
+      cartCount,
+       currentPage,
+       totalPages
     });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -80,7 +85,7 @@ exports.loadHomePage = async (req, res) => {
   }
 };
 
-exports.loadSignup = async (req, res) => {
+export const loadSignup = async (req, res) => {
   try {
     if (req.session.user) {
       return res.redirect('/user/home');
@@ -96,7 +101,7 @@ exports.loadSignup = async (req, res) => {
   }
 };
 
-exports.loadOtp = (req, res) => {
+export const loadOtp = (req, res) => {
   res.render("user/verify-otp", {
     pageTitle: 'OTP Verification',
     heading: 'OTP Verification',
@@ -112,15 +117,16 @@ exports.loadOtp = (req, res) => {
   });
 };
 
-exports.pageNotFound = async (req, res) => {
+export const pageNotFound = async (req, res) => {
   try {
     return res.render("page-404");
   } catch (error) {
+     console.error(error);
     res.redirect("/pageNotFound");
   }
 };
 
-exports.signup = async (req, res) => {
+export const signup = async (req, res) => {
   try {
     const { name, email, phone, password, confirmPassword, referralCode } = req.body;
 
@@ -132,6 +138,10 @@ exports.signup = async (req, res) => {
         message: MESSAGES.AUTH.EMAIL_EXISTS || 'Email already registered'
       });
     }
+
+    if (password !== confirmPassword) {
+  return res.status(400).json({ message: 'Passwords do not match' });
+}
 
     if (referralCode) {
       const referrer = await User.findOne({
@@ -186,7 +196,7 @@ exports.signup = async (req, res) => {
   }
 };
 
-exports.verifyOtp = async (req, res) => {
+export const verifyOtp = async (req, res) => {
   try {
     const { otp } = req.body;
 
@@ -231,7 +241,7 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
-exports.resendOtp = async (req, res) => {
+export const resendOtp = async (req, res) => {
   try {
     const { email } = req.session.userData || {};
     if (!email) {
@@ -267,7 +277,7 @@ exports.resendOtp = async (req, res) => {
   }
 };
 
-exports.loadLogin = async (req, res) => {
+export const loadLogin = async (req, res) => {
   try {
     if (!req.session.user) {
       return res.render('user/login', {
@@ -283,7 +293,7 @@ exports.loadLogin = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -328,22 +338,22 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   try {
     console.log("Logout reached");
 
     req.session.destroy(err => {
       if (err) {
         console.log('Session destruction error', err.message);
-        return res.redirect('/'); // fallback
+        return res.redirect('/');
       }
 
       res.clearCookie('userSessionId');
       return res.redirect('/login');
     });
-
   } catch (error) {
     console.log('Logout error', error);
-    res.redirect('/'); // fallback
+    res.redirect('/');
   }
 };
+

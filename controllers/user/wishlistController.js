@@ -1,12 +1,14 @@
-const mongoose = require('mongoose');
-const Product = require('../../models/productSchema');
-const WishList = require('../../models/wishlistSchema');
-const User = require('../../models/userSchema');
-const { calculatePricing } = require('../../utils/calculatePricing');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
 
-exports.getWishlist = async (req, res) => {
+
+import mongoose from 'mongoose';
+import Product from '../../models/productSchema.js';
+import WishList from '../../models/wishlistSchema.js';
+
+import calculatePricing from '../../utils/calculatePricing.js'; 
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
+
+export const getWishlist = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) return res.redirect('/login');
@@ -23,7 +25,7 @@ exports.getWishlist = async (req, res) => {
 
     if (wishlistDoc?.products) {
       items = wishlistDoc.products
-        .filter(p => p.productId)
+        .filter(p => p.productId) 
         .map(p => {
           const prod = p.productId;
           const pricing = calculatePricing(prod);
@@ -42,7 +44,7 @@ exports.getWishlist = async (req, res) => {
         });
     }
 
-    // Clean up invalid products from wishlist
+    
     if (wishlistDoc && items.length !== wishlistDoc.products.length) {
       const keepIds = items.map(i => i.product._id);
       await WishList.updateOne(
@@ -61,7 +63,7 @@ exports.getWishlist = async (req, res) => {
   }
 };
 
-exports.toggleWishlist = async (req, res) => {
+export const toggleWishlist = async (req, res) => {
   try {
     const { productId } = req.body;
     const userId = req.user._id;
@@ -116,7 +118,7 @@ exports.toggleWishlist = async (req, res) => {
   }
 };
 
-exports.removeFromWishList = async (req, res) => {
+export const removeFromWishList = async (req, res) => {
   try {
     const { productId } = req.body;
     const userId = req.user._id;
@@ -163,7 +165,7 @@ exports.removeFromWishList = async (req, res) => {
   }
 };
 
-exports.getWishListCount = async (req, res) => {
+export const getWishListCount = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -180,7 +182,7 @@ exports.getWishListCount = async (req, res) => {
   }
 };
 
-exports.clearWishList = async (req, res) => {
+export const clearWishList = async (req, res) => {
   try {
     const userId = req.user._id;
 

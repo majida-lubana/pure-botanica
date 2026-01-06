@@ -1,7 +1,7 @@
-const Address = require("../../models/addressSchema");
-const mongoose = require('mongoose');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import mongoose from 'mongoose';
+import Address from "../../models/addressSchema.js";
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
 const addressController = {
 
@@ -37,6 +37,7 @@ const addressController = {
       );
 
       res.render("user/address", {
+        
         addresses: formattedAddresses || [],
         error: null,
         errors: {},
@@ -56,57 +57,56 @@ const addressController = {
   },
 
   getAddress: async (req, res) => {
-    try {
-      const addressId = req.params.id;
-      const userId = req.session.user?.id || req.session.user;
+  try {
+    const userId = req.session.user?.id || req.session.user;
+    const addressId = new mongoose.Types.ObjectId(req.params.id);
 
-      if (!userId) {
-        return res.status(STATUS.UNAUTHORIZED).json({
-          success: false,
-          message: MESSAGES.AUTH.UNAUTHORIZED || "Unauthorized"
-        });
-      }
-
-      const address = await Address.findOne(
-        { userId, "address._id": addressId },
-        { "address.$": 1 }
-      );
-
-      if (!address) {
-        return res.status(STATUS.NOT_FOUND).json({
-          success: false,
-          message: MESSAGES.ADDRESS.NOT_FOUND || "Address not found"
-        });
-      }
-
-      const details = address.address[0];
-
-      res.json({
-        success: true,
-        address: {
-          _id: details._id,
-          fullName: details.name,
-          name: details.name,
-          phone: details.phone,
-          address: details.address,
-          city: details.city,
-          state: details.state,
-          country: details.country || 'India',
-          pincode: details.pinCode,
-          pinCode: details.pinCode,
-          addressType: details.addressType,
-          isDefault: details.isDefault
-        }
-      });
-
-    } catch (error) {
-      console.error("Get address error:", error);
-      res.status(STATUS.INTERNAL_ERROR).json({
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: MESSAGES.ADDRESS.LOAD_FAILED || "Failed to load address details"
+        message: "Unauthorized"
       });
     }
-  },
+
+    const addressDoc = await Address.findOne(
+      { userId, "address._id": addressId },
+      { "address.$": 1 }
+    );
+
+    if (!addressDoc || !addressDoc.address.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    const details = addressDoc.address[0];
+
+    res.json({
+      success: true,
+      address: {
+        _id: details._id,
+        fullName: details.name,
+        name: details.name,
+        phone: details.phone,
+        address: details.address,
+        city: details.city,
+        state: details.state,
+        country: details.country || "India",
+        pincode: details.pinCode,
+        pinCode: details.pinCode,
+        addressType: details.addressType,
+        isDefault: details.isDefault
+      }
+    });
+  } catch (error) {
+    console.error("Get address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load address"
+    });
+  }
+},
 
   addAddress: async (req, res) => {
     try {
@@ -120,7 +120,8 @@ const addressController = {
       }
 
       const {
-        name: fullName,
+        name,
+        fullName,
         phone,
         address,
         city,
@@ -131,9 +132,11 @@ const addressController = {
         isDefault,
       } = req.body;
 
+      const finalName = fullName || name;
+
       const errors = [];
 
-      if (!fullName?.trim() || fullName.trim().length > 20)
+      if (!finalName?.trim() || finalName.trim().length > 20) 
         errors.push("Full name must not exceed 20 characters.");
 
       if (!phone?.trim() || !/^\d{10}$/.test(phone.trim()))
@@ -196,7 +199,7 @@ const addressController = {
       }
 
       const newAddressObj = {
-        name: fullName.trim(),
+        name: finalName.trim(),
         phone: phone.trim(),
         city: city.trim(),
         country: country.trim(),
@@ -225,23 +228,23 @@ const addressController = {
       const addedAddress = updatedDocument.address[0];
 
       res.json({
-        success: true,
-        message: MESSAGES.ADDRESS.ADDED_SUCCESS || "Address added successfully",
-        address: {
-          _id: addedAddress._id,
-          fullName: addedAddress.name,
-          name: addedAddress.name,
-          phone: addedAddress.phone,
-          address: addedAddress.address,
-          city: addedAddress.city,
-          state: addedAddress.state,
-          country: addedAddress.country,
-          pincode: addedAddress.pinCode,
-          pinCode: addedAddress.pinCode,
-          addressType: addedAddress.addressType,
-          isDefault: addedAddress.isDefault,
-        },
-      });
+  success: true,
+  message: "Address added successfully",
+  address: {
+    _id: addedAddress._id,
+    name: addedAddress.name,
+    fullName: addedAddress.name,
+    phone: addedAddress.phone,
+    address: addedAddress.address,
+    city: addedAddress.city,
+    state: addedAddress.state,
+    country: addedAddress.country,
+    pincode: addedAddress.pinCode,
+    addressType: addedAddress.addressType,
+    isDefault: addedAddress.isDefault,
+  },
+});
+
     } catch (error) {
       console.error("Add address error:", error);
       res.status(STATUS.INTERNAL_ERROR).json({
@@ -264,6 +267,7 @@ const addressController = {
       }
 
       const {
+        name,
         fullName,
         phone,
         address,
@@ -275,6 +279,14 @@ const addressController = {
         isDefault,
       } = req.body;
 
+       const finalName = (fullName || name)?.trim();
+
+       if (!finalName || !phone || !address || !city || !state || !country || !pincode || !addressType) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
       if (
         !fullName || !phone || !address || !city || !state ||
         !country || !pincode || !addressType
@@ -424,4 +436,13 @@ const addressController = {
   },
 };
 
-module.exports = addressController;
+
+export const {
+  loadAddress,
+  getAddress,
+  addAddress,
+  editAddress,
+  deleteAddress
+} = addressController;
+
+export default addressController;

@@ -1,9 +1,9 @@
-const Coupon = require('../../models/couponSchema');
-const Order = require('../../models/orderSchema');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import Coupon from '../../models/couponSchema.js';
+import Order from '../../models/orderSchema.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
-exports.applyCoupon = async (req, res) => {
+export const applyCoupon = async (req, res) => {
     try {
         const { couponCode, cartTotal } = req.body;
         const userId = req.user?._id;
@@ -117,7 +117,7 @@ exports.applyCoupon = async (req, res) => {
     }
 };
 
-exports.getAvailableCoupons = async (req, res) => {
+export const getAvailableCoupons = async (req, res) => {
     try {
         const userId = req.user?._id;
         let cartTotal = parseFloat(req.query.cartTotal) || 0;
@@ -202,7 +202,7 @@ exports.getAvailableCoupons = async (req, res) => {
     }
 };
 
-exports.getCouponsPage = async (req, res) => {
+export const getCouponsPage = async (req, res) => {
     try {
         const userId = req.user?._id;
         const now = new Date();
@@ -254,4 +254,11 @@ exports.getCouponsPage = async (req, res) => {
             pageTitle: 'Error'
         });
     }
+};
+
+
+export default {
+    applyCoupon,
+    getAvailableCoupons,
+    getCouponsPage
 };

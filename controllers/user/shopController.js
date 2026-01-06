@@ -1,12 +1,12 @@
-const Product = require("../../models/productSchema");
-const Category = require("../../models/categorySchema");
-const WishList = require("../../models/wishlistSchema");
-const { calculatePricing } = require('../../utils/calculatePricing');
-const Cart = require('../../models/cartSchema');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import Product from "../../models/productSchema.js";
+import Category from "../../models/categorySchema.js";
+import WishList from "../../models/wishlistSchema.js";
+import Cart from "../../models/cartSchema.js";
+import { calculatePricing } from '../../utils/calculatePricing.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
-exports.loadShopPage = async (req, res) => {
+export const loadShopPage = async (req, res) => {
   try {
     let {
       search = "",
@@ -100,8 +100,6 @@ exports.loadShopPage = async (req, res) => {
       if (wl?.products?.length) wishlistProductIds = wl.products.map(i => i.productId.toString());
     }
 
-    
-
     res.render("user/shop", {
       user: req.user || null,
       products: productsWithPricing,
@@ -120,6 +118,7 @@ exports.loadShopPage = async (req, res) => {
       sort,
       wishlistProductIds,
     });
+
   } catch (error) {
     console.error("loadShopPage error:", error);
     res.status(STATUS.INTERNAL_ERROR).render("user/page-404", {
@@ -129,7 +128,7 @@ exports.loadShopPage = async (req, res) => {
   }
 };
 
-exports.getProductsApi = async (req, res) => {
+export const getProductsApi = async (req, res) => {
   try {
     let {
       search = "",
@@ -179,7 +178,6 @@ exports.getProductsApi = async (req, res) => {
       .populate("category",
         "categoryOffer offerStart offerEnd offerActive categoryName"
       )
-
       .lean();
 
     let wishlistIds = [];
@@ -239,7 +237,7 @@ exports.getProductsApi = async (req, res) => {
   }
 };
 
-exports.checkProductAvailability = async (req, res) => {
+export const checkProductAvailability = async (req, res) => {
   try {
     const product = await Product.findOne({
       _id: req.params.id,
@@ -258,7 +256,7 @@ exports.checkProductAvailability = async (req, res) => {
   }
 };
 
-exports.loadProductPage = async (req, res) => {
+export const loadProductPage = async (req, res) => {
   try {
     const productId = req.params.id;
 
@@ -331,4 +329,11 @@ exports.loadProductPage = async (req, res) => {
       message: MESSAGES.PRODUCT.LOAD_FAILED || "An error occurred while loading the product page."
     });
   }
+};
+
+export default {
+  loadShopPage,
+  getProductsApi,
+  checkProductAvailability,
+  loadProductPage
 };

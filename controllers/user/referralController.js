@@ -1,12 +1,12 @@
-const Referral = require('../../models/referralSchema');
-const User = require('../../models/userSchema');
-const Wallet = require('../../models/walletSchema');
-const Transaction = require('../../models/transactionSchema');
-const { creditWallet } = require('../../utils/walletUtils');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import Referral from '../../models/referralSchema.js';
+import User from '../../models/userSchema.js';
+import Wallet from '../../models/walletSchema.js';
+import Transaction from '../../models/transactionSchema.js';
+import { creditWallet } from '../../utils/walletUtils.js';
 
-exports.getReferralPage = async (req, res) => {
+import MESSAGES from '../../constants/messages.js';
+
+export const getReferralPage = async (req, res) => {
   try {
     const userId = req.session.user;
     
@@ -67,7 +67,7 @@ exports.getReferralPage = async (req, res) => {
   }
 };
 
-exports.processReferralSignup = async (newUserId, referralCode) => {
+export const processReferralSignup = async (newUserId, referralCode) => {
   try {
     if (!referralCode) return;
 
@@ -97,7 +97,7 @@ exports.processReferralSignup = async (newUserId, referralCode) => {
       hasUsedReferral: true
     });
 
-    // Instant signup bonuses
+
     await creditWallet(referrerDoc.userId, 100, null, `Referral Bonus – ${newUser.email} signed up`);
     await creditWallet(newUserId, 50, null, `Welcome Bonus – ${referrerDoc.referralCode}`);
 
@@ -111,7 +111,7 @@ exports.processReferralSignup = async (newUserId, referralCode) => {
   }
 };
 
-async function creditReferralReward(userId, amount, referredUserEmail) {
+const creditReferralReward = async (userId, amount, referredUserEmail) => {
   try {
     let wallet = await Wallet.findOne({ userId });
     if (!wallet) {
@@ -142,9 +142,9 @@ async function creditReferralReward(userId, amount, referredUserEmail) {
     console.error('Credit referral reward error:', error);
     throw error;
   }
-}
+};
 
-exports.validateReferralCode = async (referralCode) => {
+export const validateReferralCode = async (referralCode) => {
   try {
     if (!referralCode) {
       return { 
@@ -174,4 +174,9 @@ exports.validateReferralCode = async (referralCode) => {
   }
 };
 
-module.exports = exports;
+
+export default {
+  getReferralPage,
+  processReferralSignup,
+  validateReferralCode
+};

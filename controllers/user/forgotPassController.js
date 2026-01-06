@@ -1,10 +1,10 @@
-const bcrypt = require('bcrypt');
-const User = require('../../models/userSchema');
-const { generateOtp, sendVerificationEmail } = require('../../utils/emailService');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+import bcrypt from 'bcrypt';
+import User from '../../models/userSchema.js';
+import { generateOtp, sendVerificationEmail } from '../../utils/emailService.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
-exports.getForgotPassPage = async (req, res) => {
+export const getForgotPassPage = async (req, res) => {
     try {
         res.render('user/forgot-password', { error: null, message: null });
     } catch (error) {
@@ -13,7 +13,7 @@ exports.getForgotPassPage = async (req, res) => {
     }
 };
 
-exports.loadOtpPage = async (req, res) => {
+export const loadOtpPage = async (req, res) => {
     try {
         if (!req.session.forgotEmail || !req.session.forgotOtp) {
             return res.redirect('/forgot-password');
@@ -28,7 +28,7 @@ exports.loadOtpPage = async (req, res) => {
     }
 };
 
-exports.sendForgotOtp = async (req, res) => {
+export const sendForgotOtp = async (req, res) => {
     const { email } = req.body;
     try {
         const user = await User.findOne({ email });
@@ -64,13 +64,13 @@ exports.sendForgotOtp = async (req, res) => {
     }
 };
 
-exports.forgotVerifyOtp = async (req, res) => {
+export const forgotVerifyOtp = async (req, res) => {
     try {
         const { otp } = req.body;
         const sessionOtp = req.session.forgotOtp;
         const otpTimestamp = req.session.otpTimestamp;
 
-        if (!otpTimestamp || Date.now() - otpTimestamp > 300000) { // 5 minutes
+        if (!otpTimestamp || Date.now() - otpTimestamp > 300000) { 
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
                 message: MESSAGES.OTP.EXPIRED || 'OTP has expired'
@@ -98,7 +98,7 @@ exports.forgotVerifyOtp = async (req, res) => {
     }
 };
 
-exports.forgotResendOtp = async (req, res) => {
+export const forgotResendOtp = async (req, res) => {
     try {
         const email = req.session.forgotEmail;
 
@@ -147,7 +147,7 @@ exports.forgotResendOtp = async (req, res) => {
     }
 };
 
-exports.loadResetPasswordPage = async (req, res) => {
+export const loadResetPasswordPage = async (req, res) => {
     try {
         if (!req.session.otpVerified || !req.session.forgotEmail) {
             return res.redirect('/forgot-password');
@@ -159,7 +159,7 @@ exports.loadResetPasswordPage = async (req, res) => {
     }
 };
 
-exports.resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
     try {
         const { password, confirmPassword } = req.body;
         const email = req.session.forgotEmail;
@@ -206,7 +206,6 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // Clear session
         req.session.forgotEmail = null;
         req.session.otpVerified = null;
 
@@ -217,4 +216,15 @@ exports.resetPassword = async (req, res) => {
             error: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Something went wrong. Try again.'
         });
     }
+};
+
+
+export default {
+    getForgotPassPage,
+    loadOtpPage,
+    sendForgotOtp,
+    forgotVerifyOtp,
+    forgotResendOtp,
+    loadResetPasswordPage,
+    resetPassword
 };

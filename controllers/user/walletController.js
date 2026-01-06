@@ -1,8 +1,10 @@
-const Wallet = require("../../models/walletSchema");
-const Transaction = require("../../models/transactionSchema");
-const { creditWallet } = require('../../utils/walletUtils');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+
+
+import Wallet from '../../models/walletSchema.js';
+import Transaction from '../../models/transactionSchema.js';
+
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
 
 const generateDescription = (txn) => {
   const map = {
@@ -13,7 +15,7 @@ const generateDescription = (txn) => {
   return map[txn.type] || 'Wallet Transaction';
 };
 
-exports.getWallet = async (req, res) => {
+export const getWallet = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -45,7 +47,6 @@ exports.getWallet = async (req, res) => {
       path: '/wallet',
       title: 'My Wallet'
     });
-
   } catch (err) {
     console.error('Wallet Error:', err);
     req.flash('error', MESSAGES.WALLET.LOAD_FAILED || 'Failed to load wallet');
@@ -53,14 +54,16 @@ exports.getWallet = async (req, res) => {
   }
 };
 
-exports.toggleDefault = async (req, res) => {
+export const toggleDefault = async (req, res) => {
   try {
     const { useInCheckout } = req.body;
+
     await Wallet.updateOne(
       { userId: req.user._id },
       { $set: { useInCheckout: Boolean(useInCheckout) } },
       { upsert: true }
     );
+
     res.json({ 
       success: true,
       message: MESSAGES.WALLET.TOGGLE_SUCCESS || 'Wallet settings updated'

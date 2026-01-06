@@ -1,24 +1,24 @@
-const mongoose = require('mongoose');
-const Product = require('../../models/productSchema');
-const Order = require('../../models/orderSchema');
-const Address = require('../../models/addressSchema');
-const Cart = require('../../models/cartSchema');
-const Coupon = require('../../models/couponSchema');
-const { v4: uuidv4 } = require('uuid');
-require('dotenv').config();
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const Wallet = require('../../models/walletSchema');
-const Transaction = require('../../models/transactionSchema');
-const { calculatePricing } = require('../../utils/calculatePricing');
-const { processReferralReward } = require('../../utils/referralUtils');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages');
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_SECRET,
-});
+
+import crypto from 'crypto';
+
+import Product from '../../models/productSchema.js';
+import Order from '../../models/orderSchema.js';
+import Address from '../../models/addressSchema.js';
+import Cart from '../../models/cartSchema.js';
+import Coupon from '../../models/couponSchema.js';
+import Wallet from '../../models/walletSchema.js';
+import Transaction from '../../models/transactionSchema.js';
+
+import calculatePricing from '../../utils/calculatePricing.js';
+import { processReferralReward } from '../../utils/referralUtils.js';
+import razorpay from '../../config/razorpay.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
+
+
 
 const calculateTotals = (items) => {
   let subtotal = 0;
@@ -47,7 +47,7 @@ const calculateTotals = (items) => {
   };
 };
 
-exports.getCheckoutPage = async (req, res) => {
+export const getCheckoutPage = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -117,7 +117,8 @@ exports.getCheckoutPage = async (req, res) => {
       shippingCost,
       tax,
       total,
-      discount: offerDiscount
+      discount: offerDiscount,
+      razorpayEnabled: !!process.env.RAZORPAY_KEY_ID
     });
   } catch (error) {
     console.error('Error loading checkout page:', error.stack);
@@ -128,236 +129,9 @@ exports.getCheckoutPage = async (req, res) => {
   }
 };
 
-exports.addAddress = async (req, res) => {
-  try {
-    const userId = req.user?._id;
-    const { fullName, phone, address, city, state, country, pincode, addressType, isDefault } = req.body;
 
-    if (!userId) {
-      return res.status(STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
-      });
-    }
 
-    if (!fullName || !phone || !address || !city || !state || !country || !pincode || !addressType) {
-      return res.status(STATUS.BAD_REQUEST).json({
-        success: false,
-        message: MESSAGES.VALIDATION.REQUIRED_FIELDS || 'All fields are required'
-      });
-    }
-
-    const pinCode = Number(pincode);
-    if (isNaN(pinCode)) {
-      return res.status(STATUS.BAD_REQUEST).json({
-        success: false,
-        message: MESSAGES.ADDRESS.INVALID_PINCODE || 'Invalid pincode'
-      });
-    }
-
-    let addressDoc = await Address.findOne({ userId });
-    if (!addressDoc) {
-      addressDoc = new Address({ userId, address: [] });
-    }
-
-    if (isDefault === 'true' || isDefault === true) {
-      addressDoc.address.forEach(addr => (addr.isDefault = false));
-    }
-
-    const newAddress = {
-      _id: new mongoose.Types.ObjectId(),
-      addressType,
-      name: fullName,
-      address,
-      city,
-      state,
-      country,
-      pinCode,
-      phone,
-      isDefault: isDefault === 'true' || isDefault === true
-    };
-
-    addressDoc.address.push(newAddress);
-    await addressDoc.save();
-
-    if (req.session) {
-      req.session.userAddresses = addressDoc.address;
-    }
-
-    res.json({
-      success: true,
-      message: MESSAGES.ADDRESS.ADDED_SUCCESS || 'Address added successfully',
-      address: newAddress
-    });
-  } catch (error) {
-    console.error('[addAddress] Error:', error.message, error.stack);
-    res.status(STATUS.INTERNAL_ERROR).json({
-      success: false,
-      message: MESSAGES.ADDRESS.ADD_FAILED || 'Error adding address'
-    });
-  }
-};
-
-exports.getAddress = async (req, res) => {
-  try {
-    const userId = req.user?._id;
-    const addressId = req.params.addressId;
-
-    if (!userId) {
-      return res.status(STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
-      });
-    }
-
-    const addressDoc = await Address.findOne({ userId, 'address._id': addressId });
-    const addresses = addressDoc && Array.isArray(addressDoc.address) ? addressDoc.address : [];
-
-    res.json({
-      success: true,
-      addresses: addresses.map(addr => ({
-        _id: addr._id,
-        name: addr.name,
-        fullName: addr.name,
-        phone: addr.phone,
-        address: addr.address,
-        city: addr.city,
-        state: addr.state,
-        country: addr.country || 'India',
-        pinCode: addr.pinCode,
-        pincode: addr.pinCode,
-        addressType: addr.addressType,
-        isDefault: addr.isDefault
-      }))
-    });
-  } catch (error) {
-    console.error('[getAddress] Error:', error.message, error.stack);
-    res.status(STATUS.INTERNAL_ERROR).json({
-      success: false,
-      message: MESSAGES.ADDRESS.LOAD_FAILED || 'Error fetching addresses'
-    });
-  }
-};
-
-exports.editAddress = async (req, res) => {
-  try {
-    const addressId = req.params.addressId;
-    const userId = req.user?._id;
-
-    if (!userId) {
-      return res.status(STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: MESSAGES.AUTH.UNAUTHORIZED || 'Unauthorized'
-      });
-    }
-
-    const {
-      fullName,
-      phone,
-      address,
-      city,
-      state,
-      country,
-      pincode,
-      addressType,
-      isDefault,
-    } = req.body;
-
-    if (!fullName || !phone || !address || !city || !state || !country || !pincode || !addressType) {
-      return res.status(STATUS.BAD_REQUEST).json({
-        success: false,
-        message: MESSAGES.VALIDATION.REQUIRED_FIELDS || 'All fields are required'
-      });
-    }
-
-    if (!/^\d{10}$/.test(phone)) {
-      return res.status(STATUS.BAD_REQUEST).json({
-        success: false,
-        message: MESSAGES.ADDRESS.INVALID_PHONE || 'Phone number must be exactly 10 digits'
-      });
-    }
-
-    if (!/^\d{6}$/.test(pincode) || pincode === "000000") {
-      return res.status(STATUS.BAD_REQUEST).json({
-        success: false,
-        message: MESSAGES.ADDRESS.INVALID_PINCODE || 'Invalid pincode format'
-      });
-    }
-
-    const objectAddressId = new mongoose.Types.ObjectId(addressId);
-
-    const existingAddress = await Address.findOne({ userId, 'address._id': objectAddressId });
-
-    if (!existingAddress) {
-      return res.status(STATUS.NOT_FOUND).json({
-        success: false,
-        message: MESSAGES.ADDRESS.NOT_FOUND || 'Address not found'
-      });
-    }
-
-    if (isDefault) {
-      await Address.updateMany(
-        { userId, 'address.isDefault': true, 'address._id': { $ne: objectAddressId } },
-        { $set: { 'address.$.isDefault': false } }
-      );
-    }
-
-    const updatedAddress = await Address.findOneAndUpdate(
-      { userId, 'address._id': objectAddressId },
-      {
-        $set: {
-          'address.$.name': fullName.trim(),
-          'address.$.phone': phone.trim(),
-          'address.$.city': city.trim(),
-          'address.$.address': address.trim(),
-          'address.$.pinCode': pincode.trim(),
-          'address.$.state': state.trim(),
-          'address.$.country': country.trim(),
-          'address.$.addressType': addressType,
-          'address.$.isDefault': Boolean(isDefault),
-          'address.$.updatedAt': new Date()
-        }
-      },
-      { new: true }
-    );
-
-    if (!updatedAddress) {
-      return res.status(STATUS.NOT_FOUND).json({
-        success: false,
-        message: MESSAGES.ADDRESS.NOT_FOUND || 'Address not found'
-      });
-    }
-
-    const updatedDetails = updatedAddress.address.find(a => a._id.equals(objectAddressId));
-
-    res.json({
-      success: true,
-      message: MESSAGES.ADDRESS.UPDATED_SUCCESS || 'Address updated successfully',
-      address: {
-        id: updatedDetails._id,
-        fullName: updatedDetails.name,
-        name: updatedDetails.name,
-        phone: updatedDetails.phone,
-        address: updatedDetails.address,
-        city: updatedDetails.city,
-        state: updatedDetails.state,
-        country: updatedDetails.country || 'India',
-        pinCode: updatedDetails.pinCode,
-        pincode: updatedDetails.pinCode,
-        addressType: updatedDetails.addressType,
-        isDefault: updatedDetails.isDefault
-      }
-    });
-  } catch (error) {
-    console.error("Edit address error:", error);
-    res.status(STATUS.INTERNAL_ERROR).json({
-      success: false,
-      message: MESSAGES.ADDRESS.UPDATE_FAILED || 'Failed to update address. Please try again.'
-    });
-  }
-};
-
-exports.removeAddress = async (req, res) => {
+export const removeAddress = async (req, res) => {
   try {
     const userId = req.user?._id;
     const addressId = req.params.addressId;
@@ -393,9 +167,11 @@ exports.removeAddress = async (req, res) => {
   }
 };
 
-exports.placeOrder = async (req, res) => {
+export const placeOrder = async (req, res) => {
   try {
     const userId = req.user?._id;
+    console.log("REQ BODY:", req.body);
+
     const { selectedAddress, paymentMethod, couponCode } = req.body;
 
     if (!userId) {
@@ -451,7 +227,7 @@ exports.placeOrder = async (req, res) => {
     });
 
     const totals = calculateTotals(cart.items);
-    const { subtotal, originalSubtotal, offerDiscount, shippingCost, tax } = totals;
+    const { subtotal, offerDiscount, shippingCost, tax } = totals;
 
     let couponDiscount = 0;
     let appliedCoupon = null;
@@ -540,48 +316,60 @@ exports.placeOrder = async (req, res) => {
     }));
 
     // RAZORPAY PAYMENT
-    if (paymentMethod === 'razorpay') {
-      const receipt = `o_${uuidv4().slice(0, 35)}`;
-      const razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(finalAmount * 100),
-        currency: 'INR',
-        receipt,
-        payment_capture: 1,
-      });
+if (paymentMethod === 'razorpay') {
 
-      const retryExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-      const pendingOrder = new Order({
-        user: userId,
-        orderItems,
-        totalPrice: subtotal,
-        discount: totalDiscount,
-        finalAmount,
-        address: addressSnapshot,
-        invoiceDate: new Date(),
-        status: 'payment_pending',
-        couponApplied: !!appliedCoupon,
-        couponCode: appliedCoupon?.couponCode || null,
-        couponDiscount,
-        paymentMethod,
-        paymentId: razorpayOrder.id,
-        paymentRetryExpiry: retryExpiry,
-        shipping: shippingCost,
-        tax,
-        paymentStatus: 'pending'
-      });
-      await pendingOrder.save();
+  if (!razorpay) {
+    return res.status(STATUS.BAD_REQUEST).json({
+      success: false,
+      message: 'Online payment is currently unavailable'
+    });
+  }
 
-      return res.json({
-        success: true,
-        razorpay: true,
-        key_id: process.env.RAZORPAY_KEY_ID,
-        razorpayOrderId: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        orderId: pendingOrder._id.toString(),
-        finalAmount: finalAmount
-      });
-    }
+  const receipt = `o_${uuidv4().slice(0, 35)}`;
+
+  const razorpayOrder = await razorpay.orders.create({
+    amount: Math.round(finalAmount * 100),
+    currency: 'INR',
+    receipt,
+    payment_capture: 1,
+  });
+
+  const retryExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+  const pendingOrder = new Order({
+    user: userId,
+    orderItems,
+    totalPrice: subtotal,
+    discount: totalDiscount,
+    finalAmount,
+    address: addressSnapshot,
+    invoiceDate: new Date(),
+    status: 'payment_pending',
+    couponApplied: !!appliedCoupon,
+    couponCode: appliedCoupon?.couponCode || null,
+    couponDiscount,
+    paymentMethod,
+    paymentId: razorpayOrder.id,
+    paymentRetryExpiry: retryExpiry,
+    shipping: shippingCost,
+    tax,
+    paymentStatus: 'pending'
+  });
+
+  await pendingOrder.save();
+
+  return res.json({
+    success: true,
+    razorpay: true,
+    key_id: process.env.RAZORPAY_KEY_ID,
+    razorpayOrderId: razorpayOrder.id,
+    amount: razorpayOrder.amount,
+    orderId: pendingOrder._id.toString(),
+    finalAmount
+  });
+}
+
 
     // WALLET PAYMENT
     if (paymentMethod === 'wallet') {
@@ -663,7 +451,7 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    // CASH ON DELIVERY
+
     const order = new Order({
       user: userId,
       orderItems,
@@ -708,10 +496,7 @@ exports.placeOrder = async (req, res) => {
   }
 };
 
-// The remaining functions (verifyRazorpayPayment, retryPayment, handlePaymentFailure, getOrderSuccessPage, getOrderErrorPage)
-// follow the same pattern: replace hardcoded messages with MESSAGES constants.
-
-exports.verifyRazorpayPayment = async (req, res) => {
+export const verifyRazorpayPayment = async (req, res) => {
   try {
     const {
       razorpay_order_id,
@@ -728,8 +513,19 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
 
+   
+    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+    
+    if (!razorpaySecret) {
+      console.error('❌ RAZORPAY_KEY_SECRET not found in environment');
+      return res.status(STATUS.INTERNAL_ERROR).json({
+        success: false,
+        message: 'Payment verification configuration error'
+      });
+    }
+
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_SECRET)
+      .createHmac('sha256', razorpaySecret) 
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest('hex');
 
@@ -773,6 +569,9 @@ exports.verifyRazorpayPayment = async (req, res) => {
 
     await Cart.findOneAndDelete({ userId });
 
+  
+    await processReferralReward(userId);
+
     res.json({
       success: true,
       orderId: order._id.toString(),
@@ -789,7 +588,7 @@ exports.verifyRazorpayPayment = async (req, res) => {
   }
 };
 
-exports.retryPayment = async (req, res) => {
+export const retryPayment = async (req, res) => {
   try {
     const { orderId } = req.params;
     const userId = req.user?._id;
@@ -855,9 +654,9 @@ exports.retryPayment = async (req, res) => {
   }
 };
 
-exports.handlePaymentFailure = async (req, res) => {
+export const handlePaymentFailure = async (req, res) => {
   try {
-    const { orderId, error } = req.body;
+    const { orderId} = req.body;
     const userId = req.user?._id;
 
     if (!userId || !orderId) {
@@ -897,7 +696,7 @@ exports.handlePaymentFailure = async (req, res) => {
   }
 };
 
-exports.getOrderSuccessPage = async (req, res) => {
+export const getOrderSuccessPage = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -941,7 +740,7 @@ exports.getOrderSuccessPage = async (req, res) => {
   }
 };
 
-exports.getOrderErrorPage = async (req, res) => {
+export const getOrderErrorPage = async (req, res) => {
   try {
     const { message, details, code, orderId, finalAmount } = req.query;
 
@@ -956,4 +755,15 @@ exports.getOrderErrorPage = async (req, res) => {
     console.error('[getOrderErrorPage] Error:', error.message, error.stack);
     res.redirect('/user');
   }
+};
+
+export default {
+  getCheckoutPage,
+  removeAddress,
+  placeOrder,
+  verifyRazorpayPayment,
+  retryPayment,
+  handlePaymentFailure,
+  getOrderSuccessPage,
+  getOrderErrorPage
 };
