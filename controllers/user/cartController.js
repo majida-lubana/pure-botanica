@@ -1,10 +1,13 @@
-const Cart = require('../../models/cartSchema');
-const Product = require('../../models/productSchema');
-const User = require('../../models/userSchema');
-const mongoose = require('mongoose');
-const { calculatePricing } = require('../../utils/calculatePricing');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+
+
+import Cart from '../../models/cartSchema.js';
+import Product from '../../models/productSchema.js';
+import User from '../../models/userSchema.js';
+
+import calculatePricing from '../../utils/calculatePricing.js';
+
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
 const calculateTotals = (items) => {
   let subtotal = 0;
@@ -33,7 +36,7 @@ const calculateTotals = (items) => {
   };
 };
 
-exports.getCartPage = async (req, res) => {
+export const getCartPage = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -166,18 +169,19 @@ exports.getCartPage = async (req, res) => {
 
 const MAX_PER_PRODUCT = 5;
 
-exports.getCountInCart = async (req, res) => {
+export const getCountInCart = async (req, res) => {
   try {
     const { productId } = req.body;
     const cart = await Cart.findOne({ userId: req.user._id });
     const item = cart?.items?.find(i => i.productId.toString() === productId);
     res.json({ count: item ? item.quantity : 0 });
-  } catch (e) {
+  } catch (error) {
+    console.log('Error cartCount',error)
     res.status(STATUS.INTERNAL_ERROR).json({ count: 0 });
   }
 };
 
-exports.addToCart = async (req, res) => {
+export const addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     const userId = req.user?._id;
@@ -268,7 +272,7 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-exports.updateCartQuantity = async (req, res) => {
+export const updateCartQuantity = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -353,7 +357,7 @@ exports.updateCartQuantity = async (req, res) => {
   }
 };
 
-exports.removeFromCart = async (req, res) => {
+export const removeFromCart = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -401,7 +405,7 @@ exports.removeFromCart = async (req, res) => {
   }
 };
 
-exports.getCartContents = async (req, res) => {
+export const getCartContents = async (req, res) => {
   try {
     if (!req.session.user) {
       return res.status(STATUS.UNAUTHORIZED).send('');
@@ -446,7 +450,7 @@ exports.getCartContents = async (req, res) => {
   }
 };
 
-exports.getCartQuantity = async (req, res) => {
+export const getCartQuantity = async (req, res) => {
   try {
     const userId = req.user?._id;
     const { productId } = req.body;
@@ -461,7 +465,7 @@ exports.getCartQuantity = async (req, res) => {
   }
 };
 
-exports.getCartSummary = async (req, res) => {
+export const getCartSummary = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
@@ -498,4 +502,16 @@ exports.getCartSummary = async (req, res) => {
       message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
     });
   }
+};
+
+
+export default {
+  getCartPage,
+  getCountInCart,
+  addToCart,
+  updateCartQuantity,
+  removeFromCart,
+  getCartContents,
+  getCartQuantity,
+  getCartSummary
 };
