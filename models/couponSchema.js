@@ -1,5 +1,7 @@
-// models/couponSchema.js
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
+
 const { Schema } = mongoose;
 
 const couponSchema = new Schema(
@@ -14,7 +16,7 @@ const couponSchema = new Schema(
       required: true,
       unique: true,
       trim: true,
-      set: v => v.toUpperCase(), // always store uppercase
+      set: v => v.toUpperCase(), 
     },
     startDate: {
       type: Date,
@@ -25,19 +27,28 @@ const couponSchema = new Schema(
       required: true,
     },
     offerPrice: {
-    type: Number,
-    required: true,
-    min: [0.01, 'Offer price must be positive'],
-    validate: {
-        validator: function(v) {
-            if (this.discountType === 'percentage') {
-                return v >= 1 && v <= 100;
-            }
-            return v > 0;
+      type: Number,
+      required: true,
+      min: [0.01, 'Offer price must be greater than 0'],
+      
+      validate: {
+        validator: function(value) {
+          if (this.discountType === 'percentage') {
+            return value >= 1 && value <= 100;
+          }
+          return value > 0;
         },
-        message: 'Percentage discount must be between 1 and 100'
-    }
-},
+        message: props => {
+          if (props.value > 100 && this.discountType === 'percentage') {
+            return 'Percentage discount cannot exceed 100%';
+          }
+          if (props.value < 1 && this.discountType === 'percentage') {
+            return 'Percentage discount must be at least 1%';
+          }
+          return 'Offer price must be a positive number';
+        }
+      }
+    },
     minimumPrice: {
       type: Number,
       required: true,
@@ -54,44 +65,14 @@ const couponSchema = new Schema(
       type: Boolean,
       default: true,
     },
-    // In your models/couponSchema.js
-
-discountType: {
-    type: String,
-    enum: ['fixed', 'percentage'],
-    default: 'fixed',
-    required: true
-},
-
-offerPrice: {
-    type: Number,
-    required: true,
-    min: [0.01, 'Offer price must be greater than 0'],
-
-    // Custom validator that depends on discountType
-    validate: {
-        validator: function(value) {
-            // If percentage → must be between 1 and 100 (inclusive)
-            if (this.discountType === 'percentage') {
-                return value >= 1 && value <= 100;
-            }
-            // If fixed (flat) → just greater than 0
-            return value > 0;
-        },
-        message: props => {
-            if (props.value > 100 && this.discountType === 'percentage') {
-                return 'Percentage discount cannot exceed 100%';
-            }
-            if (props.value < 1 && this.discountType === 'percentage') {
-                return 'Percentage discount must be at least 1%';
-            }
-            return 'Offer price must be a positive number';
-        }
-    }
-},
-    /** NEW FIELDS **/
+    discountType: {
+      type: String,
+      enum: ['fixed', 'percentage'],
+      default: 'fixed',
+      required: true
+    },
     maxDiscount: {
-      // only meaningful for percentage coupons
+    
       type: Number,
       min: 0,
       default: null,
@@ -103,7 +84,7 @@ offerPrice: {
       },
     ],
     usageCount: {
-      // cached total usage (incremented atomically)
+      
       type: Number,
       default: 0,
       min: 0,
@@ -116,42 +97,32 @@ offerPrice: {
   { timestamps: true }
 );
 
-/* ------------------------------------------------------------------
-   INDEXES – make every query in the controller O(log n)
-------------------------------------------------------------------- */
-couponSchema.index({ couponCode: 1 }); // unique already
+
 couponSchema.index({ isListed: 1, startDate: 1, expireOn: 1 });
 couponSchema.index({ usageCount: 1 });
 couponSchema.index({ usedBy: 1 });
 
-/* ------------------------------------------------------------------
-   VIRTUAL – remaining uses (nice for UI)
-------------------------------------------------------------------- */
+
 couponSchema.virtual('remainingUses').get(function () {
   return Math.max(0, this.usageLimit - this.usageCount);
 });
 
-/* ------------------------------------------------------------------
-   PRE-SAVE – keep usageCount in sync when we manually push to usedBy
-------------------------------------------------------------------- */
+
 couponSchema.pre('save', function (next) {
   if (this.isModified('usedBy')) {
-    // count only *new* users added in this save
+    
     const previous = this._originalUsedBy || [];
     const added = this.usedBy.filter(
       uid => !previous.some(p => p.toString() === uid.toString())
     );
     this.usageCount = (this.usageCount || 0) + added.length;
   }
-  // store original for next diff (only needed in same request)
+ 
   this._originalUsedBy = this.usedBy.slice();
   next();
 });
 
-/* ------------------------------------------------------------------
-   METHOD – atomically reserve a slot for a user
-   Returns the updated coupon or throws.
-------------------------------------------------------------------- */
+
 couponSchema.statics.reserveForUser = async function (couponCode, userId) {
   const code = couponCode.toUpperCase();
 
@@ -161,8 +132,8 @@ couponSchema.statics.reserveForUser = async function (couponCode, userId) {
       isListed: true,
       startDate: { $lte: new Date() },
       expireOn: { $gte: new Date() },
-      usageCount: { $lt: mongoose.ref('Coupon').usageLimit }, // < limit
-      'usedBy': { $ne: userId }, // user hasn't used it yet
+      usageCount: { $lt: this.usageLimit }, 
+      usedBy: { $ne: userId },
     },
     {
       $push: { usedBy: userId },
@@ -172,13 +143,14 @@ couponSchema.statics.reserveForUser = async function (couponCode, userId) {
   );
 
   if (!result) {
-    // figure out why it failed
     const coupon = await this.findOne({ couponCode: code });
     if (!coupon) throw new Error('Coupon not found');
     if (!coupon.isListed) throw new Error('Coupon is not listed');
     if (new Date() < coupon.startDate) throw new Error('Coupon not active yet');
     if (new Date() > coupon.expireOn) throw new Error('Coupon expired');
-    if (coupon.usedBy.includes(userId)) throw new Error('You have already used this coupon');
+    if (coupon.usedBy.some(u => u.toString() === userId.toString())) {
+      throw new Error('You have already used this coupon');
+    }
     throw new Error('Coupon usage limit reached');
   }
 
@@ -186,4 +158,5 @@ couponSchema.statics.reserveForUser = async function (couponCode, userId) {
 };
 
 const Coupon = mongoose.model('Coupon', couponSchema);
-module.exports = Coupon;
+
+export default Coupon;

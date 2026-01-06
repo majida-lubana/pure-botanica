@@ -1,4 +1,6 @@
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
 
 const referralSchema = new mongoose.Schema({
   userId: {
@@ -55,19 +57,20 @@ const referralSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate unique referral code
+
 referralSchema.statics.generateUniqueCode = async function(userName) {
   const baseCode = userName.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'X');
   let code = baseCode + Math.random().toString(36).substring(2, 6).toUpperCase();
-  
-  // Ensure uniqueness
+
   let exists = await this.findOne({ referralCode: code });
   while (exists) {
     code = baseCode + Math.random().toString(36).substring(2, 6).toUpperCase();
     exists = await this.findOne({ referralCode: code });
   }
-  
+
   return code;
 };
 
-module.exports = mongoose.model('Referral', referralSchema);
+const Referral = mongoose.model('Referral', referralSchema);
+
+export default Referral;

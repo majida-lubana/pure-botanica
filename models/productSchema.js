@@ -1,7 +1,10 @@
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
+
 const { Schema } = mongoose;
 
-const productSchema = new mongoose.Schema({
+const productSchema = new Schema({
   productName: {
     type: String,
     required: true
@@ -16,7 +19,7 @@ const productSchema = new mongoose.Schema({
   },
   category: {
     type: Schema.Types.ObjectId,
-    ref: "Category",
+    ref: 'Category',
     required: true
   },
   regularPrice: {
@@ -35,8 +38,8 @@ const productSchema = new mongoose.Schema({
   },
   quantity: {
     type: Number,
-    required:true,
-    default:1,
+    required: true,
+    default: 1,
     min: [0, 'Quantity cannot be negative']
   },
   skinType: {
@@ -73,8 +76,8 @@ const productSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Available", "Out Of Stock", "Inactive", "Deleted"],
-    default: "Available",
+    enum: ['Available', 'Out Of Stock', 'Inactive', 'Deleted'],
+    default: 'Available',
     required: true
   },
   review: {
@@ -87,7 +90,6 @@ const productSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-
 productSchema.virtual('finalPrice').get(function () {
   const offerPrice = this.regularPrice - (this.regularPrice * (this.productOffer || 0) / 100);
   return Math.min(this.regularPrice, this.salePrice || this.regularPrice, offerPrice).toFixed(2);
@@ -96,7 +98,7 @@ productSchema.virtual('finalPrice').get(function () {
 
 productSchema.set('toJSON', { virtuals: true });
 productSchema.set('toObject', { virtuals: true });
-// =========================
 
-const Product = mongoose.model("Product", productSchema);
-module.exports = Product;
+const Product = mongoose.model('Product', productSchema);
+
+export default Product;

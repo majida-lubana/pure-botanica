@@ -1,18 +1,19 @@
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
+
 const { Schema } = mongoose;
 
-const addressSchema = new mongoose.Schema({
+const addressSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-  
   },
   address: [{
     addressType: {
       type: String,
       required: true,
-     
       enum: ['Home', 'Work', 'Other']
     },
     name: {
@@ -38,7 +39,7 @@ const addressSchema = new mongoose.Schema({
     pinCode: {
       type: String,
       required: true,
-      match:[/^\d{6}$/, 'Pincode must be exactly 6 digits'],
+      match: [/^\d{6}$/, 'Pincode must be exactly 6 digits'],
     },
     phone: {
       type: String,
@@ -55,7 +56,10 @@ const addressSchema = new mongoose.Schema({
     }
   }]
 });
-addressSchema.index({ user: 1 });
+
+
+addressSchema.index({ userId: 1 });
 
 const Address = mongoose.model('Address', addressSchema);
-module.exports = Address;
+
+export default Address;

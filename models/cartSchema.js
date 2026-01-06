@@ -1,4 +1,7 @@
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
+
 const { Schema } = mongoose;
 
 const cartSchema = new Schema({
@@ -18,30 +21,31 @@ const cartSchema = new Schema({
       required: true,
       min: 1
     },
-    price:{
-        type:Number,
-        required:true
+    price: {
+      type: Number,
+      required: true
     },
-    totalPrice:{
-        type:Number,
-        required:true
+    totalPrice: {
+      type: Number,
+      required: true
     },
-    status:{
-        type:String,
-        default:"Placed"
+    status: {
+      type: String,
+      default: "Placed"
     },
-    cancellationReason:{
-        type:String,
-        default:null
+    cancellationReason: {
+      type: String,
+      default: null
     },
     updatedAt: {
       type: Date,
       default: Date.now
     }
   }]
-}, { timestamps: { createdAt: true, updatedAt: false } }); // only createdAt from timestamps
-
+}, { 
+  timestamps: { createdAt: true, updatedAt: false } // Only add createdAt, no updatedAt at document level
+});
 
 const Cart = mongoose.model('Cart', cartSchema);
 
-module.exports = Cart
+export default Cart;

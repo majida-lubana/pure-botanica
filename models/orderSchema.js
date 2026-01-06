@@ -1,20 +1,25 @@
-const mongoose = require('mongoose');
+
+
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
+
 const { Schema } = mongoose;
-const { v4: uuidv4 } = require('uuid');
+
 
 const generateOrderId = () => {
-  const datePart = new Date().toISOString().slice(0,10).replace(/-/g, ''); 
-  const uuidPart = uuidv4().replace(/-/g, '').substring(0, 6).toUpperCase(); 
-  return `ORD-${datePart}-${uuidPart}`; 
+  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const uuidPart = uuidv4().replace(/-/g, '').substring(0, 6).toUpperCase();
+  return `ORD-${datePart}-${uuidPart}`;
 };
 
+
 const generateOrderItemId = () => {
-  const datePart = new Date().toISOString().slice(0,10).replace(/-/g, '');
+  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const uuidPart = uuidv4().replace(/-/g, '').substring(0, 6).toUpperCase();
   return `ITEM-${datePart}-${uuidPart}`;
 };
 
-const orderSchema = new mongoose.Schema({
+const orderSchema = new Schema({
   orderId: {
     type: String,
     default: generateOrderId,
@@ -46,7 +51,16 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ['ordered','payment failed','shipped', 'delivered', 'cancelled','return requested','return rejected','returned'],
+      enum: [
+        'ordered',
+        'payment failed',
+        'shipped',
+        'delivered',
+        'cancelled',
+        'return requested',
+        'return rejected',
+        'returned'
+      ],
       default: 'ordered'
     },
     productName: {
@@ -155,5 +169,6 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-const Order = mongoose.model("Order", orderSchema);
-module.exports = Order;
+const Order = mongoose.model('Order', orderSchema);
+
+export default Order;
