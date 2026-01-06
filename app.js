@@ -1,23 +1,50 @@
-const express = require('express');
+// app.js (recommended to keep as app.js with "type": "module" in package.json)
+
+
+
+import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
+import './config/passport.js';
+
+
+import connectDB from './config/db.js'; // Renamed to connectDB for clarity
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+import userRouter from './routes/userRouter.js';
+import adminRouter from './routes/adminRouter.js';
+
+import morgan from 'morgan';
+import logger from './utils/logger.js';
+
+import MongoStore from 'connect-mongo';
+import expressLayouts from 'express-ejs-layouts';
+
+
 const app = express();
-const dotenv = require('dotenv').config();
-const session = require('express-session');
-const passport = require('passport');
-require('./config/passport');
-const db = require('./config/db');
-const path = require('path');
-const userRouter = require('./routes/userRouter');
-const adminRouter = require('./routes/adminRouter');
-const MongoStore = require('connect-mongo');
-require('dotenv').config();
 
+app.use(
+  morgan('combined', {
+    stream: {
+      write: (message) => logger.info(message.trim()),
+    },
+  })
+);
 
-db();
+// __dirname equivalent in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Parsers
+// Connect to Database
+connectDB();
+
+// Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Prevent caching of sensitive pages
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
@@ -25,71 +52,78 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// Views
+// View Engine Setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Static
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use(expressLayouts);
+app.set('layout', false); // Disable default layout unless explicitly set
 
-// USER SESSION
+// Static Files
+app.use(express.static(path.join(__dirname, 'public')));
+
+
+// User Session Middleware
 const userSession = session({
-  name: "userSessionId",
+  name: 'userSessionId',
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    collectionName: "userSessions",
+    collectionName: 'userSessions',
   }),
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     httpOnly: true,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 });
 
-// ADMIN SESSION
+// Admin Session Middleware
 const adminSession = session({
-  name: "adminSessionId",
+  name: 'adminSessionId',
   secret: process.env.ADMIN_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    collectionName: "adminSessions",
+    collectionName: 'adminSessions',
   }),
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 });
 
+// Routes
+
+// Admin Routes (with separate session)
 app.use('/admin', adminSession, adminRouter);
 
-
-// ⭐ USER SIDE (Passport needs userSession)
+// User Routes (with Passport + user session)
 app.use(userSession);
 app.use(passport.initialize());
 app.use(passport.session());
 app.use('/', userRouter);
 
-
-
-// 404
-app.use((req, res, next) => {
-  res.status(404).render('user/page-404');
-});
-
-// Error handler
+// Global Error Handler (for unexpected errors)
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('user/page-404');
+  console.error('Unhandled Error:', err.stack);
+  res.status(500).render('user/page-404', { 
+    pageTitle: 'Error',
+    message: 'Something went wrong!' 
+  });
 });
 
-module.exports = app;
+// 404 Handler (for undefined routes)
+app.use((req, res) => {
+  res.status(404).render('user/page-404', {
+    pageTitle: 'Page Not Found'
+  });
+});
+
+export default app;
