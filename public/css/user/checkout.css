@@ -1,0 +1,125 @@
+
+    body {
+      font-family: "Lato", sans-serif;
+      background-color: #f9fafb;
+      padding-top: 100px;
+    }
+
+    .input-field {
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: palevioletred;
+      outline: none;
+      box-shadow: 0 0 0 2px pink;
+    }
+
+    .input-field.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 1px #ef4444;
+    }
+
+    .error-message {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .address-card,
+    .payment-option {
+      transition: all 0.2s ease;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+    }
+
+    .address-card.selected,
+    .payment-option.selected {
+      border-color: palevioletred;
+      box-shadow: 0 0 0 1px pink;
+    }
+
+    .address-card:hover,
+    .payment-option:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    input[type="radio"]:disabled+label {
+      color: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    .payment-option input[type="radio"]:disabled + label {
+      pointer-events: none;
+    }
+
+    .payment-option.disabled {
+      cursor: not-allowed;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      height: 80px;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+
+    .coupon-input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .coupon-warning {
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      display: none;
+    }
+
+    .coupon-warning.show {
+      display: block;
+    }
+
+    .coupon-warning.error {
+      background-color: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .coupon-warning.success {
+      background-color: #dcfce7;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    .coupon-applied {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }

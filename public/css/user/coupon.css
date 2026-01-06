@@ -1,0 +1,74 @@
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .coupon-card {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .coupon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .coupon-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .coupon-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .dashed-line {
+            border-left: 2px dashed rgba(255,255,255,0.3);
+            height: 100%;
+        }
+        
+        .coupon-gradient-1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .coupon-gradient-2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .coupon-gradient-3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .coupon-gradient-4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .coupon-gradient-5 { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .coupon-gradient-6 { background: linear-gradient(135deg, #a8edea, #fed6e3); }
+        
+        .used-coupon {
+            background: linear-gradient(135deg, #9ca3af, #6b7280) !important;
+        }
+        
+        .unavailable-coupon {
+            background: linear-gradient(135deg, #f3f4f6, #d1d5db) !important;
+            color: #6b7280;
+        }
+        
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }

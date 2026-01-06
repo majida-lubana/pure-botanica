@@ -1,0 +1,12 @@
+
+      body { font-family: "Montserrat", sans-serif; }
+      .product-card { transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; height: 100%; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; }
+      .product-card:hover { transform: translateY(-5px); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+      .product-image { transition: transform 0.3s ease-in-out; object-fit: cover; border-radius: 8px; width: 48; height: 48; }
+      .product-image:hover { transform: scale(1.05); }
+      .filter-section { border-bottom: 1px solid #e5e7eb; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+      .filter-section:last-child { border-bottom: none; }
+      input[type="checkbox"] { accent-color: #000000; }
+      .product-content { flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
+      .offer-badge { background: #ef4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 9999px; }
+  

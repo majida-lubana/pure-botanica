@@ -1,0 +1,39 @@
+
+        body {
+            font-family: "Open Sans", sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: "Montserrat", sans-serif;
+        }
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-bg-image {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 50%;
+            background-image: url('https://storage.googleapis.com/a1aa/image/69ab7bc4-60d7-4c8f-53a8-d32ece7b1806.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            color: white;
+        }
+        .offer-badge {
+        background: #ef4444;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+    }

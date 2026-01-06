@@ -1,0 +1,194 @@
+
+    /* Custom scrollbar for the table container */
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: #6b7280; /* Tailwind gray-500 */
+      border-radius: 10px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background-color: #f3f4f6; /* Tailwind gray-100 */
+    }
+    
+    /* Modern button styles matching the theme */
+    .btn-primary {
+      background-color: #14b8a6; /* Teal-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-primary:hover {
+      background-color: #0d9488; /* Teal-600 */
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background-color: #374151; /* Gray-700 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #1f2937; /* Gray-800 */
+      transform: translateY(-1px);
+    }
+    
+    .btn-danger {
+      background-color: #ef4444; /* Red-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-danger:hover {
+      background-color: #dc2626; /* Red-600 */
+      transform: translateY(-1px);
+    }
+    
+    .btn-success {
+      background-color: #10b981; /* Emerald-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-success:hover {
+      background-color: #059669; /* Emerald-600 */
+      transform: translateY(-1px);
+    }
+    
+    .btn-warning {
+      background-color: #f59e0b; /* Amber-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-warning:hover {
+      background-color: #d97706; /* Amber-600 */
+      transform: translateY(-1px);
+    }
+    
+    .btn-clear {
+      background-color: #6b7280; /* Gray-500 */
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 8px 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: none;
+    }
+    
+    .btn-clear:hover {
+      background-color: #4b5563; /* Gray-600 */
+      transform: translateY(-1px);
+    }
+    
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-listed {
+      background-color: #dcfce7; /* Green-100 */
+      color: #166534; /* Green-800 */
+    }
+    
+    .status-unlisted {
+      background-color: #fee2e2; /* Red-100 */
+      color: #991b1b; /* Red-800 */
+    }
+    
+    .offer-badge {
+      background-color: #fef3c7; /* Amber-100 */
+      color: #92400e; /* Amber-800 */
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Table styling improvements */
+    .table-header {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .table-row {
+      transition: background-color 0.2s ease;
+    }
+    
+    .table-row:hover {
+      background-color: #f8fafc;
+    }
+    
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      border-radius: 12px;
+      padding: 20px;
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .search-input {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+    }
+ 
