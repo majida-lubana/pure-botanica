@@ -1,49 +1,58 @@
 
-const Wallet = require('../models/walletSchema');
-const Transaction = require('../models/transactionSchema');
 
-const creditWallet = async (userId, amount, orderId = null, description = '') => {
- 
-  let wallet = await Wallet.findOne({ userId });
-  if (!wallet) {
-    wallet = new Wallet({ userId, balance: 0 });
+import Wallet from '../models/walletSchema.js';
+import Transaction from '../models/transactionSchema.js';
+
+export const creditWallet = async (userId, amount, orderId = null, description = '') => {
+  try {
+    let wallet = await Wallet.findOne({ userId });
+
+    if (!wallet) {
+      wallet = new Wallet({ userId, balance: 0 });
+    }
+
+    wallet.balance += Number(amount); 
+    await wallet.save();
+
+    await Transaction.create({
+      userId,
+      orderId,
+      amount: Number(amount),
+      type: 'credit',
+      description: description || (orderId ? 'Refund Credited' : 'Wallet Top-up'),
+      status: 'completed'
+    });
+
+    return wallet;
+  } catch (error) {
+    console.error('creditWallet error:', error);
+    throw new Error('Failed to credit wallet');
   }
-
-  wallet.balance += amount;
-  await wallet.save();
-
-
-  await Transaction.create({
-    userId,
-    orderId,
-    amount,
-    type: 'credit',
-    description: description || (orderId ? 'Refund Credited' : 'Wallet Top-up'),
-    status: 'completed'
-  });
-
-  return wallet;
 };
 
-const debitWallet = async (userId, amount, orderId = null, description = '') => {
-  const wallet = await Wallet.findOne({ userId });
-  if (!wallet || wallet.balance < amount) {
-    throw new Error('Insufficient balance');
+export const debitWallet = async (userId, amount, orderId = null, description = '') => {
+  try {
+    const wallet = await Wallet.findOne({ userId });
+
+    if (!wallet || wallet.balance < amount) {
+      throw new Error('Insufficient wallet balance');
+    }
+
+    wallet.balance -= Number(amount);
+    await wallet.save();
+
+    await Transaction.create({
+      userId,
+      orderId,
+      amount: Number(amount),
+      type: 'debit',
+      description: description || (orderId ? 'Order Payment via Wallet' : 'Wallet Withdrawal'),
+      status: 'completed'
+    });
+
+    return wallet;
+  } catch (error) {
+    console.error('debitWallet error:', error);
+    throw error; 
   }
-
-  wallet.balance -= amount;
-  await wallet.save();
-
-  await Transaction.create({
-    userId,
-    orderId,
-    amount,
-    type: 'debit',
-    description: description || (orderId ? 'Order Payment' : 'Wallet Withdrawal'),
-    status: 'completed'
-  });
-
-  return wallet;
 };
-
-module.exports = { creditWallet, debitWallet };

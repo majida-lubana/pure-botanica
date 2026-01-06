@@ -1,4 +1,17 @@
-const calculatePricing = (product) => {
+
+
+export const calculatePricing = (product) => {
+  if (!product) {
+    return {
+      originalPrice: 0,
+      displayPrice: 0,
+      savings: 0,
+      discountPercentage: 0,
+      isOnOffer: false,
+      offerSource: null
+    };
+  }
+
   const regular = Number(product.regularPrice) || 0;
   const sale = Number(product.salePrice) || regular;
 
@@ -27,10 +40,14 @@ const calculatePricing = (product) => {
     savings = regular - sale;
   }
 
+
+  displayPrice = Number(displayPrice.toFixed(2));
+  savings = Number(savings.toFixed(2));
+
   return {
     originalPrice: regular,
-    displayPrice: Number(displayPrice.toFixed(2)),
-    savings: Number(savings.toFixed(2)),
+    displayPrice,
+    savings,
     discountPercentage: discountPercent,
     isOnOffer: discountPercent > 0,
     offerSource:
@@ -42,6 +59,4 @@ const calculatePricing = (product) => {
   };
 };
 
-
-
-module.exports = { calculatePricing };
+export default calculatePricing;
