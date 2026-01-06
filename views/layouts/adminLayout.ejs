@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin | 
+  <% if (typeof title !== 'undefined') { %>
+    <%= title %>
+  <% } else { %>
+    Dashboard
+  <% } %>
+</title>
+  <link rel="stylesheet" href="/css/admin/common.css">
+</head>
+<body>
+
+  
+<%- include('../partials/admin/sidebar') %> 
+
+
+  
+  <div class="main-content">
+    <%- body %>
+  </div>
+
+   <!-- Page-specific JS (dashboard.js, order.js etc.) -->
+  <% if (typeof scripts !== 'undefined' && scripts.length > 0) { %>
+    <% scripts.forEach(function(file) { %>
+      <script defer src="/js/admin/<%= file %>"></script>
+    <% }); %>
+  <% } %>
+
+</body>
+</html>
