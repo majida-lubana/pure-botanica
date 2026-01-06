@@ -10,59 +10,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <!-- Cropper.js CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
-  <style>
-    :root {
-      --primary: #10856b;
-      --primary-hover: #19615c;
-      --secondary: #6b7280;
-      --light: #f9fafb;
-      --border: #e5e7eb;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f3f4f6;
-    }
-    
-    .form-input:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(6, 105, 121, 0.2);
-    }
-    
-    .image-preview, .cropped-image {
-      max-width: 100%;
-      max-height: 150px;
-      display: none;
-      margin-bottom: 10px;
-    }
-    
-    .image-cropper-container {
-      display: none;
-      max-height: 300px;
-      overflow: auto;
-    }
-    
-    .form-control {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #e5e7eb;
-      border-radius: 0.375rem;
-    }
-    
-    .error-message {
-      color: #dc2626;
-      font-size: 0.875rem;
-      margin-bottom: 10px;
-    }
-    
-    .form-label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #374151;
-      margin-bottom: 4px;
-    }
-  </style>
+  <link rel="stylesheet" href="/css/admin/editProduct.css">
+  
 </head>
 <body class="bg-gray-100 min-h-screen py-8">
   <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
@@ -76,6 +25,8 @@
     <div class="px-6 py-6">
       <form action="/admin/update-product/<%= product._id %>" method="post" class="space-y-5" enctype="multipart/form-data">
         <!-- Product Name -->
+
+
         <div>
           <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
           <input
@@ -147,6 +98,12 @@
               placeholder="e.g., Oily, Dry"
             />
           </div>
+        </div>
+
+         <div id="productData" 
+             data-product-id="<%= product._id %>" 
+             data-images='<%- JSON.stringify(product.productImages || []) %>'
+             style="display: none;">
         </div>
 
         <!-- Skin Concern -->
@@ -315,235 +272,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-  <script>
-$(document).ready(function () {
-  // --------------------------------------------------------------
-  // 1. Cropper initialisation (unchanged, only tiny refactor)
-  // --------------------------------------------------------------
-  const croppers = {};
+ <!-- editProduct.ejs -->
+<script defer src="/js/admin/editProduct.js"></script>
 
-  function initializeCropper(
-    inputId, previewId, cropperContainerClass,
-    saveBtnId, cancelBtnId, croppedImgId,
-    existingImage = null
-  ) {
-    const $input   = $(`#${inputId}`);
-    const $preview = $(`#${previewId}`);
-    const $cropper = $(`.${cropperContainerClass}`);
-    const $save    = $(`#${saveBtnId}`);
-    const $cancel  = $(`#${cancelBtnId}`);
-    const $cropped = $(`#${croppedImgId}`);
-
-    if (existingImage) {
-      $cropped.attr('src', existingImage).show();
-    }
-
-    $input.on('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        $cropped.hide();
-        $preview.attr('src', ev.target.result).show();
-        $cropper.show();
-
-        if (croppers[inputId]) croppers[inputId].destroy();
-
-        croppers[inputId] = new Cropper($preview[0], {
-          aspectRatio: 1,
-          viewMode: 1,
-          autoCropArea: 0.8,
-          responsive: true
-        });
-      };
-      reader.readAsDataURL(file);
-    });
-
-    $save.on('click', function () {
-      const cropper = croppers[inputId];
-      if (!cropper) return;
-
-      const canvas = cropper.getCroppedCanvas({
-        width: 600,
-        height: 600,
-        imageSmoothingQuality: 'high'
-      });
-
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      $preview.hide();
-      $cropped.attr('src', dataUrl).show();
-      $cropper.hide();
-      cropper.destroy();
-      delete croppers[inputId];
-
-      // store the base64 string in a hidden field (used later)
-      let $hidden = $(`input[name="croppedImage${inputId.slice(-1)}"]`);
-      if ($hidden.length === 0) {
-        $hidden = $('<input>', {
-          type: 'hidden',
-          name: `croppedImage${inputId.slice(-1)}`
-        }).appendTo($input.closest('form'));
-      }
-      $hidden.val(dataUrl);
-    });
-
-    $cancel.on('click', function () {
-      if (croppers[inputId]) {
-        croppers[inputId].destroy();
-        delete croppers[inputId];
-      }
-      $preview.attr('src', '').hide();
-      $cropper.hide();
-      $input.val('');
-      $cropped.attr('src', existingImage || '').toggle(!!existingImage);
-    });
-  }
-
-  const existingImages = <%- JSON.stringify(product.productImages || []) %>;
-  ['1','2','3','4'].forEach(n => {
-    initializeCropper(
-      `input${n}`,
-      `imgView${n}`,
-      `image-cropper-container-${n}`,
-      `saveButton${n}`,
-      `cancelButton${n}`,
-      `croppedImg${n}`,
-      existingImages[n-1] ? `/uploads/product-images/${existingImages[n-1]}` : null
-    );
-  });
-
-  // --------------------------------------------------------------
-  // 2. Helper: does slot i have a usable image?
-  // --------------------------------------------------------------
-  function hasImage(idx) {               // idx = 0..3  (1-based in HTML)
-    const cropped = $(`#croppedImg${idx+1}`).attr('src');
-    return (cropped && cropped.startsWith('data:')) || !!existingImages[idx];
-  }
-
-  // --------------------------------------------------------------
-  // 3. Inline error containers (added once)
-  // --------------------------------------------------------------
-  $('input[required], textarea[required], select[required]').each(function () {
-    if (!$(this).next('.field-error').length) {
-      $('<div class="field-error text-red-600 text-xs mt-1"></div>').insertAfter(this);
-    }
-  });
-  if (!$('#images-error').length) {
-    $('<div id="images-error" class="error-message"></div>').insertBefore('.image-section .grid');
-  }
-
-  // --------------------------------------------------------------
-  // 4. Form submit – **full validation**
-  // --------------------------------------------------------------
-  $('form').on('submit', function (e) {
-    e.preventDefault();
-
-    const $form = $(this);
-    let valid = true;
-    const errorDiv = $('#images-error');
-    errorDiv.text('');
-
-    // ---- 4.1 Text / number / select fields ----
-    $form.find('input[required], textarea[required], select[required]').each(function () {
-      const $el = $(this);
-      const val = $el.val().trim();
-      $el.next('.field-error').text('');
-
-      if (!val) {
-        $el.next('.field-error').text('This field is required.');
-        valid = false;
-        return;
-      }
-
-      // extra numeric checks
-      if ($el.attr('type') === 'number') {
-        const num = Number(val);
-        if (isNaN(num) || num < 0) {
-          $el.next('.field-error').text('Enter a number ≥ 0.');
-          valid = false;
-        }
-      }
-    });
-
-    if (!valid) return;
-
-    // ---- 4.2 Stock specific (already covered above, but keep explicit) ----
-    const stock = Number($('#stock').val());
-    if (isNaN(stock) || stock < 0) {
-      $('#stock').next('.field-error').text('Stock must be 0 or higher.');
-      return;
-    }
-
-    // ---- 4.3 Images – at least first 3 required ----
-    const requiredImgCount = 3;
-    for (let i = 0; i < requiredImgCount; i++) {
-      if (!hasImage(i)) {
-        errorDiv.text('Please provide (or keep) the first three product images.');
-        valid = false;
-        break;
-      }
-    }
-    if (!valid) return;
-
-    // ---- 4.4 Build FormData (only cropped blobs + existing filenames) ----
-    const fd = new FormData();
-
-    // regular fields (text, numbers, select…)
-    $form.serializeArray().forEach(item => fd.append(item.name, item.value));
-
-    // images
-    for (let i = 0; i < 4; i++) {
-      const $hidden = $(`input[name="croppedImage${i+1}"]`);
-      if ($hidden.length && $hidden.val().startsWith('data:')) {
-        // convert base64 → Blob
-        const b64 = $hidden.val();
-        const byteString = atob(b64.split(',')[1]);
-        const mime = b64.split(',')[0].match(/:(.*?);/)[1];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
-        const blob = new Blob([ab], { type: mime });
-        fd.append('images', blob, `product_image_${i+1}.jpg`);
-      } else if (existingImages[i]) {
-        fd.append('existingImages', existingImages[i]);
-      }
-    }
-
-    // --------------------------------------------------------------
-    // 5. AJAX submit
-    // --------------------------------------------------------------
-    $.ajax({
-      url: `/admin/update-product/<%= product._id %>`,
-      method: 'POST',
-      data: fd,
-      processData: false,
-      contentType: false,
-      success: res => {
-        if (res.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: 'Product saved successfully.',
-            timer: 1500,
-            showConfirmButton: false
-          }).then(() => location.href = '/admin/product-list');
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Failed',
-            text: res.message || 'Something went wrong.',
-            confirmButtonColor: '#14b8a6'
-          });
-        }
-      },
-      error: (xhr) => {
-        const msg = xhr.responseJSON?.message || 'Server error';
-        Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#14b8a6' });
-      }
-    });
-  });
-});
-</script>
 </body>
 </html>

@@ -8,25 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-      body { font-family: "Montserrat", sans-serif; }
-      .product-image { transition: transform 0.3s ease-in-out; object-fit: contain; border-radius: 8px; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
-      .product-image:hover { transform: scale(1.05); }
-      .thumbnail { cursor: pointer; opacity: 0.6; transition: opacity 0.3s; }
-      .thumbnail.active { opacity: 1; }
-      .sold-out { color: #ff0000; font-weight: bold; }
-      .available { color: #10b981; font-weight: bold; }
-      .related-product-card { transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; }
-      .related-product-card:hover { transform: translateY(-5px); }
-      .quantity-input { width: 3rem; text-align: center; border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.5rem; }
-      .quantity-btn { background-color: #e5e7eb; color: #374151; padding: 0.5rem; border-radius: 0.25rem; transition: background-color 0.2s; }
-      .quantity-btn:hover { background-color: #d1d5db; }
-      .quantity-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-      .image-container { position: relative; width: 100%; height: 400px; }
-      .zoom-lens { position: absolute; border: 1px solid #d4d4d4; width: 100px; height: 100px; background-color: rgba(255, 255, 255, 0.3); cursor: none; display: none; }
-      .zoom-result { position: absolute; top: 0; left: 100%; margin-left: 20px; width: 300px; height: 300px; border: 1px solid #d4d4d4; background-color: #fff; display: none; overflow: hidden; z-index: 10; }
-      .offer-badge { background: #ef4444; color: white; font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 9999px; }
-    </style>
+    <link rel="stylesheet" href="/css/user/productDetails.css">
   </head>
   <body class="bg-white text-black">
     <%- include("../partials/user/header") %>
@@ -46,22 +28,26 @@
           <div class="w-full md:w-1/2">
             <div class="image-container">
               <img
-                id="mainImage"
-                alt="<%= product.productName %>"
-                class="w-full h-[400px] product-image mb-4"
-                src="<%= product.productImages.length > 0 ? '/Uploads/product-images/' + product.productImages[0] : 'https://via.placeholder.com/400' %>"
-              />
+  id="mainImage"
+  alt="<%= product.productName %>"
+  class="w-full h-[400px] product-image mb-4 object-cover"
+  src="<%= product.productImages?.[0] || 'https://via.placeholder.com/400' %>"
+  loading="lazy"
+/>
+
               <div id="zoomLens" class="zoom-lens"></div>
               <div id="zoomResult" class="zoom-result"></div>
             </div>
             <div class="flex space-x-2">
               <% product.productImages.forEach((img, index) => { %>
                 <img
-                  alt="<%= product.productName %> thumbnail <%= index %>"
-                  class="w-20 h-20 thumbnail <%= index === 0 ? 'active' : '' %>"
-                  src="/Uploads/product-images/<%= img %>"
-                  data-index="<%= index %>"
-                />
+  alt="<%= product.productName %> thumbnail <%= index %>"
+  class="w-20 h-20 thumbnail <%= index === 0 ? 'active' : '' %>"
+  src="<%= img %>"
+  data-index="<%= index %>"
+  loading="lazy"
+/>
+
               <% }) %>
             </div>
           </div>
@@ -172,11 +158,15 @@
                 </button>
 
                 <a href="/product/<%= relProduct._id %>">
-                  <img
-                    alt="<%= relProduct.productName %>"
-                    class="mb-4 product-image cursor-pointer w-32 h-32"
-                    src="<%= relProduct.productImages.length > 0 ? '/Uploads/product-images/' + relProduct.productImages[0] : 'https://via.placeholder.com/150' %>"
-                  />
+                  <img 
+  alt="<%= product.name %>" 
+  class="mx-auto mb-3 cursor-pointer" 
+  height="200" 
+  src="<%= product.productImages?.[0] || '/images/placeholder.jpg' %>" 
+  width="200"
+  onerror="this.src='/images/placeholder.jpg'"
+/>
+
                 </a>
                 <div class="font-bold text-base mb-2 text-gray-800 text-center"><%= relProduct.productName.toUpperCase() %></div>
                 <div class="mb-3 text-center">
@@ -214,244 +204,7 @@
     <%- include("../partials/user/footer") %>
 
     <!-- FULL JS (wishlist + cart + zoom) -->
-    <script>
-      // Toast (same as shop)
-      function showToast(message, type = 'info') {
-        const icons = { success: 'success', danger: 'error', info: 'info', warning: 'warning' };
-        Swal.fire({
-          toast: true, position: 'top-end', icon: icons[type] || 'info', title: message,
-          showConfirmButton: false, timer: 2000, timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-          }
-        });
-      }
-
-      // ---------- WISHLIST (exact copy from shop) ----------
-      async function toggleWishlist(productId, button) {
-        const icon = button.querySelector('i');
-        try {
-          const res = await fetch('/wishlist/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId })
-          });
-          const data = await res.json();
-
-          if (data.success) {
-            if (data.added) {
-              icon.classList.remove('far');
-              icon.classList.add('fas', 'text-red-500');
-              showToast('Added to wishlist!', 'success');
-            } else {
-              icon.classList.remove('fas', 'text-red-500');
-              icon.classList.add('far');
-              showToast('Removed from wishlist', 'info');
-            }
-            updateWishlistCount();
-          } else {
-            handleAuthRedirect(data);
-          }
-        } catch (e) {
-          showToast('Network error', 'danger');
-        }
-      }
-
-      function attachWishlistListeners() {
-        document.querySelectorAll('.wishlist-btn').forEach(btn => {
-          btn.onclick = function (e) {
-            e.preventDefault(); e.stopPropagation();
-            toggleWishlist(this.dataset.productId, this);
-          };
-        });
-      }
-
-      async function updateWishlistCount() {
-        try {
-          const res = await fetch('/wishlist/count');
-          const data = await res.json();
-          const el = document.getElementById('wishlist-count');
-          if (el) el.textContent = data.count > 0 ? `${data.count} items` : 'Empty';
-        } catch (err) { console.error('Failed to update wishlist count'); }
-      }
-
-      function handleAuthRedirect(data) {
-        if (data.redirectUrl) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Login Required',
-            text: data.message || 'Please login to continue.',
-            confirmButtonText: 'Login'
-          }).then(r => { if (r.isConfirmed) window.location.href = data.redirectUrl; });
-        } else {
-          showToast(data.message || 'Error', 'danger');
-        }
-      }
-
-      // ---------- CART ----------
-      async function addToCart(productId, quantity) {
-        try {
-          const res = await fetch('/cart/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId, quantity })
-          });
-          const data = await res.json();
-
-          if (data.success) {
-            // Update cart count
-            const el = document.getElementById('cart-count');
-            if (el) el.textContent = data.cartCount;
-
-            // Update ALL buttons for this product
-            document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(btn => {
-              btn.textContent = 'GO TO CART';
-              btn.classList.remove('bg-black', 'hover:bg-gray-800');
-              btn.classList.add('bg-green-600', 'hover:bg-green-700');
-              btn.dataset.mode = 'goto-cart';
-            });
-
-            // Disable quantity controls for main button
-            if (document.getElementById('addToCartBtn')?.dataset.productId === productId) {
-              quantityInput.disabled = true;
-              decreaseQty.disabled = true;
-              increaseQty.disabled = true;
-            }
-
-            showToast('Added to cart!', 'success');
-          } else {
-            handleAuthRedirect(data);
-          }
-        } catch (err) {
-          showToast('Network error', 'danger');
-        }
-      }
-
-      document.addEventListener('click', async e => {
-        const btn = e.target.closest('#addToCartBtn, .add-to-cart-btn');
-        if (!btn || btn.disabled) return;
-
-        if (btn.dataset.mode === 'goto-cart') {
-          window.location.href = '/cart';
-          return;
-        }
-
-        const productId = btn.dataset.productId;
-        const qty = btn.id === 'addToCartBtn' ? parseInt(quantityInput.value) : 1;
-        await addToCart(productId, qty);
-      });
-
-      // ---------- Quantity Controls ----------
-      const maxLimit = 5;
-      const quantityInput = document.getElementById('quantity');
-      const decreaseQty = document.getElementById('decreaseQty');
-      const increaseQty = document.getElementById('increaseQty');
-
-      if (quantityInput && decreaseQty && increaseQty) {
-        const effectiveMax = Math.min(parseInt(quantityInput.max), maxLimit);
-        let notificationActive = false;
-
-        const showLimitAlert = () => {
-          if (notificationActive) return;
-          notificationActive = true;
-          Swal.fire({
-            icon: 'warning',
-            title: 'Limit reached',
-            text: `You can only buy up to ${maxLimit} units of this product.`,
-            confirmButtonColor: '#108a7e'
-          }).then(() => { notificationActive = false; });
-        };
-
-        decreaseQty.addEventListener('click', () => {
-          let v = parseInt(quantityInput.value) || 1;
-          if (v > 1) quantityInput.value = v - 1;
-          decreaseQty.disabled = v <= 2;
-          increaseQty.disabled = v >= effectiveMax;
-        });
-
-        increaseQty.addEventListener('click', () => {
-          let v = parseInt(quantityInput.value) || 1;
-          if (v < effectiveMax) {
-            quantityInput.value = v + 1;
-          } else {
-            setTimeout(showLimitAlert, 50);
-          }
-          decreaseQty.disabled = v <= 0;
-          increaseQty.disabled = v >= effectiveMax;
-        });
-
-        quantityInput.addEventListener('input', () => {
-          let v = parseInt(quantityInput.value) || 1;
-          if (v < 1) v = 1;
-          if (v > effectiveMax) {
-            quantityInput.value = effectiveMax;
-            setTimeout(showLimitAlert, 50);
-          } else {
-            quantityInput.value = v;
-          }
-          decreaseQty.disabled = v <= 1;
-          increaseQty.disabled = v >= effectiveMax;
-        });
-      }
-
-      // ---------- Image Zoom & Thumbnails ----------
-      const thumbnails = document.querySelectorAll('.thumbnail');
-      const mainImage = document.getElementById('mainImage');
-      const zoomLens = document.getElementById('zoomLens');
-      const zoomResult = document.getElementById('zoomResult');
-
-      thumbnails.forEach(thumb => {
-        thumb.addEventListener('click', () => {
-          thumbnails.forEach(t => t.classList.remove('active'));
-          thumb.classList.add('active');
-          mainImage.src = thumb.src;
-          zoomResult.style.backgroundImage = `url(${thumb.src})`;
-        });
-      });
-
-      if (mainImage && zoomLens && zoomResult) {
-        zoomResult.style.backgroundImage = `url(${mainImage.src})`;
-        zoomResult.style.backgroundSize = `${mainImage.width * 2}px ${mainImage.height * 2}px`;
-
-        mainImage.parentElement.addEventListener('mousemove', e => {
-          const rect = mainImage.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-
-          zoomLens.style.display = 'block';
-          zoomResult.style.display = 'block';
-
-          let lensX = x - 50;
-          let lensY = y - 50;
-          lensX = Math.max(0, Math.min(lensX, mainImage.width - 100));
-          lensY = Math.max(0, Math.min(lensY, mainImage.height - 100));
-
-          zoomLens.style.left = `${lensX}px`;
-          zoomLens.style.top = `${lensY}px`;
-
-          const rx = (lensX / mainImage.width) * (mainImage.width * 2);
-          const ry = (lensY / mainImage.height) * (mainImage.height * 2);
-          zoomResult.style.backgroundPosition = `-${rx}px -${ry}px`;
-        });
-
-        mainImage.parentElement.addEventListener('mouseleave', () => {
-          zoomLens.style.display = 'none';
-          zoomResult.style.display = 'none';
-        });
-      }
-
-      // ---------- Init ----------
-      document.addEventListener('DOMContentLoaded', () => {
-        const mainBtn = document.getElementById('addToCartBtn');
-        if (mainBtn?.dataset.mode === 'goto-cart') {
-          quantityInput.disabled = true;
-          decreaseQty.disabled = true;
-          increaseQty.disabled = true;
-        }
-        attachWishlistListeners();
-        updateWishlistCount();
-      });
-    </script>
+     <script ddefer src="/js/user/productDetails.js"></script>
+    
   </body>
 </html>
