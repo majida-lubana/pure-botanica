@@ -1,4 +1,6 @@
-const MESSAGES = require('../constants/messages');
+
+
+import MESSAGES from '../constants/messages.js';
 
 const handleValidationError = (req, res, redirectPath, errors) => {
   try {
@@ -9,6 +11,7 @@ const handleValidationError = (req, res, redirectPath, errors) => {
       message: null
     });
   } catch (renderError) {
+    console.error('Render error in validation middleware:', renderError);
     return res.status(500).json({
       success: false,
       message: MESSAGES.VALIDATION.SERVER_ERROR,
@@ -36,17 +39,25 @@ const validate = (schema, redirectPath) => {
 
         if (Array.isArray(validationResult.error?.issues)) {
           validationResult.error.issues.forEach(err => {
-            errors[err.path[0]] = err.message;
+            const field = err.path[0];
+            if (field) {
+              errors[field] = err.message;
+            }
           });
-        } else {
+        }
+
+    
+        if (Object.keys(errors).length === 0) {
           errors.general = MESSAGES.VALIDATION.INVALID_INPUT;
         }
 
         return handleValidationError(req, res, redirectPath, errors);
       }
 
+
       next();
     } catch (error) {
+      console.error('Unexpected error in validation middleware:', error);
       return handleValidationError(
         req,
         res,
@@ -57,4 +68,4 @@ const validate = (schema, redirectPath) => {
   };
 };
 
-module.exports = validate;
+export default validate;
