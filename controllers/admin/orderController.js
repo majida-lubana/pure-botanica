@@ -1,12 +1,13 @@
-const mongoose = require('mongoose');
-const Order = require('../../models/orderSchema');
-const Product = require('../../models/productSchema');
-const Wallet = require('../../models/walletSchema');
-const Transaction = require('../../models/transactionSchema');
-const User = require('../../models/userSchema');
-const referralController = require('../user/referralController');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+
+
+import mongoose from 'mongoose';
+import Order from '../../models/orderSchema.js';
+import Product from '../../models/productSchema.js';
+import Wallet from '../../models/walletSchema.js';
+import Transaction from '../../models/transactionSchema.js';
+import * as referralController from '../user/referralController.js'; 
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
 const computeOrderStatus = (orderItems) => {
   const statuses = orderItems.map(i => i.status);
@@ -35,17 +36,17 @@ const computeOrderStatus = (orderItems) => {
   return 'pending';
 };
 
-async function updateOrderStatus(order, session = null) {
+const _updateOrderStatus = async (order, session = null) => {
   const newStatus = computeOrderStatus(order.orderItems);
 
   if (order.status !== newStatus) {
     order.status = newStatus;
 
-    const exists = order.timeline.some(t => t.label.toLowerCase().includes(newStatus));
+    const exists = order.timeline.some(t => t.label.toLowerCase().includes(newStatus.toLowerCase()));
     if (!exists) {
       order.timeline.push({
         label: `Order ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
-        completed: ['delivered','cancelled','returned'].includes(newStatus),
+        completed: ['delivered', 'cancelled', 'returned'].includes(newStatus),
         current: true,
         date: new Date(),
       });
@@ -57,9 +58,9 @@ async function updateOrderStatus(order, session = null) {
   }
 
   await order.save({ session });
-}
+};
 
-exports.placeOrder = async (req, res) => {
+export const placeOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -134,7 +135,7 @@ exports.placeOrder = async (req, res) => {
   }
 };
 
-exports.updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (req, res) => {
   try {
     const { itemId, status } = req.body;
     const { orderId } = req.params;
@@ -155,7 +156,7 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    const item = order.orderItems.find(item => item.ord_id.toString() === itemId);
+    const item = order.orderItems.find(item => item.ord_id?.toString() === itemId);
     if (!item) {
       return res.status(STATUS.NOT_FOUND).json({ 
         success: false, 
@@ -165,7 +166,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     item.status = status;
 
-    await updateOrderStatus(order);
+    await _updateOrderStatus(order); 
 
     res.status(STATUS.OK).json({
       success: true,
@@ -183,7 +184,7 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-exports.renderOrderManage = async (req, res) => {
+export const renderOrderManage = async (req, res) => {
   try {
     let page = parseInt(req.query.page) || 1;
     let limit = 5;
@@ -211,17 +212,22 @@ exports.renderOrderManage = async (req, res) => {
       }
 
       order.orderItems.forEach(item => {
-        const product = item.product;
-        item.displayName = product?.productName || 'Unknown Product';
+  const product = item.product;
+  const imageFile = product?.productImages?.[0];
 
-        const imageFile = product?.productImages?.[0];
-        item.displayImage = imageFile
-          ? `/Uploads/product-images/${imageFile}`
-          : 'https://via.placeholder.com/80?text=No+Image';
-      });
+  item.displayImage = imageFile
+    ? imageFile.startsWith('http')
+      ? imageFile
+      : imageFile.startsWith('/Uploads')
+        ? imageFile
+        : `/Uploads/product-images/${imageFile}`
+    : 'https://via.placeholder.com/80?text=No+Image';
+});
+
     }
 
     res.render('admin/orderManage', {
+      layout: 'layouts/adminLayout',
       orders,
       currentPage: page,
       totalPages: Math.ceil(totalOrders / limit),
@@ -239,7 +245,7 @@ exports.renderOrderManage = async (req, res) => {
   }
 };
 
-exports.renderOrderDetails = async (req, res) => {
+export const renderOrderDetails = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
       .populate('user', 'name email')
@@ -268,9 +274,16 @@ exports.renderOrderDetails = async (req, res) => {
     order.orderItems = order.orderItems.map(item => {
       const product = item.product;
       const imageFile = product?.productImages?.[0];
-      const productImage = imageFile 
-        ? `/Uploads/product-images/${imageFile}` 
-        : 'https://via.placeholder.com/120?text=No+Image';
+
+let productImage = 'https://via.placeholder.com/120?text=No+Image';
+
+if (imageFile) {
+  productImage = imageFile.startsWith('http')
+    ? imageFile
+    : imageFile.startsWith('/Uploads')
+      ? imageFile
+      : `/Uploads/product-images/${imageFile}`;
+}
 
       return {
         ...item,
@@ -290,7 +303,7 @@ exports.renderOrderDetails = async (req, res) => {
       pincode: '', phone: 'N/A', addressType: 'N/A'
     };
 
-    res.render('admin/orderDetails', { order, admin: req.session.admin });
+    res.render('admin/orderDetails', { layout: 'layouts/adminLayout', order, admin: req.session.admin });
   } catch (error) {
     console.error('Error fetching order details:', error);
     res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
@@ -303,7 +316,7 @@ exports.renderOrderDetails = async (req, res) => {
   }
 };
 
-exports.getOrderById = async (req, res) => {
+export const getOrderById = async (req, res) => {
   try {
     const order = await Order.findOne({ orderId: req.params.orderId })
       .populate('user', 'name email')
@@ -353,7 +366,7 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-exports.verifyReturn = async (req, res) => {
+export const verifyReturn = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { itemId, action } = req.body;
@@ -455,5 +468,3 @@ exports.verifyReturn = async (req, res) => {
     });
   }
 };
-
-module.exports = exports;
