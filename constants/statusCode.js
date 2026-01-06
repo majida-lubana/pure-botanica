@@ -1,4 +1,3 @@
-
 const STATUS = {
     OK: 200,
     CREATED: 201,
@@ -8,6 +7,6 @@ const STATUS = {
     NOT_FOUND: 404,
     CONFLICT: 409,
     INTERNAL_ERROR: 500
-}
+};
 
-module.exports = STATUS
+export default STATUS;
