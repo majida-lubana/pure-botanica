@@ -1,7 +1,9 @@
-const User = require('../../models/userSchema');
-const MESSAGES = require('../../constants/messages'); // Adjust path if needed
 
-exports.customerInfo = async (req, res) => {
+
+import User from '../../models/userSchema.js';
+import MESSAGES from '../../constants/messages.js'; 
+
+export const customerInfo = async (req, res) => {
   try {
     const search = req.query.search || '';
     const page = parseInt(req.query.page) || 1;
@@ -26,6 +28,7 @@ exports.customerInfo = async (req, res) => {
     const count = await User.countDocuments(filter);
 
     res.render('admin/users', {
+      layout: 'layouts/adminLayout',
       users: userData,
       currentPage: page,
       totalPages: Math.ceil(count / limit),
@@ -44,7 +47,7 @@ exports.customerInfo = async (req, res) => {
   }
 };
 
-exports.customerBlocked = async (req, res) => {
+export const customerBlocked = async (req, res) => {
   try {
     const id = req.params.id;
     await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
@@ -62,7 +65,7 @@ exports.customerBlocked = async (req, res) => {
   }
 };
 
-exports.customerUnblocked = async (req, res) => {
+export const customerUnblocked = async (req, res) => {
   try {
     const id = req.params.id;
     await User.updateOne({ _id: id }, { $set: { isBlocked: false } });

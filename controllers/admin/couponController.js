@@ -1,8 +1,10 @@
-const Coupon = require('../../models/couponSchema');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Adjust path if needed
 
-exports.getCouponPage = async (req, res) => {
+
+import Coupon from '../../models/couponSchema.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js';
+
+export const getCouponPage = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 3;
@@ -28,6 +30,7 @@ exports.getCouponPage = async (req, res) => {
             .lean();
 
         res.render('admin/couponManage', {
+            layout: 'layouts/adminLayout',
             coupons,
             currentPage: page,
             totalPages,
@@ -47,7 +50,7 @@ exports.getCouponPage = async (req, res) => {
     }
 };
 
-exports.addCoupon = async (req, res) => {
+export const addCoupon = async (req, res) => {
     try {
         const {
             name,
@@ -148,7 +151,7 @@ exports.addCoupon = async (req, res) => {
     }
 };
 
-exports.getCouponById = async (req, res) => {
+export const getCouponById = async (req, res) => {
     try {
         const coupon = await Coupon.findById(req.params.id);
         if (!coupon) {
@@ -167,7 +170,7 @@ exports.getCouponById = async (req, res) => {
     }
 };
 
-exports.updateCoupon = async (req, res) => {
+export const updateCoupon = async (req, res) => {
     try {
         const couponId = req.params.id;
         const {
@@ -271,7 +274,7 @@ exports.updateCoupon = async (req, res) => {
     }
 };
 
-exports.toggleCouponStatus = async (req, res) => {
+export const toggleCouponStatus = async (req, res) => {
     try {
         const coupon = await Coupon.findById(req.params.id);
         if (!coupon) {
@@ -300,7 +303,7 @@ exports.toggleCouponStatus = async (req, res) => {
     }
 };
 
-exports.deleteCoupon = async (req, res) => {
+export const deleteCoupon = async (req, res) => {
     try {
         const result = await Coupon.findByIdAndDelete(req.params.id);
         if (!result) {

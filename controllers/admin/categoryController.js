@@ -1,8 +1,10 @@
-const Category = require('../../models/categorySchema');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Adjust path if needed
 
-exports.categoryInfo = async (req, res) => {
+
+import Category from '../../models/categorySchema.js';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
+
+export const categoryInfo = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 4;
@@ -23,6 +25,7 @@ exports.categoryInfo = async (req, res) => {
     const currentPage = Math.min(page, totalPages);
 
     res.render('admin/category', {
+      layout: 'layouts/adminLayout',
       cat: categoryData,
       currentPage,
       totalPages,
@@ -41,7 +44,7 @@ exports.categoryInfo = async (req, res) => {
   }
 };
 
-exports.addCategory = async (req, res) => {
+export const addCategory = async (req, res) => {
   const { categoryName, description } = req.body;
 
   try {
@@ -73,12 +76,13 @@ exports.addCategory = async (req, res) => {
   }
 };
 
-exports.getListCategory = async (req, res) => {
+export const getListCategory = async (req, res) => {
   try {
     const id = req.query.id;
     await Category.updateOne({ _id: id }, { $set: { isListed: true } });
     res.json({ success: true, isListed: true });
   } catch (error) {
+    console.log('Error',error)
     res.status(STATUS.INTERNAL_ERROR).json({ 
       success: false, 
       message: MESSAGES.COMMON.SOMETHING_WENT_WRONG 
@@ -86,12 +90,13 @@ exports.getListCategory = async (req, res) => {
   }
 };
 
-exports.getUnlistCategory = async (req, res) => {
+export const getUnlistCategory = async (req, res) => {
   try {
     const id = req.query.id;
     await Category.updateOne({ _id: id }, { $set: { isListed: false } });
     res.json({ success: true, isListed: false });
   } catch (error) {
+    console.log('Error',error)
     res.status(STATUS.INTERNAL_ERROR).json({ 
       success: false, 
       message: MESSAGES.COMMON.SOMETHING_WENT_WRONG 
@@ -99,7 +104,7 @@ exports.getUnlistCategory = async (req, res) => {
   }
 };
 
-exports.getEditCategory = async (req, res) => {
+export const getEditCategory = async (req, res) => {
   try {
     const id = req.params.id;
     const category = await Category.findOne({ _id: id });
@@ -115,6 +120,7 @@ exports.getEditCategory = async (req, res) => {
     }
 
     res.render("admin/edit-category", {
+      layout: 'layouts/adminLayout',
       category,
       currentPage: 'category'
     });
@@ -124,7 +130,7 @@ exports.getEditCategory = async (req, res) => {
   }
 };
 
-exports.editCategory = async (req, res) => {
+export const editCategory = async (req, res) => {
   try {
     const id = req.params.id;
     const { categoryName, description } = req.body;
@@ -150,7 +156,7 @@ exports.editCategory = async (req, res) => {
   }
 };
 
-exports.addCategoryOffer = async (req, res) => {
+export const addCategoryOffer = async (req, res) => {
   try {
     const { categoryId, offerPercent, startDate, endDate } = req.body;
 
@@ -219,7 +225,7 @@ exports.addCategoryOffer = async (req, res) => {
   }
 };
 
-exports.removeCategoryOffer = async (req, res) => {
+export const removeCategoryOffer = async (req, res) => {
   try {
     const { categoryId } = req.body;
 

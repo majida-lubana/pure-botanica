@@ -1,12 +1,11 @@
-// controllers/adminDashboardController.js
-const Order = require('../../models/orderSchema');
-const Product = require('../../models/productSchema');
-const Category = require('../../models/categorySchema');
-const PDFDocument = require('pdfkit');
-const ExcelJS = require('exceljs');
-const moment = require('moment');
-const STATUS = require('../../constants/statusCode');
-const MESSAGES = require('../../constants/messages'); // Centralized messages
+
+
+import Order from '../../models/orderSchema.js';
+import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
+import moment from 'moment';
+import STATUS from '../../constants/statusCode.js';
+import MESSAGES from '../../constants/messages.js'; 
 
 function buildDateRange(period, startDate, endDate) {
   let from, to, label = 'Custom Period';
@@ -48,7 +47,7 @@ function buildDateRange(period, startDate, endDate) {
   return { from: from.toDate(), to: to.toDate(), label };
 }
 
-exports.loadSalesReport = async (req, res) => {
+export const loadSalesReport = async (req, res) => {
   if (!req.session.admin) return res.redirect('/admin/login');
 
   try {
@@ -64,7 +63,9 @@ exports.loadSalesReport = async (req, res) => {
       from = range.from; to = range.to; periodLabel = range.label;
       filter.createdOn = { $gte: from, $lte: to };
     } catch (err) {
+      console.log('Error LoadSalesReport',err)
       return res.render('admin/dashboard', {
+        layout: 'layouts/adminLayout',
         pageTitle: 'Sales Report',
         currentPage: 'sales-report',
         error: MESSAGES.COMMON.INVALID_DATE_RANGE || 'Invalid date range',
@@ -109,7 +110,7 @@ exports.loadSalesReport = async (req, res) => {
 
     const queryParams = { period, startDate, endDate };
     const baseQuery = new URLSearchParams(
-      Object.fromEntries(Object.entries(queryParams).filter(([_, v]) => v))
+      Object.fromEntries(Object.entries(queryParams).filter(([, v]) => v))
     ).toString();
 
     const pagination = {
@@ -121,6 +122,7 @@ exports.loadSalesReport = async (req, res) => {
     };
 
     res.render('admin/dashboard', {
+      layout: 'layouts/adminLayout',
       pageTitle: 'Sales Report',
       currentPage: 'sales-report',
       salesData,
@@ -300,7 +302,7 @@ async function getBestSellingCategories(filter, limit = 10) {
   }
 }
 
-exports.downloadSalesReport = async (req, res) => {
+export const downloadSalesReport = async (req, res) => {
   if (!req.session.admin) return res.redirect('/admin/login');
 
   try {
