@@ -33,7 +33,7 @@ export const login = async (req, res) => {
 
         if (!admin) {
             return res.render('admin/login', {
-                layout: 'layouts/adminLayout',
+                layout: false,
                 message: MESSAGES.AUTH.LOGIN_FAILED,
                 pageTitle: 'Login Page'
             });
@@ -44,7 +44,9 @@ export const login = async (req, res) => {
         if (passwordMatch) {
             req.session.admin = true;
             req.session.adminId = admin._id;
-            return res.redirect('/admin/dashboard');
+            req.session.save(() => {
+  return res.redirect('/admin/dashboard');
+});
         } else {
             return res.render('admin/login', {
                 message: MESSAGES.AUTH.LOGIN_FAILED,

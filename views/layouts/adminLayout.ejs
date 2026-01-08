@@ -8,7 +8,11 @@
     Dashboard
   <% } %>
 </title>
-  <link rel="stylesheet" href="/css/admin/common.css">
+ <% if (typeof styles !== 'undefined' && styles.length > 0) { %>
+  <% styles.forEach(function(file) { %>
+    <link rel="stylesheet" href="/css/admin/<%= file %>">
+  <% }); %>
+<% } %>
 </head>
 <body>
 

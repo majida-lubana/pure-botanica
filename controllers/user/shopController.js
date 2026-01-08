@@ -244,6 +244,7 @@ export const checkProductAvailability = async (req, res) => {
       status: "Available",
       isActive: true,
       isBlocked: false,
+       quantity: { $gt: 0 },
     }).select("quantity");
 
     res.json({

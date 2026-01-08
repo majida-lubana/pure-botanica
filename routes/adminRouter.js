@@ -7,13 +7,13 @@ import { adminAuth } from '../middlewares/auth.js';
 import uploads from '../utils/multer.js';
 
 
-// Named imports from EACH controller
+
 import {
   loadLogin,
   pageError,
   login,
   logout
-} from '../controllers/admin/adminController.js'; // ← Renamed from adminController
+} from '../controllers/admin/adminController.js'; 
 
 import {
   customerInfo,
