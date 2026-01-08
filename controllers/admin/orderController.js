@@ -137,52 +137,52 @@ export const placeOrder = async (req, res) => {
 
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { itemId, status } = req.body;
+    const { itemId, status } = req.body || {};
     const { orderId } = req.params;
+
+    if (!itemId || !status) {
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'itemId and status are required'
+      });
+    }
 
     const validStatuses = ['ordered', 'shipped', 'delivered', 'cancelled', 'returned'];
     if (!validStatuses.includes(status)) {
-      return res.status(STATUS.BAD_REQUEST).json({ 
-        success: false, 
-        message: MESSAGES.ORDER.INVALID_STATUS || 'Invalid status' 
+      return res.status(STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid status'
       });
     }
 
     const order = await Order.findOne({ orderId }).populate('user');
     if (!order) {
-      return res.status(STATUS.NOT_FOUND).json({ 
-        success: false, 
-        message: MESSAGES.ORDER.NOT_FOUND || 'Order not found' 
-      });
+      return res.status(STATUS.NOT_FOUND).json({ success: false, message: 'Order not found' });
     }
 
-    const item = order.orderItems.find(item => item.ord_id?.toString() === itemId);
+    const item = order.orderItems.find(i => i.ord_id?.toString() === itemId);
     if (!item) {
-      return res.status(STATUS.NOT_FOUND).json({ 
-        success: false, 
-        message: MESSAGES.ORDER.ITEM_NOT_FOUND || 'Item not found in order' 
-      });
+      return res.status(STATUS.NOT_FOUND).json({ success: false, message: 'Item not found' });
     }
 
     item.status = status;
-
-    await _updateOrderStatus(order); 
+    await _updateOrderStatus(order);
 
     res.status(STATUS.OK).json({
       success: true,
-      message: MESSAGES.ORDER.STATUS_UPDATED || 'Item status updated successfully',
-      orderStatus: order.status,
-      orderId: order._id
+      message: 'Item status updated successfully',
+      orderStatus: order.status
     });
 
   } catch (error) {
-    console.error('Error updating item status:', error.stack);
-    res.status(STATUS.INTERNAL_ERROR).json({ 
-      success: false, 
-      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG 
+    console.error('Error updating item status:', error);
+    res.status(STATUS.INTERNAL_ERROR).json({
+      success: false,
+      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG
     });
   }
 };
+
 
 export const renderOrderManage = async (req, res) => {
   try {
@@ -369,7 +369,14 @@ export const getOrderById = async (req, res) => {
 export const verifyReturn = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { itemId, action } = req.body;
+    const { itemId, action } = req.body || {};
+
+    if (!itemId || !action) {
+    return res.status(STATUS.BAD_REQUEST).json({
+    success: false,
+    message: 'itemId and action are required'
+  });
+  }
 
     const order = await Order.findOne({ orderId });
     if (!order) {
@@ -422,7 +429,7 @@ export const verifyReturn = async (req, res) => {
         });
       }
 
-      await updateOrderStatus(order);
+      await _updateOrderStatus(order);
 
       return res.status(STATUS.OK).json({
         success: true,
@@ -446,7 +453,7 @@ export const verifyReturn = async (req, res) => {
         }
       );
 
-      await updateOrderStatus(order);
+      await _updateOrderStatus(order);
 
       return res.status(STATUS.OK).json({
         success: true,

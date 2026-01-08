@@ -35,7 +35,7 @@ const computeOrderStatus = (orderItems) => {
   return "pending";
 };
 
-const updateOrderStatus = async (order, session = null) => {
+const _updateOrderStatus = async (order, session = null) => {
   const newStatus = computeOrderStatus(order.orderItems);
 
   if (order.status !== newStatus) {
@@ -421,7 +421,7 @@ export const cancelItem = async (req, res) => {
       notes: `Reason: ${reason || "No reason provided"}`,
     });
 
-    await updateOrderStatus(order);
+    await _updateOrderStatus(order);
     await order.save();
 
     res.json({
@@ -504,7 +504,7 @@ export const returnItem = async (req, res) => {
       itemId: item._id,
     });
 
-    await updateOrderStatus(order);
+    await _updateOrderStatus(order);
     await order.save();
 
     res.json({
