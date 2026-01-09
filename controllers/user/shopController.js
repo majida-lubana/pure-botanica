@@ -319,7 +319,6 @@ export const loadProductPage = async (req, res) => {
       relatedProducts,
       wishlistProductIds,
       discountsApplied,
-      user: req.user,
       inCart,
     });
 
