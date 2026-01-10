@@ -66,7 +66,15 @@ export const getWishlist = async (req, res) => {
 export const toggleWishlist = async (req, res) => {
   try {
     const { productId } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id;
+
+    if(!userId){
+      return res.status(STATUS.BAD_REQUEST).json({
+        success:false,
+        message:MESSAGES.REQUIRED_LOGIN,
+        redirectUrl:'/login'
+      })
+    }
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(STATUS.BAD_REQUEST).json({
