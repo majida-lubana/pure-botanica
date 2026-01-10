@@ -389,7 +389,7 @@ export const cancelItem = async (req, res) => {
       });
     }
 
-    if (!["pending", "ordered"].includes(item.status)) {
+    if (!["Pending", "ordered"].includes(item.status)) {
       return res.status(STATUS.BAD_REQUEST).json({
         success: false,
         message: MESSAGES.ORDER.CANNOT_CANCEL || `Item cannot be cancelled (current status: ${item.status})`
