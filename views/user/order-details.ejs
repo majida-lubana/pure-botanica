@@ -114,8 +114,8 @@
                   </p>
                   <div class="flex flex-wrap gap-3">
                     <!-- Only show item actions if payment is successful -->
-                    <% if (order.paymentStatus === 'Paid' || order.paymentStatus !== 'Pending') { %>
-                      <% if (['ordered', 'pending'].includes(item.productStatus) && !['payment_pending', 'payment_failed'].includes(order.orderStatus)) { %>
+                    <% if (order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending') { %>
+                      <% if (['ordered', 'Pending'].includes(item.productStatus) && !['payment_pending', 'payment_failed'].includes(order.orderStatus)) { %>
                         <button 
                           onclick="showCancelItemModal('<%= order._id %>', '<%= item.productId %>')" 
                           class="bg-red-100 text-red-600 px-5 py-2 rounded-lg border border-red-200 btn hover:bg-red-200 font-medium"

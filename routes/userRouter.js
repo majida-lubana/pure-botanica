@@ -177,8 +177,8 @@ router.get('/product/availability/:id', checkProductAvailability);
 router.get('/product/:id', loadProductPage);
 
 // Cart Management
-router.get('/cart', getCartPage);
-router.post('/cart/add',  addToCart);
+router.get('/cart',userAuth, getCartPage);
+router.post('/cart/add',userAuth,addToCart);
 router.post('/cart/update', userAuth, updateCartQuantity);
 router.post('/cart/remove', userAuth, removeFromCart);
 router.post('/cart/contents', userAuth, getCartContents);

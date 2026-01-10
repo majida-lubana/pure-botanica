@@ -7,13 +7,17 @@ import MESSAGES from '../constants/messages.js';
 export const userAuth = async (req, res, next) => {
   try {
     if (!req.session.user) {
-      if (req.xhr || req.headers.accept?.includes('json')) {
+
+      // 🔥 API / fetch requests
+      if (req.method !== 'GET') {
         return res.status(STATUS.UNAUTHORIZED).json({
           success: false,
           message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login',
           redirectUrl: '/login'
         });
       }
+
+      // 🔁 Page navigation
       return res.redirect('/login');
     }
 
@@ -24,9 +28,8 @@ export const userAuth = async (req, res, next) => {
       return next();
     }
 
-   
     req.session.destroy(() => {
-      if (req.xhr || req.headers.accept?.includes('json')) {
+      if (req.method !== 'GET') {
         return res.status(STATUS.UNAUTHORIZED).json({
           success: false,
           message: MESSAGES.AUTH.BLOCKED_OR_INVALID || 'Please login',
@@ -35,17 +38,21 @@ export const userAuth = async (req, res, next) => {
       }
       res.redirect('/login');
     });
+
   } catch (error) {
     console.error('userAuth middleware error:', error);
-    if (req.xhr || req.headers.accept?.includes('json')) {
+
+    if (req.method !== 'GET') {
       return res.status(STATUS.INTERNAL_ERROR).json({
         success: false,
         message: MESSAGES.COMMON.SERVER_ERROR || 'Internal server error'
       });
     }
+
     res.status(STATUS.INTERNAL_ERROR).send('Internal server error');
   }
 };
+
 
 export const adminAuth = (req, res, next) => {
   try {

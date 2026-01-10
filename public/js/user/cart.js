@@ -92,6 +92,7 @@
 
         const res = await fetch('/cart/update', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId, action })
         });
@@ -125,6 +126,7 @@
 
         const res = await fetch('/cart/remove', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId })
         });

@@ -185,6 +185,7 @@ export const addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
     const userId = req.user?._id;
+    console.log("REQ.USER LOCAL:", req.user);
 
     if (!userId) {
       return res.status(STATUS.UNAUTHORIZED).json({

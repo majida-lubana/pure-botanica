@@ -142,18 +142,39 @@ export const getProductsApi = async (req, res) => {
       limit = 12,
     } = req.query;
 
+    
     search = typeof search === "string" ? search.trim() : "";
 
-    const categoriesQuery = Array.isArray(category) ? category : category ? [category] : [];
-    const skinTypes = Array.isArray(skinType) ? skinType : skinType ? [skinType] : [];
-    const skinConcerns = Array.isArray(skinConcern) ? skinConcern : skinConcern ? [skinConcern] : [];
+    const categoriesQuery = Array.isArray(category)
+      ? category
+      : category
+      ? [category]
+      : [];
 
+    const skinTypes = Array.isArray(skinType)
+      ? skinType
+      : skinType
+      ? [skinType]
+      : [];
+
+    const skinConcerns = Array.isArray(skinConcern)
+      ? skinConcern
+      : skinConcern
+      ? [skinConcern]
+      : [];
+
+    
     const query = {
       status: "Available",
       isActive: true,
       isBlocked: false,
+      salePrice: {
+        $gte: Number(minPrice) || 0,
+        $lte: Number(maxPrice) || 10000,
+      },
     };
 
+    
     if (search) {
       query.$or = [
         { productName: { $regex: search, $options: "i" } },
@@ -161,60 +182,70 @@ export const getProductsApi = async (req, res) => {
       ];
     }
 
+    
     if (categoriesQuery.length && !categoriesQuery.includes("all")) {
       const catDocs = await Category.find({
-        categoryName: { $in: categoriesQuery.map(c => new RegExp(`${c}$`,'i'))
-       },
+        categoryName: {
+          $in: categoriesQuery.map(c => new RegExp(`^${c}$`, "i")),
+        },
         isListed: true,
-      });
-      if(!catDocs.length){
-        return res.json({
-          products:[],
-          totalProducts,
-          totalPages:1,
-          currentPage:+page||1
-        })
+      }).lean();
+
+      if (catDocs.length) {
+        query.category = { $in: catDocs.map(c => c._id) };
       }
-      query.category = {$in:catDocs.map(c=>c._id)}
     }
 
-    if (skinTypes.length && !skinTypes.includes("all")){
+    
+    if (skinTypes.length && !skinTypes.includes("all")) {
       query.skinType = {
-        $in:skinTypes.map(s=> new RegExp(`^${s}$`,"i"))
-      }
-    }
-    if (skinConcerns.length && !skinConcerns.includes("all")){
-      query.skinConcerns={
-        $in:skinConcerns.map(s=> new RegExp(`^${s}$`,'i'))
-      }
+        $in: skinTypes.map(s => new RegExp(`^${s}$`, "i")),
+      };
     }
 
-    query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
+    
+    if (skinConcerns.length && !skinConcerns.includes("all")) {
+      query.skinConcern = {
+        $in: skinConcerns.map(s => new RegExp(`^${s}$`, "i")),
+      };
+    }
 
+    
+    console.log("FINAL QUERY =>", JSON.stringify(query, null, 2));
+
+    
     let products = await Product.find(query)
-      .populate("category",
+      .populate(
+        "category",
         "categoryOffer offerStart offerEnd offerActive categoryName"
       )
       .lean();
 
+    
     let wishlistIds = [];
     let cartProductIds = [];
 
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
-      if (wl?.products?.length) wishlistIds = wl.products.map(i => i.productId.toString());
+      if (wl?.products?.length) {
+        wishlistIds = wl.products.map(p => p.productId.toString());
+      }
 
       const cart = await Cart.findOne({ user: req.user._id }).lean();
-      if (cart?.items?.length) cartProductIds = cart.items.map(item => item.productId.toString());
+      if (cart?.items?.length) {
+        cartProductIds = cart.items.map(i => i.productId.toString());
+      }
     }
 
+   
     products = products.map(p => ({
       ...p,
       pricing: calculatePricing(p),
       isInWishlist: wishlistIds.includes(p._id.toString()),
-      isInCart: cartProductIds.includes(p._id.toString())
+      isInCart: cartProductIds.includes(p._id.toString()),
     }));
 
+    
     switch (sort) {
       case "price-asc":
         products.sort((a, b) => a.pricing.displayPrice - b.pricing.displayPrice);
@@ -232,14 +263,16 @@ export const getProductsApi = async (req, res) => {
         products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    const pageNum = +page || 1;
-    const limitNum = +limit || 12;
+   
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 12;
     const skip = (pageNum - 1) * limitNum;
-    const paginatedProducts = products.slice(skip, skip + limitNum);
 
+    const paginatedProducts = products.slice(skip, skip + limitNum);
     const totalProducts = products.length;
     const totalPages = Math.ceil(totalProducts / limitNum) || 1;
 
+  
     res.json({
       products: paginatedProducts,
       totalProducts,
@@ -248,11 +281,12 @@ export const getProductsApi = async (req, res) => {
     });
   } catch (error) {
     console.error("getProductsApi error:", error);
-    res.status(STATUS.INTERNAL_ERROR).json({
-      error: MESSAGES.SHOP.API_LOAD_FAILED || "Failed to load products"
+    res.status(500).json({
+      error: "Failed to load products",
     });
   }
 };
+
 
 export const checkProductAvailability = async (req, res) => {
   try {
