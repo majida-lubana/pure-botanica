@@ -3,7 +3,7 @@ import Order from '../../models/orderSchema.js';
 import STATUS from '../../constants/statusCode.js';
 import MESSAGES from '../../constants/messages.js'; 
 
-export const applyCoupon = async (req, res) => {
+export const applyCoupon = async(req, res) => {
     try {
         const { couponCode, cartTotal } = req.body;
         const userId = req.user?._id;
