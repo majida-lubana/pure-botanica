@@ -171,14 +171,14 @@ router.put('/address/edit/:id', userAuth, editAddress);
 router.delete('/address/:id', userAuth, deleteAddress);
 
 // Shop
-router.get('/shop', userAuth, loadShopPage);
+router.get('/shop', loadShopPage);
 router.get('/api/products', isLoggedIn, getProductsApi);
 router.get('/product/availability/:id', checkProductAvailability);
-router.get('/product/:id', isLoggedIn, loadProductPage);
+router.get('/product/:id', loadProductPage);
 
 // Cart Management
-router.get('/cart', userAuth, getCartPage);
-router.post('/cart/add', userAuth, addToCart);
+router.get('/cart', getCartPage);
+router.post('/cart/add',  addToCart);
 router.post('/cart/update', userAuth, updateCartQuantity);
 router.post('/cart/remove', userAuth, removeFromCart);
 router.post('/cart/contents', userAuth, getCartContents);
