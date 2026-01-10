@@ -163,14 +163,31 @@ export const getProductsApi = async (req, res) => {
 
     if (categoriesQuery.length && !categoriesQuery.includes("all")) {
       const catDocs = await Category.find({
-        categoryName: { $in: categoriesQuery.map(c => c.toLowerCase()) },
+        categoryName: { $in: categoriesQuery.map(c => new RegExp(`${c}$`,'i'))
+       },
         isListed: true,
       });
-      if (catDocs.length) query.category = { $in: catDocs.map(c => c._id) };
+      if(!catDocs.length){
+        return res.json({
+          products:[],
+          totalProducts,
+          totalPages:1,
+          currentPage:+page||1
+        })
+      }
+      query.category = {$in:catDocs.map(c=>c._id)}
     }
 
-    if (skinTypes.length && !skinTypes.includes("all")) query.skinType = { $in: skinTypes };
-    if (skinConcerns.length && !skinConcerns.includes("all")) query.skinConcern = { $in: skinConcerns };
+    if (skinTypes.length && !skinTypes.includes("all")){
+      query.skinType = {
+        $in:skinTypes.map(s=> new RegExp(`^${s}$`,"i"))
+      }
+    }
+    if (skinConcerns.length && !skinConcerns.includes("all")){
+      query.skinConcerns={
+        $in:skinConcerns.map(s=> new RegExp(`^${s}$`,'i'))
+      }
+    }
 
     query.salePrice = { $gte: +minPrice || 0, $lte: +maxPrice || 10000 };
 
@@ -188,7 +205,7 @@ export const getProductsApi = async (req, res) => {
       if (wl?.products?.length) wishlistIds = wl.products.map(i => i.productId.toString());
 
       const cart = await Cart.findOne({ user: req.user._id }).lean();
-      if (cart?.items?.length) cartProductIds = cart.items.map(item => item.product.toString());
+      if (cart?.items?.length) cartProductIds = cart.items.map(item => item.productId.toString());
     }
 
     products = products.map(p => ({
@@ -320,6 +337,7 @@ export const loadProductPage = async (req, res) => {
       wishlistProductIds,
       discountsApplied,
       inCart,
+      user: req.user 
     });
 
   } catch (error) {
