@@ -105,43 +105,67 @@
             </div>
 
             <!-- Coupon Section -->
-            <div class="section-card">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                <i class="fas fa-tags mr-2 text-gray-600"></i>
-                Apply Coupon
-              </h2>
-              
-              <div id="applied-coupon" class="coupon-applied" style="display: none;">
-                <div>
-                  <div class="font-semibold" id="applied-coupon-name"></div>
-                  <div class="text-sm opacity-90">Discount: -₹<span id="applied-coupon-amount"></span></div>
-                </div>
-                <button type="button" onclick="removeCoupon()" class="text-white hover:text-red-200">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
+           <!-- Coupon Section -->
+<!-- Coupon Section -->
+<div class="section-card bg-white rounded-xl shadow-sm p-6 mb-8">
+  <h2 class="text-xl font-semibold mb-5 text-gray-800 flex items-center gap-2">
+    <i class="fas fa-tags text-gray-600"></i>
+    Apply Coupon
+  </h2>
 
-              <div id="coupon-input-section">
-                <div class="coupon-input-group">
-                  <input type="text" 
-                         id="couponCode" 
-                         name="couponCode"
-                         placeholder="Enter coupon code" 
-                         class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <button type="button" 
-                          onclick="applyCoupon()" 
-                          class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                    Apply
-                  </button>
-                  <button type="button" 
-                          onclick="showAvailableCoupons()" 
-                          class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
-                    <i class="fas fa-ticket-alt mr-1"></i>View
-                  </button>
-                </div>
-                <div id="coupon-warning" class="coupon-warning"></div>
-              </div>
-            </div>
+  <!-- Applied Coupon Display -->
+  <div id="applied-coupon" 
+       class="hidden flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+        <i class="fas fa-tag text-green-600 text-xl"></i>
+      </div>
+      <div>
+        <div class="font-semibold text-green-800 text-lg" id="applied-coupon-name"></div>
+        <div class="text-sm text-green-700 mt-0.5">
+          Discount: <span class="font-medium text-green-800">-₹<span id="applied-coupon-amount">0.00</span></span>
+        </div>
+      </div>
+    </div>
+    <button type="button" 
+            onclick="removeCoupon()"
+            class="text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition flex items-center gap-1">
+      <i class="fas fa-times"></i>
+      Remove
+    </button>
+  </div>
+
+  <!-- Coupon Input Area -->
+  <div id="coupon-input-section">
+    <div class="flex flex-col sm:flex-row gap-3">
+      <input type="text" 
+             id="couponCode" 
+             name="couponCode"
+             placeholder="Enter coupon code" 
+             class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-base">
+
+      <div class="flex flex-row sm:flex-row gap-3">
+        <button type="button" 
+                onclick="applyCoupon()"
+                class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex-1 sm:flex-none min-w-[110px]">
+          Apply
+        </button>
+
+        <button type="button" 
+                onclick="showAvailableCoupons()"
+                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition font-medium flex items-center justify-center gap-2 flex-1 sm:flex-none min-w-[140px]">
+          <i class="fas fa-ticket-alt"></i>
+          View Coupons
+        </button>
+      </div>
+    </div>
+
+    <!-- Warning / Success message -->
+    <div id="coupon-warning" 
+         class="mt-4 text-sm font-medium p-3 rounded-lg hidden">
+    </div>
+  </div>
+</div>
 
             <!-- Payment Section -->
             <div class="section-card">

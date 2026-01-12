@@ -160,36 +160,39 @@ export const getAvailableCoupons = async (req, res) => {
         usageStats.forEach(stat => usageMap[stat._id] = stat.count);
 
         const availableCoupons = coupons.map(coupon => {
-            const totalUsed = usageMap[coupon.couponCode] || 0;
-            const alreadyUsed = usedCouponCodes.has(coupon.couponCode);
-            const limitReached = totalUsed >= coupon.usageLimit;
-            const minNotMet = cartTotal < coupon.minimumPrice;
+    const totalUsed = usageMap[coupon.couponCode] || 0;
+    const alreadyUsed = usedCouponCodes.has(coupon.couponCode);
+    const limitReached = totalUsed >= coupon.usageLimit;
+    const minNotMet = cartTotal < coupon.minimumPrice;
 
-            const isUsable = !alreadyUsed && !limitReached && !minNotMet;
+    const isUsable = !alreadyUsed && !limitReached && !minNotMet;
 
-            let discountAmount = 0;
-            let reason = null;
+    let discountAmount = 0;
+    let reason = null;
 
-            if (alreadyUsed) reason = MESSAGES.COUPON.REASON_ALREADY_USED || 'Already used';
-            else if (limitReached) reason = MESSAGES.COUPON.REASON_LIMIT_REACHED || 'Usage limit reached';
-            else if (minNotMet) reason = MESSAGES.COUPON.REASON_MINIMUM || `Minimum ₹${coupon.minimumPrice} required`;
+    if (alreadyUsed) reason = 'Already used by you';
+    else if (limitReached) reason = 'Usage limit reached';
+    else if (minNotMet) reason = `Minimum ₹${coupon.minimumPrice} required`;
 
-            if (isUsable) {
-                if (coupon.discountType === 'percentage') {
-                    discountAmount = (cartTotal * coupon.offerPrice) / 100;
-                } else {
-                    discountAmount = coupon.offerPrice;
-                }
-                discountAmount = Math.min(discountAmount, cartTotal);
+    if (isUsable) {
+        if (coupon.discountType === 'percentage') {
+            discountAmount = (cartTotal * coupon.offerPrice) / 100;
+            if (coupon.maxDiscount) {
+                discountAmount = Math.min(discountAmount, coupon.maxDiscount);
             }
+        } else {
+            discountAmount = coupon.offerPrice;
+        }
+        discountAmount = Math.min(discountAmount, cartTotal); // never more than cart
+    }
 
-            return {
-                ...coupon.toObject(),
-                isUsable,
-                discountAmount: Math.floor(discountAmount),
-                reason
-            };
-        });
+    return {
+        ...coupon.toObject(),
+        isUsable,
+        discountAmount: Math.floor(discountAmount), // or .toFixed(2) if you prefer
+        reason
+    };
+});
 
         res.json({ success: true, coupons: availableCoupons });
 

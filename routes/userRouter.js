@@ -215,7 +215,7 @@ router.post('/wishlist/clear', userAuth, clearWishList);
 // Coupon Management
 router.get('/coupons', userAuth, getCouponsPage);
 router.post('/apply-coupon', userAuth, applyCoupon);
-router.get('/available-coupons', userAuth, getAvailableCoupons);
+router.get('/available-coupons',userAuth,getAvailableCoupons);
 
 // Referral
 router.get('/referral', userAuth, getReferralPage);

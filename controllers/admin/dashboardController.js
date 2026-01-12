@@ -146,6 +146,7 @@ export const loadSalesReport = async (req, res) => {
   }
 };
 
+
 async function generateChartData(orders, period, fromDate, toDate) {
   const chartData = { labels: [], revenue: [], orderCount: [] };
 
