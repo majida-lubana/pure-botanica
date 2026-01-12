@@ -46,6 +46,14 @@
         </div>
       </div>
 
+       <% if (error) { %>
+  <div class="mb-6 fade-in">
+    <div class="bg-red-50 border border-red-300 text-red-800 px-6 py-4 rounded-lg flex items-center gap-2">
+      <i class="fas fa-triangle-exclamation"></i>
+      <span><%= error %></span>
+    </div>
+  </div>
+<% } %>
       <!-- Filter Form -->
       <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 fade-in">
         <div class="flex items-center justify-between mb-4">
@@ -139,6 +147,15 @@
           </div>
         </div>
       </div>
+      <% if (error) { %>
+  <div class="mb-6">
+    <div class="bg-red-50 border border-red-300 text-red-800 px-6 py-4 rounded-lg">
+      <i class="fas fa-triangle-exclamation mr-2"></i>
+      <%= error %>
+    </div>
+  </div>
+<% } %>
+
 
       <!-- Charts -->
       <% if (chartData) { %>

@@ -50,8 +50,10 @@ function buildDateRange(period, startDate, endDate) {
 export const loadSalesReport = async (req, res) => {
   if (!req.session.admin) return res.redirect('/admin/login');
 
+  const { period, startDate, endDate, page = 1 } = req.query;
+
   try {
-    const { period, startDate, endDate, page = 1 } = req.query;
+    
     const limit = 10;
     const skip  = (page - 1) * limit;
 
@@ -68,7 +70,7 @@ export const loadSalesReport = async (req, res) => {
         layout: 'layouts/adminLayout',
         pageTitle: 'Sales Report',
         currentPage: 'sales-report',
-        error: MESSAGES.COMMON.INVALID_DATE_RANGE || 'Invalid date range',
+        error: null, 
         salesData: null,
         chartData: null,
         bestSellingProducts: [],
@@ -125,6 +127,7 @@ export const loadSalesReport = async (req, res) => {
       layout: 'layouts/adminLayout',
       pageTitle: 'Sales Report',
       currentPage: 'sales-report',
+      error: null, 
       salesData,
       chartData,
       bestSellingProducts,
@@ -134,15 +137,21 @@ export const loadSalesReport = async (req, res) => {
       pagination
     });
 
-  } catch (error) {
-    console.error('Sales report error:', error);
-    res.status(STATUS.INTERNAL_ERROR).render('admin/admin-error', {
-      pageTitle: 'Admin Error',
-      heading: 'Oops! Something Went Wrong',
-      userName: 'Admin',
-      imageURL: '/images/admin-avatar.jpg',
-      errorMessage: MESSAGES.SALES_REPORT.LOAD_FAILED || 'Error loading sales report'
-    });
+  } catch (err) {
+    console.error('Sales report error:', err);
+     return res.render('admin/dashboard', {
+    layout: 'layouts/adminLayout',
+    pageTitle: 'Sales Report',
+    currentPage: 'sales-report',
+    error: err.message || 'Invalid date range',
+    salesData: null,
+    chartData: null,
+    bestSellingProducts: [],
+    bestSellingCategories: [],
+    queryString: '',
+    currentFilter: { period, startDate, endDate },
+    pagination: null
+  });
   }
 };
 
@@ -150,79 +159,148 @@ export const loadSalesReport = async (req, res) => {
 async function generateChartData(orders, period, fromDate, toDate) {
   const chartData = { labels: [], revenue: [], orderCount: [] };
 
+ 
+  const deliveredOrders = orders.filter(o => o.status === 'delivered');
+
   if (period === 'daily') {
     for (let i = 0; i < 24; i++) {
       chartData.labels.push(`${i}:00`);
-      const hourOrders = orders.filter(o => new Date(o.createdOn).getHours() === i);
+
+      const hourOrders = deliveredOrders.filter(
+        o => new Date(o.createdOn).getHours() === i
+      );
+
       chartData.orderCount.push(hourOrders.length);
-      chartData.revenue.push(hourOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+      chartData.revenue.push(
+        hourOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+      );
     }
   }
+
   else if (period === 'weekly') {
     for (let i = 6; i >= 0; i--) {
       const date = moment().subtract(i, 'days');
       chartData.labels.push(date.format('ddd'));
-      const dayOrders = orders.filter(o => moment(o.createdOn).isSame(date, 'day'));
+
+      const dayOrders = deliveredOrders.filter(o =>
+        moment(o.createdOn).isSame(date, 'day')
+      );
+
       chartData.orderCount.push(dayOrders.length);
-      chartData.revenue.push(dayOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+      chartData.revenue.push(
+        dayOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+      );
     }
   }
+
   else if (period === 'monthly') {
     for (let i = 3; i >= 0; i--) {
       const weekStart = moment().subtract((i + 1) * 7, 'days');
       const weekEnd = moment().subtract(i * 7, 'days');
+
       chartData.labels.push(`Week ${4 - i}`);
-      const weekOrders = orders.filter(o => {
+
+      const weekOrders = deliveredOrders.filter(o => {
         const d = moment(o.createdOn);
         return d.isBetween(weekStart, weekEnd, 'day', '[]');
       });
+
       chartData.orderCount.push(weekOrders.length);
-      chartData.revenue.push(weekOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+      chartData.revenue.push(
+        weekOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+      );
     }
   }
+
   else if (period === 'yearly') {
     for (let i = 0; i < 12; i++) {
       const month = moment().month(i);
       chartData.labels.push(month.format('MMM'));
-      const monthOrders = orders.filter(o => {
+
+      const monthOrders = deliveredOrders.filter(o => {
         const d = moment(o.createdOn);
         return d.month() === i && d.year() === moment().year();
       });
+
       chartData.orderCount.push(monthOrders.length);
-      chartData.revenue.push(monthOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+      chartData.revenue.push(
+        monthOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+      );
     }
   }
-  else if (period === 'custom') {
-    const days = moment(toDate).diff(moment(fromDate), 'days') + 1;
 
-    if (days <= 7) {
+
+  else if (period === 'custom') {
+
+    const today = moment().endOf('day');
+
+  if (moment(fromDate).isAfter(today) || moment(toDate).isAfter(today)) {
+    throw new Error('Custom date range cannot include future dates');
+  }
+
+    const days =
+      moment(toDate).diff(moment(fromDate), 'days') + 1;
+
+    if (days <= 0) {
+      throw new Error('Invalid custom date range');
+    }
+
+   
+    if (days <= 31) {
       for (let i = 0; i < days; i++) {
         const date = moment(fromDate).add(i, 'days');
         chartData.labels.push(date.format('MMM DD'));
-        const dayOrders = orders.filter(o => moment(o.createdOn).isSame(date, 'day'));
+
+        const dayOrders = deliveredOrders.filter(o =>
+          moment(o.createdOn).isSame(date, 'day')
+        );
+
         chartData.orderCount.push(dayOrders.length);
-        chartData.revenue.push(dayOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+        chartData.revenue.push(
+          dayOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+        );
       }
-    } else if (days <= 60) {
+    }
+
+ 
+    else if (days <= 60) {
       const weeks = Math.ceil(days / 7);
+
       for (let i = 0; i < weeks; i++) {
         const weekStart = moment(fromDate).add(i * 7, 'days');
-        const weekEnd = moment(fromDate).add((i + 1) * 7, 'days').subtract(1, 'second');
+        const weekEnd = moment(fromDate)
+          .add((i + 1) * 7, 'days')
+          .subtract(1, 'second');
+
         chartData.labels.push(weekStart.format('MMM DD'));
-        const weekOrders = orders.filter(o => {
+
+        const weekOrders = deliveredOrders.filter(o => {
           const d = moment(o.createdOn);
           return d.isSameOrAfter(weekStart) && d.isSameOrBefore(weekEnd);
         });
+
         chartData.orderCount.push(weekOrders.length);
-        chartData.revenue.push(weekOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+        chartData.revenue.push(
+          weekOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+        );
       }
-    } else {
+    }
+
+    else {
       let current = moment(fromDate).startOf('month');
+
       while (current.isSameOrBefore(toDate)) {
         chartData.labels.push(current.format('MMM YYYY'));
-        const monthOrders = orders.filter(o => moment(o.createdOn).isSame(current, 'month'));
+
+        const monthOrders = deliveredOrders.filter(o =>
+          moment(o.createdOn).isSame(current, 'month')
+        );
+
         chartData.orderCount.push(monthOrders.length);
-        chartData.revenue.push(monthOrders.reduce((s, o) => s + (o.finalAmount || 0), 0));
+        chartData.revenue.push(
+          monthOrders.reduce((s, o) => s + (o.finalAmount || 0), 0)
+        );
+
         current.add(1, 'month');
       }
     }
@@ -230,6 +308,7 @@ async function generateChartData(orders, period, fromDate, toDate) {
 
   return chartData;
 }
+
 
 async function getBestSellingProducts(filter, limit = 10) {
   try {
