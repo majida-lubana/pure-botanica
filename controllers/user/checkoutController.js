@@ -121,7 +121,7 @@ export const getCheckoutPage = async (req, res) => {
       tax,
       total,
       discount: offerDiscount,
-      razorpayEnabled: !!process.env.RAZORPAY_KEY_IDc,
+      razorpayEnabled: !!process.env.RAZORPAY_KEY_ID,
       walletBalance
     });
   } catch (error) {
