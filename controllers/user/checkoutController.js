@@ -108,6 +108,9 @@ export const getCheckoutPage = async (req, res) => {
     const addressDoc = await Address.findOne({ userId });
     const userAddresses = addressDoc && Array.isArray(addressDoc.address) ? addressDoc.address : [];
 
+    const wallet = await Wallet.findOne({userId})
+    const walletBalance = wallet ? wallet.balance : 0
+
     res.render('user/checkout', {
       cart: cart || { items: [] },
       user: req.user,
@@ -118,7 +121,8 @@ export const getCheckoutPage = async (req, res) => {
       tax,
       total,
       discount: offerDiscount,
-      razorpayEnabled: !!process.env.RAZORPAY_KEY_ID
+      razorpayEnabled: !!process.env.RAZORPAY_KEY_IDc,
+      walletBalance
     });
   } catch (error) {
     console.error('Error loading checkout page:', error.stack);

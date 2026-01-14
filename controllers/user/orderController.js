@@ -392,9 +392,15 @@ export const cancelItem = async (req, res) => {
     if (!["Pending", "ordered"].includes(item.status)) {
       return res.status(STATUS.BAD_REQUEST).json({
         success: false,
-        message: MESSAGES.ORDER.CANNOT_CANCEL || `Item cannot be cancelled (current status: ${item.status})`
+        message:
+          MESSAGES.ORDER.CANNOT_CANCEL ||
+          `Item cannot be cancelled (current status: ${item.status})`
       });
     }
+
+  
+    const totalItems = order.orderItems.length;
+
 
     item.status = "cancelled";
 
@@ -402,7 +408,10 @@ export const cancelItem = async (req, res) => {
       $inc: { quantity: item.quantity },
     });
 
-    if (order.paymentStatus === 'paid' || order.paidViaWallet) {
+
+    if (order.paymentStatus === "paid" || order.paidViaWallet) {
+
+
       const refundAmount = item.purchasePrice * item.quantity;
 
       await creditWallet(
@@ -411,7 +420,20 @@ export const cancelItem = async (req, res) => {
         order._id,
         `Refund - Cancelled ${item.productName} (Order #${order.orderId})`
       );
+
+      if (totalItems === 1 && order.shippingCharge > 0) {
+        await creditWallet(
+          userId,
+          order.shippingCharge,
+          order._id,
+          `Shipping refund - Order #${order.orderId}`
+        );
+
+        order.status = "cancelled";
+        order.paymentStatus = "refunded";
+      }
     }
+
 
     order.timeline.push({
       label: `Item ${item.productName} Cancelled`,
@@ -433,10 +455,12 @@ export const cancelItem = async (req, res) => {
     console.error("Error cancelling item:", error);
     res.status(STATUS.INTERNAL_ERROR).json({
       success: false,
-      message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Failed to cancel item"
+      message:
+        MESSAGES.COMMON.SOMETHING_WENT_WRONG || "Failed to cancel item"
     });
   }
 };
+
 
 export const returnItem = async (req, res) => {
   try {
