@@ -71,3 +71,45 @@
             transition: all 0.3s ease;
             color: #6b7280;
         }
+.input-group input,
+.input-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: transparent;
+}
+
+/* Floating label for INPUT */
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+    transform: translateY(-1.8rem) scale(0.85);
+    color: #667eea;
+}
+
+/* Floating label for SELECT */
+.input-group select:focus + label,
+.input-group select:not([value=""]) + label {
+    transform: translateY(-1.8rem) scale(0.85);
+    color: #667eea;
+}
+
+/* Floating label for DATE inputs */
+.input-group input[type="date"]:focus + label,
+.input-group input[type="date"]:valid + label {
+    transform: translateY(-1.8rem) scale(0.85);
+    color: #667eea;
+}
+
+/* Label base */
+.input-group label {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: white;
+    padding: 0 0.25rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    pointer-events: none;
+    transition: all 0.25s ease;
+}

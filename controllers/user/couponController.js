@@ -1,9 +1,10 @@
 import Coupon from '../../models/couponSchema.js';
 import Order from '../../models/orderSchema.js';
 import STATUS from '../../constants/statusCode.js';
-import MESSAGES from '../../constants/messages.js'; 
+import MESSAGES from '../../constants/messages.js';
 
-export const applyCoupon = async(req, res) => {
+
+export const applyCoupon = async (req, res) => {
     try {
         const { couponCode, cartTotal } = req.body;
         const userId = req.user?._id;
@@ -11,14 +12,15 @@ export const applyCoupon = async(req, res) => {
         if (!userId) {
             return res.status(STATUS.UNAUTHORIZED).json({
                 success: false,
-                message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login to apply coupon'
+                message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
             });
         }
 
-        if (!couponCode || !cartTotal || cartTotal < 0) {
+        const total = parseFloat(cartTotal);
+        if (!couponCode || isNaN(total) || total <= 0) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.VALIDATION.INVALID_INPUT || 'Valid coupon code and cart total required'
+                message: 'Valid coupon code and cart total required'
             });
         }
 
@@ -32,46 +34,46 @@ export const applyCoupon = async(req, res) => {
         if (!coupon) {
             return res.status(STATUS.NOT_FOUND).json({
                 success: false,
-                message: MESSAGES.COUPON.INVALID || 'Invalid coupon code'
+                message: 'Invalid coupon code'
             });
         }
 
         const now = new Date();
         const startDate = new Date(coupon.startDate);
-        const expireDate = new Date(coupon.expireOn);
-        const expireEndOfDay = new Date(expireDate.setHours(23, 59, 59, 999));
+        const expireEndOfDay = new Date(coupon.expireOn);
+        expireEndOfDay.setHours(23, 59, 59, 999);
 
         if (now < startDate) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.COUPON.NOT_ACTIVE_YET || `Coupon not active yet. Valid from ${startDate.toLocaleDateString()}`
+                message: `Coupon valid from ${startDate.toLocaleDateString()}`
             });
         }
 
         if (now > expireEndOfDay) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.COUPON.EXPIRED || 'Coupon has expired'
+                message: 'Coupon expired'
             });
         }
 
-        if (cartTotal < coupon.minimumPrice) {
+        if (total < coupon.minimumPrice) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.COUPON.MINIMUM_NOT_MET || `Minimum order of ₹${coupon.minimumPrice} required`
+                message: `Minimum order ₹${coupon.minimumPrice} required`
             });
         }
 
-        const userUsed = await Order.findOne({
+        const alreadyUsed = await Order.findOne({
             user: userId,
             couponCode: coupon.couponCode,
             status: { $nin: ['cancelled', 'payment_failed'] }
         });
 
-        if (userUsed) {
+        if (alreadyUsed) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.COUPON.ALREADY_USED || 'You have already used this coupon'
+                message: 'You have already used this coupon'
             });
         }
 
@@ -83,39 +85,49 @@ export const applyCoupon = async(req, res) => {
         if (totalUsed >= coupon.usageLimit) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
-                message: MESSAGES.COUPON.LIMIT_EXCEEDED || 'Coupon usage limit reached'
+                message: 'Coupon usage limit reached'
             });
         }
 
         let discountAmount = 0;
+
         if (coupon.discountType === 'percentage') {
-            discountAmount = (cartTotal * coupon.offerPrice) / 100;
+            discountAmount = (total * coupon.offerPrice) / 100;
+            if (coupon.maxDiscount != null) {
+                discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+            }
         } else {
             discountAmount = coupon.offerPrice;
         }
 
-        discountAmount = Math.min(discountAmount, cartTotal);
+        discountAmount = Math.min(discountAmount, total);
+        discountAmount = Math.floor(discountAmount);
 
         res.json({
             success: true,
-            message: MESSAGES.COUPON.APPLIED_SUCCESS || 'Coupon applied successfully',
+            message: 'Coupon applied successfully',
             coupon: {
                 code: coupon.couponCode,
                 name: coupon.name,
-                discountAmount: Math.round(discountAmount),
+                discountAmount,
                 discountType: coupon.discountType,
-                offerPrice: coupon.offerPrice
+                offerPrice: coupon.offerPrice,
+                maxDiscount:
+                    coupon.discountType === 'percentage'
+                        ? coupon.maxDiscount
+                        : null
             }
         });
 
     } catch (error) {
-        console.error('Error applying coupon:', error);
+        console.error('Apply coupon error:', error);
         res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+            message: 'Server error'
         });
     }
 };
+
 
 export const getAvailableCoupons = async (req, res) => {
     try {
@@ -126,17 +138,23 @@ export const getAvailableCoupons = async (req, res) => {
         if (!userId) {
             return res.status(STATUS.UNAUTHORIZED).json({
                 success: false,
-                message: MESSAGES.AUTH.REQUIRED_LOGIN || 'Please login'
+                message: 'Please login'
             });
         }
 
         const now = new Date();
 
+        
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+
         const coupons = await Coupon.find({
             isListed: true,
-            startDate: { $lte: now },
-            expireOn: { $gte: now }
-        }).sort({ createdOn: -1 });
+            startDate: { $lte: now },          
+            expireOn: { $gte: todayStart }     
+        })
+            .sort({ createdOn: -1 })
+            .lean();
 
         const usedCouponCodes = new Set(
             await Order.find({
@@ -146,75 +164,86 @@ export const getAvailableCoupons = async (req, res) => {
             }).distinct('couponCode')
         );
 
+        const couponCodes = coupons.map(c => c.couponCode);
+
         const usageStats = await Order.aggregate([
             {
                 $match: {
-                    couponCode: { $in: coupons.map(c => c.couponCode) },
+                    couponCode: { $in: couponCodes },
                     status: { $nin: ['cancelled', 'payment_failed'] }
                 }
             },
             { $group: { _id: '$couponCode', count: { $sum: 1 } } }
         ]);
 
-        const usageMap = {};
-        usageStats.forEach(stat => usageMap[stat._id] = stat.count);
+        const usageMap = new Map();
+        usageStats.forEach(u => usageMap.set(u._id, u.count));
 
         const availableCoupons = coupons.map(coupon => {
-    const totalUsed = usageMap[coupon.couponCode] || 0;
-    const alreadyUsed = usedCouponCodes.has(coupon.couponCode);
-    const limitReached = totalUsed >= coupon.usageLimit;
-    const minNotMet = cartTotal < coupon.minimumPrice;
+            const totalUsed = usageMap.get(coupon.couponCode) || 0;
+            const alreadyUsed = usedCouponCodes.has(coupon.couponCode);
+            const limitReached = totalUsed >= coupon.usageLimit;
+            const minNotMet = cartTotal < coupon.minimumPrice;
 
-    const isUsable = !alreadyUsed && !limitReached && !minNotMet;
+            const isUsable = !alreadyUsed && !limitReached && !minNotMet;
 
-    let discountAmount = 0;
-    let reason = null;
+            let discountAmount = 0;
+            let reason = null;
 
-    if (alreadyUsed) reason = 'Already used by you';
-    else if (limitReached) reason = 'Usage limit reached';
-    else if (minNotMet) reason = `Minimum ₹${coupon.minimumPrice} required`;
+            if (alreadyUsed) reason = 'Already used';
+            else if (limitReached) reason = 'Usage limit reached';
+            else if (minNotMet) reason = `Min ₹${coupon.minimumPrice} required`;
 
-    if (isUsable) {
-        if (coupon.discountType === 'percentage') {
-            discountAmount = (cartTotal * coupon.offerPrice) / 100;
-            if (coupon.maxDiscount) {
-                discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+            if (isUsable) {
+                if (coupon.discountType === 'percentage') {
+                    discountAmount = (cartTotal * coupon.offerPrice) / 100;
+                    if (coupon.maxDiscount != null) {
+                        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+                    }
+                } else {
+                    discountAmount = coupon.offerPrice;
+                }
+                discountAmount = Math.min(discountAmount, cartTotal);
+                discountAmount = Math.floor(discountAmount);
             }
-        } else {
-            discountAmount = coupon.offerPrice;
-        }
-        discountAmount = Math.min(discountAmount, cartTotal); // never more than cart
-    }
 
-    return {
-        ...coupon.toObject(),
-        isUsable,
-        discountAmount: Math.floor(discountAmount), // or .toFixed(2) if you prefer
-        reason
-    };
-});
+            return {
+                ...coupon,
+                isUsable,
+                usedCount: totalUsed,
+                discountAmount,
+                reason,
+                maxDiscount: coupon.discountType === 'percentage' ? coupon.maxDiscount : null
+            };
+        });
 
         res.json({ success: true, coupons: availableCoupons });
 
     } catch (error) {
-        console.error('Error fetching available coupons:', error);
+        console.error('Available coupons error:', error);
         res.status(STATUS.INTERNAL_ERROR).json({
             success: false,
-            message: MESSAGES.COMMON.SOMETHING_WENT_WRONG || 'Server error'
+            message: 'Server error'
         });
     }
 };
 
+
 export const getCouponsPage = async (req, res) => {
     try {
-        const userId = req.user?._id;
+        const userId = req.user?._id || null;
+
         const now = new Date();
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
 
         const coupons = await Coupon.find({
             isListed: true,
             startDate: { $lte: now },
-            expireOn: { $gte: now }
-        }).sort({ createdOn: -1 });
+            expireOn: { $gte: todayStart }
+        })
+            .sort({ createdOn: -1 })
+            .lean();
 
         let usedCouponCodes = [];
         if (userId) {
@@ -225,25 +254,36 @@ export const getCouponsPage = async (req, res) => {
             }).distinct('couponCode');
         }
 
+        const couponCodes = coupons.map(c => c.couponCode);
+
         const usageStats = await Order.aggregate([
             {
                 $match: {
-                    couponCode: { $in: coupons.map(c => c.couponCode) },
+                    couponCode: { $in: couponCodes },
                     status: { $nin: ['cancelled', 'payment_failed'] }
                 }
             },
             { $group: { _id: '$couponCode', usedCount: { $sum: 1 } } }
         ]);
 
-        const usageMap = {};
-        usageStats.forEach(s => usageMap[s._id] = s.usedCount);
+        const usageMap = new Map();
+        usageStats.forEach(u => usageMap.set(u._id, u.usedCount));
 
-        const couponData = coupons.map(coupon => ({
-            ...coupon.toObject(),
-            isUsed: usedCouponCodes.includes(coupon.couponCode),
-            isAvailable: (usageMap[coupon.couponCode] || 0) < coupon.usageLimit,
-            usedCount: usageMap[coupon.couponCode] || 0
-        }));
+        const couponData = coupons
+            .map(coupon => {
+                const usedCount = usageMap.get(coupon.couponCode) || 0;
+                return {
+                    ...coupon,
+                    isUsed: usedCouponCodes.includes(coupon.couponCode),
+                    isAvailable: usedCount < coupon.usageLimit,
+                    usedCount,
+                    maxDiscount:
+                        coupon.discountType === 'percentage'
+                            ? coupon.maxDiscount
+                            : null
+                };
+            })
+            .filter(c => c.isAvailable);
 
         res.render('user/coupons', {
             coupons: couponData,
@@ -251,14 +291,13 @@ export const getCouponsPage = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error loading coupons page:', error);
+        console.error('User coupons page error:', error);
         res.status(STATUS.INTERNAL_ERROR).render('user/page-404', {
-            message: MESSAGES.COUPON.LOAD_FAILED || 'An error occurred while loading coupons.',
-            pageTitle: 'Error'
+            pageTitle: 'Error',
+            message: 'Failed to load coupons'
         });
     }
 };
-
 
 export default {
     applyCoupon,

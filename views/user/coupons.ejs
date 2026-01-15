@@ -4,133 +4,149 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Available Coupons</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="/css/user/coupon.css">
 </head>
 <body>
-    <!-- <%- include('../partials/user/header') %> -->
-    
-    <div class="container mx-auto px-4 py-8 mt-20">
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">
-                <i class="fas fa-tags mr-3"></i>Available Coupons
-            </h1>
-            <p class="text-white text-opacity-80 text-lg">Save more with our exclusive discount offers!</p>
-        </div>
-        
-        <% if (coupons.length > 0) { %>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <% coupons.forEach((coupon, index) => { 
-                    const gradientClass = `coupon-gradient-${(index % 6) + 1}`;
-                    const isUsed = coupon.isUsed;
-                    const isAvailable = coupon.isAvailable;
-                    const canUse = !isUsed && isAvailable;
-                %>
-                    <div class="coupon-card <%= isUsed ? 'used-coupon' : !isAvailable ? 'unavailable-coupon' : gradientClass %> p-6 text-white shadow-xl">
-                        <div class="flex h-full">
-                            <!-- Left Section -->
-                            <div class="flex-1 pr-4">
-                                <div class="mb-4">
-                                    <h3 class="text-xl font-bold mb-2"><%= coupon.name %></h3>
-                                    <div class="text-2xl font-black mb-1">
-                                        <%= coupon.discountType === 'percentage' ? coupon.offerPrice + '% OFF' : '₹' + coupon.offerPrice + ' OFF' %>
-                                    </div>
-                                    <p class="text-sm opacity-90">
-                                        <% if (coupon.description) { %>
-                                            <%= coupon.description %>
-                                        <% } else { %>
-                                            Save on your order!
-                                        <% } %>
-                                    </p>
-                                </div>
-                                
-                                <div class="space-y-2 text-sm opacity-90">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-shopping-cart mr-2 text-xs"></i>
-                                        Min order: ₹<%= coupon.minimumPrice %>
-                                    </div>
 
-                                    <!-- NEW: Max Order Value -->
-                                    <% if (coupon.maxOrderValue) { %>
-                                        <div class="flex items-center">
-                                            <i class="fas fa-exclamation-triangle mr-2 text-xs"></i>
-                                            Max order: ₹<%= coupon.maxOrderValue %>
-                                        </div>
-                                    <% } %>
+<div class="container mx-auto px-4 py-8 mt-20">
 
-                                    <div class="flex items-center">
-                                        <i class="fas fa-calendar-alt mr-2 text-xs"></i>
-                                        Valid till: <%= new Date(coupon.expireOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <i class="fas fa-users mr-2 text-xs"></i>
-                                        <%= coupon.remainingUses %> uses left
-                                    </div>
-                                </div>
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-white mb-4">
+            <i class="fas fa-tags mr-3"></i>Available Coupons
+        </h1>
+        <p class="text-white text-opacity-80 text-lg">
+            Save more with our exclusive discount offers!
+        </p>
+    </div>
+
+    <% if (coupons.length > 0) { %>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <% coupons.forEach((coupon, index) => { 
+                const gradientClass = `coupon-gradient-${(index % 6) + 1}`;
+                const isUsed = coupon.isUsed;
+                const isAvailable = coupon.isAvailable;
+            %>
+
+            <div class="coupon-card <%= isUsed ? 'used-coupon' : !isAvailable ? 'unavailable-coupon' : gradientClass %> 
+                        p-6 text-white shadow-xl relative">
+
+                <div class="flex h-full">
+
+                    <!-- LEFT -->
+                    <div class="flex-1 pr-4">
+                        <div class="mb-4">
+                            <h3 class="text-xl font-bold mb-2"><%= coupon.name %></h3>
+
+                            <div class="text-2xl font-black mb-1">
+                                <%= coupon.discountType === 'percentage'
+                                    ? coupon.offerPrice + '% OFF'
+                                    : '₹' + coupon.offerPrice + ' OFF' %>
                             </div>
-                            
-                            <!-- Divider -->
-                            <div class="dashed-line mx-3"></div>
-                            
-                            <!-- Right Section -->
-                            <div class="w-32 flex flex-col justify-center items-center text-center">
-                                <div class="mb-4">
-                                    <div class="text-xs opacity-75 mb-2">COUPON CODE</div>
-                                    <div class="font-mono font-bold text-lg bg-white bg-opacity-20 px-3 py-2 rounded-lg">
-                                        <%= coupon.couponCode %>
-                                    </div>
+
+                            <p class="text-sm opacity-90">
+                                <%= coupon.description || 'Save on your order!' %>
+                            </p>
+                        </div>
+
+                        <div class="space-y-2 text-sm opacity-90">
+                            <div class="flex items-center">
+                                <i class="fas fa-shopping-cart mr-2 text-xs"></i>
+                                Min order: ₹<%= coupon.minimumPrice %>
+                            </div>
+
+                            <% if (coupon.discountType === 'percentage' && coupon.maxDiscount) { %>
+                                <div class="flex items-center">
+                                    <i class="fas fa-percent mr-2 text-xs"></i>
+                                    Max discount: ₹<%= coupon.maxDiscount %>
                                 </div>
-                                
-                                <% if (isUsed) { %>
-                                    <div class="w-full">
-                                        <div class="bg-white bg-opacity-20 px-3 py-2 rounded-lg text-xs font-semibold">
-                                            ALREADY USED
-                                        </div>
-                                    </div>
-                                <% } else if (!isAvailable) { %>
-                                    <div class="w-full">
-                                        <div class="bg-white bg-opacity-20 px-3 py-2 rounded-lg text-xs font-semibold">
-                                            NOT AVAILABLE
-                                        </div>
-                                    </div>
-                                <% } else { %>
-                                    <button onclick="copyCouponCode('<%= coupon.couponCode %>')" 
-                                            class="copy-btn w-full py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
-                                        <i class="fas fa-copy mr-1"></i>COPY CODE
-                                    </button>
-                                <% } %>
+                            <% } %>
+
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-xs"></i>
+                                Valid till:
+                                <%= new Date(coupon.expireOn).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                }) %>
+                            </div>
+
+                            <div class="flex items-center">
+                                <i class="fas fa-users mr-2 text-xs"></i>
+                                <%= coupon.remainingUses %> uses left
                             </div>
                         </div>
-                        
-                        <!-- Status Badge -->
-                        <% if (isUsed || !isAvailable) { %>
-                            <div class="absolute top-4 right-4">
-                                <div class="bg-black bg-opacity-30 px-2 py-1 rounded-full text-xs font-semibold">
-                                    <%= isUsed ? 'USED' : 'UNAVAILABLE' %>
-                                </div>
+                    </div>
+
+                    <!-- DIVIDER -->
+                    <div class="dashed-line mx-3"></div>
+
+                    <!-- RIGHT -->
+                    <div class="w-32 flex flex-col justify-center items-center text-center">
+                        <div class="mb-4">
+                            <div class="text-xs opacity-75 mb-2">COUPON CODE</div>
+                            <div class="font-mono font-bold text-lg bg-white bg-opacity-20 px-3 py-2 rounded-lg">
+                                <%= coupon.couponCode %>
                             </div>
+                        </div>
+
+                        <% if (isUsed) { %>
+                            <div class="bg-white bg-opacity-20 px-3 py-2 rounded-lg text-xs font-semibold w-full">
+                                ALREADY USED
+                            </div>
+                        <% } else if (!isAvailable) { %>
+                            <div class="bg-white bg-opacity-20 px-3 py-2 rounded-lg text-xs font-semibold w-full">
+                                NOT AVAILABLE
+                            </div>
+                        <% } else { %>
+                            <button onclick="copyCouponCode('<%= coupon.couponCode %>')"
+                                class="copy-btn w-full py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
+                                <i class="fas fa-copy mr-1"></i> COPY CODE
+                            </button>
                         <% } %>
                     </div>
-                <% }) %>
-            </div>
-        <% } else { %>
-            <div class="text-center py-20">
-                <div class="text-6xl text-white text-opacity-50 mb-6">
-                    <i class="fas fa-ticket-alt"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-white mb-4">No Coupons Available</h2>
-                <p class="text-white text-opacity-75 mb-8">Check back later for exciting offers!</p>
-                <a href="/shop" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-colors">
-                    <i class="fas fa-shopping-bag mr-2"></i>Continue Shopping
-                </a>
+
+                <!-- STATUS BADGE -->
+                <% if (isUsed || !isAvailable) { %>
+                    <div class="absolute top-4 right-4">
+                        <div class="bg-black bg-opacity-30 px-2 py-1 rounded-full text-xs font-semibold">
+                            <%= isUsed ? 'USED' : 'UNAVAILABLE' %>
+                        </div>
+                    </div>
+                <% } %>
+
             </div>
-        <% } %>
-    </div>
-    
-    <!-- <%- include('../partials/user/footer') %> -->
-    
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-   <script defer src="/js/user/coupon.js"></script>
+            <% }) %>
+
+        </div>
+    <% } else { %>
+
+        <!-- EMPTY STATE -->
+        <div class="text-center py-20">
+            <div class="text-6xl text-white text-opacity-50 mb-6">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-4">No Coupons Available</h2>
+            <p class="text-white text-opacity-75 mb-8">
+                Check back later for exciting offers!
+            </p>
+            <a href="/shop"
+               class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-colors">
+                <i class="fas fa-shopping-bag mr-2"></i>Continue Shopping
+            </a>
+        </div>
+
+    <% } %>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script defer src="/js/user/coupon.js"></script>
 </body>
 </html>

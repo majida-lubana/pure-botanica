@@ -4,202 +4,218 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coupon Management</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/css/admin/coupon.css">
-    
 </head>
+
 <body class="bg-gradient-to-br from-blue-50 to-purple-50">
-   
-    
-    <main class="content-main">
-        <!-- Header -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Coupon Management</h1>
-                    <p class="text-gray-600">Create and manage discount coupons for your store</p>
-                </div>
-                <button onclick="openAddModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    <i class="fas fa-plus mr-2"></i>Add New Coupon
-                </button>
+
+<main class="content-main">
+
+    <!-- Header -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Coupon Management</h1>
+                <p class="text-gray-600">Create and manage discount coupons</p>
             </div>
-        </div>
-
-        <!-- Search -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div class="flex gap-4">
-                <div class="flex-1">
-                    <input type="text" id="searchInput" placeholder="Search coupons by name or code..." 
-                           value="<%= search %>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <button onclick="searchCoupons()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                    <i class="fas fa-search mr-2"></i>Search
-                </button>
-                <% if (search) { %>
-                <button onclick="clearSearch()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                    <i class="fas fa-times mr-2"></i>Clear
-                </button>
-                <% } %>
-            </div>
-        </div>
-
-        <!-- Coupons Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <% if (coupons.length > 0) { %>
-                <% coupons.forEach(coupon => { %>
-                    <div class="coupon-card rounded-xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-xl font-bold mb-1"><%= coupon.name %></h3>
-                                <div class="bg-white bg-opacity-20 rounded-lg px-3 py-1 text-sm font-mono">
-                                    <%= coupon.couponCode %>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-2">
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold <%= coupon.isListed ? 'status-active' : 'status-inactive' %>">
-                                    <%= coupon.isListed ? 'Active' : 'Inactive' %>
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-2 mb-6">
-                            <div class="flex justify-between">
-                                <span class="text-sm opacity-90">Discount:</span>
-                                <span class="font-semibold">
-                                    <%= coupon.discountType === 'percentage' ? coupon.offerPrice + '%' : '₹' + coupon.offerPrice %>
-                                </span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-sm opacity-90">Min Order:</span>
-                                <span class="font-semibold">₹<%= coupon.minimumPrice %></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-sm opacity-90">Usage Limit:</span>
-                                <span class="font-semibold"><%= coupon.usageLimit %></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-sm opacity-90">Valid Until:</span>
-                                <span class="font-semibold"><%= new Date(coupon.expireOn).toLocaleDateString() %></span>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button onclick="editCoupon('<%= coupon._id %>')" 
-                                    class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
-                                <i class="fas fa-edit mr-1"></i>Edit
-                            </button>
-                            <button onclick="toggleStatus('<%= coupon._id %>', <%= coupon.isListed %>)" 
-                                    class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
-                                <i class="fas fa-<%= coupon.isListed ? 'eye-slash' : 'eye' %> mr-1"></i><%= coupon.isListed ? 'Hide' : 'Show' %>
-                            </button>
-                            <button onclick="deleteCoupon('<%= coupon._id %>')" 
-                                    class="bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white py-2 px-3 rounded-lg transition-all duration-200 text-sm font-semibold">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                <% }) %>
-            <% } else { %>
-                <div class="col-span-full text-center py-12">
-                    <div class="text-6xl text-gray-300 mb-4">
-                        <i class="fas fa-ticket-alt"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No Coupons Found</h3>
-                    <p class="text-gray-500 mb-6">Create your first coupon to get started</p>
-                    <button onclick="openAddModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300">
-                        <i class="fas fa-plus mr-2"></i>Create Coupon
-                    </button>
-                </div>
-            <% } %>
-        </div>
-
-        <!-- Pagination -->
-        <% if (totalPages > 1) { %>
-        <div class="flex justify-center">
-            <div class="flex gap-2">
-                <% for (let i = 1; i <= totalPages; i++) { %>
-                    <a href="?page=<%= i %><%= search ? '&search=' + search : '' %>" 
-                       class="px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-100' %> transition-colors">
-                        <%= i %>
-                    </a>
-                <% } %>
-            </div>
-        </div>
-        <% } %>
-    </main>
-
-    <!-- Add/Edit Modal -->
-    <div id="couponModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="modalTitle" class="text-2xl font-bold text-gray-800">Add New Coupon</h2>
-                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-            </div>
-
-            <form id="couponForm">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="input-group">
-                        <input type="text" id="name" name="name" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="name">Coupon Name</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="text" id="couponCode" name="couponCode" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase" >
-                        <label for="couponCode">Coupon Code</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <select id="discountType" name="discountType" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                            <option value="">Select Discount Type</option>
-                            <option value="fixed">Fixed Amount</option>
-                            <option value="percentage">Percentage</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="number" id="offerPrice" name="offerPrice" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="offerPrice">Discount Value</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="number" id="minimumPrice" name="minimumPrice" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="minimumPrice">Minimum Order Value</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="number" id="usageLimit" name="usageLimit" placeholder=" " class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="usageLimit">Usage Limit</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="date" id="startDate" name="startDate" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="startDate">Start Date</label>
-                    </div>
-                    
-                    <div class="input-group">
-                        <input type="date" id="expireOn" name="expireOn" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" >
-                        <label for="expireOn">Expire Date</label>
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea id="description" name="description" rows="3" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Coupon description..."></textarea>
-                </div>
-
-                <div class="flex gap-4">
-                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300">
-                        Create Coupon
-                    </button>
-                </div>
-            </form>
+            <button onclick="openAddModal()"
+                class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg">
+                <i class="fas fa-plus mr-2"></i>Add New Coupon
+            </button>
         </div>
     </div>
+
+    <!-- Coupon Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <% if (coupons.length > 0) { %>
+            <% coupons.forEach(coupon => { %>
+                <div class="coupon-card rounded-xl p-6 text-white shadow-xl">
+
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold"><%= coupon.name %></h3>
+                        <div class="bg-white bg-opacity-20 px-3 py-1 rounded-lg text-sm font-mono">
+                            <%= coupon.couponCode %>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between">
+                            <span>Discount</span>
+                            <span>
+                                <%= coupon.discountType === 'percentage'
+                                    ? coupon.offerPrice + '%'
+                                    : '₹' + coupon.offerPrice %>
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span>Min Order</span>
+                            <span>₹<%= coupon.minimumPrice %></span>
+                        </div>
+
+                        <% if (coupon.discountType === 'percentage' && coupon.maxDiscount) { %>
+                        <div class="flex justify-between">
+                            <span>Max Discount</span>
+                            <span>₹<%= coupon.maxDiscount.toFixed(2) %></span>
+                        </div>
+                        <% } %>
+
+                        <div class="flex justify-between">
+                            <span>Usage Limit</span>
+                            <span><%= coupon.usageLimit %></span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span>Valid Until</span>
+                            <span><%= new Date(coupon.expireOn).toLocaleDateString() %></span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="editCoupon('<%= coupon._id %>')" class="flex-1 bg-white bg-opacity-20 py-2 rounded">
+                            Edit
+                        </button>
+                        <button onclick="deleteCoupon('<%= coupon._id %>')" class="bg-red-500 px-3 rounded">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="col-span-full text-center text-gray-500">
+                No Coupons Found
+            </div>
+        <% } %>
+    </div>
+
+    <% if (totalPages > 1) { %>
+    <div class="flex justify-center items-center gap-3 mt-10 mb-12">
+        <!-- Previous -->
+        <a href="?page=<%= currentPage - 1 %><%= search ? '&search=' + encodeURIComponent(search) : '' %>"
+           class="px-5 py-2.5 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition"
+           <%= currentPage === 1 ? 'disabled' : '' %>>
+            <i class="fas fa-chevron-left mr-1.5"></i> Previous
+        </a>
+
+        <% 
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+        %>
+
+        <% for(let i = startPage; i <= endPage; i++) { %>
+            <a href="?page=<%= i %><%= search ? '&search=' + encodeURIComponent(search) : '' %>"
+               class="px-4 py-2.5 rounded-lg border border-gray-200 shadow-sm <%= i === currentPage ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white hover:bg-gray-50' %> transition">
+                <%= i %>
+            </a>
+        <% } %>
+
+        <!-- Next -->
+        <a href="?page=<%= currentPage + 1 %><%= search ? '&search=' + encodeURIComponent(search) : '' %>"
+           class="px-5 py-2.5 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition"
+           <%= currentPage === totalPages ? 'disabled' : '' %>>
+            Next <i class="fas fa-chevron-right ml-1.5"></i>
+        </a>
+    </div>
+    <% } %>
+
+</main>
+
+<!-- ================= MODAL ================= -->
+
+<div id="couponModal"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl p-6 w-full max-w-2xl">
+
+        <div class="flex justify-between mb-6">
+            <h2 id="modalTitle" class="text-2xl font-bold">Add New Coupon</h2>
+            <button onclick="closeModal()" class="text-2xl">&times;</button>
+        </div>
+
+        <form id="couponForm">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+    <div class="input-group">
+        <input id="name" name="name" placeholder=" " class="input">
+        <label for="name">Coupon Name</label>
+    </div>
+
+    <div class="input-group">
+        <input id="couponCode" name="couponCode" placeholder=" " class="input uppercase">
+        <label for="couponCode">Coupon Code</label>
+    </div>
+
+    <!-- Discount Type -->
+    <div class="input-group">
+        <select id="discountType" name="discountType" class="input" required>
+            <option value="" selected hidden></option>
+            <option value="fixed">Fixed</option>
+            <option value="percentage">Percentage</option>
+        </select>
+        <label for="discountType">Discount Type</label>
+    </div>
+
+    <div class="input-group">
+        <input id="offerPrice" name="offerPrice" type="number" placeholder=" " class="input">
+        <label for="offerPrice">Discount Value</label>
+    </div>
+
+    <!-- ✅ Max Discount -->
+    <div class="input-group hidden" id="maxDiscountGroup">
+        <input id="maxDiscount" name="maxDiscount" type="number" placeholder=" " class="input">
+        <label for="maxDiscount">Max Discount Amount (₹)</label>
+    </div>
+
+    <div class="input-group">
+        <input id="minimumPrice" name="minimumPrice" type="number" placeholder=" " class="input">
+        <label for="minimumPrice">Minimum Order Value</label>
+    </div>
+
+    <div class="input-group">
+        <input id="usageLimit" name="usageLimit" type="number" placeholder=" " class="input">
+        <label for="usageLimit">Usage Limit</label>
+    </div>
+
+    <div class="input-group">
+        <input id="startDate" name="startDate" type="date" class="input">
+        <label for="startDate">Start Date</label>
+    </div>
+
+    <div class="input-group">
+        <input id="expireOn" name="expireOn" type="date" class="input">
+        <label for="expireOn">Expire Date</label>
+    </div>
+
+</div>
+
+
+            <textarea id="description" name="description"
+                class="w-full border rounded-lg p-3 mb-6"
+                placeholder="Coupon description..."></textarea>
+
+            <div class="flex gap-4">
+                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 text-white py-3 rounded">
+                    Cancel
+                </button>
+                <button type="submit" id="submitBtn"
+                    class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded">
+                    Create Coupon
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
 
 <script defer src="/js/admin/couponManage.js"></script>
 </body>

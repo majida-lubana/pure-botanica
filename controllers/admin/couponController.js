@@ -35,7 +35,8 @@ export const getCouponPage = async (req, res) => {
             currentPage: page,
             totalPages,
             search,
-            admin: req.session.admin
+            admin: req.session.admin,
+           
         });
 
     } catch (error) {
@@ -61,7 +62,8 @@ export const addCoupon = async (req, res) => {
             minimumPrice,
             usageLimit,
             description,
-            discountType = 'fixed'
+            discountType = 'fixed',
+            maxDiscount
         } = req.body;
 
         const errors = [];
@@ -101,6 +103,27 @@ export const addCoupon = async (req, res) => {
         if (discountType === 'fixed' && offer > minPrice) {
             errors.push('Fixed discount cannot exceed the minimum order amount');
         }
+        let parsedMaxDiscount = null;
+
+if (discountType === 'percentage') {
+    if (maxDiscount !== undefined && maxDiscount !== '') {
+        parsedMaxDiscount = parseFloat(maxDiscount);
+        if (isNaN(parsedMaxDiscount) || parsedMaxDiscount < 0) {
+            errors.push('Max discount must be a valid number ≥ 0');
+        }
+    }
+} else {
+    parsedMaxDiscount = null; // force clear for fixed discount
+}
+
+if (
+    discountType === 'percentage' &&
+    parsedMaxDiscount !== null &&
+    parsedMaxDiscount < (offer * minPrice) / 100
+) {
+    errors.push('Max discount is too low and will always cap the discount');
+}
+
 
         const limit = parseInt(usageLimit, 10);
         if (isNaN(limit) || limit <= 0) errors.push('Usage limit must be a positive integer');
@@ -131,6 +154,7 @@ export const addCoupon = async (req, res) => {
             usageLimit: limit,
             description: description?.trim() || '',
             discountType,
+            maxDiscount: parsedMaxDiscount,
             isListed: true
         });
 
@@ -182,7 +206,8 @@ export const updateCoupon = async (req, res) => {
             minimumPrice,
             usageLimit,
             description,
-            discountType = 'fixed'
+            discountType = 'fixed',
+            maxDiscount
         } = req.body;
 
         const errors = [];
@@ -208,6 +233,27 @@ export const updateCoupon = async (req, res) => {
 
         const minPrice = parseFloat(minimumPrice);
         if (isNaN(minPrice) || minPrice < 0) errors.push('Minimum price must be ≥ 0');
+
+       let parsedMaxDiscount = null;
+
+if (discountType === 'percentage') {
+    if (maxDiscount !== undefined && maxDiscount !== '') {
+        parsedMaxDiscount = parseFloat(maxDiscount);
+        if (isNaN(parsedMaxDiscount) || parsedMaxDiscount < 0) {
+            errors.push('Max discount must be a valid number ≥ 0');
+        }
+    }
+} else {
+    parsedMaxDiscount = null;
+}
+if (
+    discountType === 'percentage' &&
+    parsedMaxDiscount !== null &&
+    parsedMaxDiscount < (offer * minPrice) / 100
+) {
+    errors.push('Max discount is too low and will always cap the discount');
+}
+
 
         if (discountType === 'fixed' && offer > minPrice) {
             errors.push('Fixed discount cannot exceed minimum order amount');
@@ -247,7 +293,8 @@ export const updateCoupon = async (req, res) => {
                 minimumPrice: minPrice,
                 usageLimit: limit,
                 description: description?.trim() || '',
-                discountType
+                discountType,
+                maxDiscount: parsedMaxDiscount
             },
             { new: true, runValidators: true }
         );

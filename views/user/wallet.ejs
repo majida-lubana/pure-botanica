@@ -43,75 +43,112 @@
         <% } %>
 
         <!-- Transaction History -->
-        <h5 class="mb-3">Transaction History</h5>
-        <% if (transactions.length === 0) { %>
-          <div class="text-center py-5 text-muted">
-            <i class="fas fa-wallet fa-3x mb-3"></i>
-            <p>No transactions yet. Your wallet activity will appear here.</p>
-          </div>
-        <% } else { %>
-          <div class="transaction-grid">
-            <% transactions.forEach(txn => { %>
-              <div class="transaction-card">
-                <div class="transaction-header">
-                  <div class="transaction-date">
-                    <i class="far fa-calendar-alt"></i>
-                    <%= new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
-                  </div>
-                </div>
-                <div class="transaction-body">
-                  <div class="transaction-details">
-                    <h6>
-                      <%= txn.description %>
-                      <% if (txn.orderId) { %>
-                        <small class="text-muted">Order #<%= txn.orderId %></small>
-                      <% } %>
-                    </h6>
-                  </div>
-                  <div class="text-end">
-                    <div class="amount <%= txn.type === 'credit' ? 'credit' : 'debit' %>">
-                      <%= txn.type === 'credit' ? '+' : '-' %>₹<%= Math.abs(txn.amount).toFixed(2) %>
-                    </div>
-                    <div class="mt-1">
-                      <span class="status-badge <%= 
-                        txn.status === 'completed' ? 'status-completed' : 
-                        txn.status === 'pending' ? 'status-pending' : 
-                        'status-rejected' 
-                      %>">
-                        <i class="<%= 
-                          txn.status === 'completed' ? 'fas fa-check-circle' : 
-                          txn.status === 'pending' ? 'fas fa-clock' : 
-                          'fas fa-times-circle' 
-                        %>"></i>
-                        <%= txn.status.charAt(0).toUpperCase() + txn.status.slice(1) %>
-                        <% if (txn.type === 'refund' && txn.status === 'pending') { %> (Awaiting Admin)<% } %>
-                      </span>
-                    </div>
-                  </div>
-                </div>
+<h5 class="mb-3">Transaction History</h5>
 
-                <!-- Admin Refund Buttons -->
-                <% if (txn.type === 'refund' && txn.status === 'pending' && user.role === 'admin') { %>
-                  <div class="p-3 border-top bg-light d-flex gap-2 justify-content-end">
-                    <button 
-                      class="btn btn-sm btn-success confirm-refund" 
-                      data-txn-id="<%= txn._id %>"
-                      data-amount="<%= txn.amount %>">
-                      Confirm Refund
-                    </button>
-                    <button 
-                      class="btn btn-sm btn-danger reject-refund" 
-                      data-txn-id="<%= txn._id %>">
-                      Reject
-                    </button>
-                  </div>
-                <% } %>
-              </div>
-            <% }) %>
+<% if (transactions.length === 0) { %>
+  <div class="text-center py-5 text-muted">
+    <i class="fas fa-wallet fa-3x mb-3"></i>
+    <p>No transactions yet. Your wallet activity will appear here.</p>
+  </div>
+<% } else { %>
+  <div class="transaction-grid">
+    <% transactions.forEach(txn => { %>
+      <div class="transaction-card">
+        <div class="transaction-header">
+          <div class="transaction-date">
+            <i class="far fa-calendar-alt"></i>
+            <%= new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+          </div>
+        </div>
+
+        <div class="transaction-body">
+          <div class="transaction-details">
+            <h6>
+              <%= txn.description %>
+              <% if (txn.orderId) { %>
+                <small class="text-muted">Order #<%= txn.orderId %></small>
+              <% } %>
+            </h6>
+          </div>
+
+          <div class="text-end">
+            <div class="amount <%= txn.type === 'credit' ? 'credit' : 'debit' %>">
+              <%= txn.type === 'credit' ? '+' : '-' %>₹<%= Math.abs(txn.amount).toFixed(2) %>
+            </div>
+
+            <div class="mt-1">
+              <span class="status-badge <%= 
+                txn.status === 'completed' ? 'status-completed' : 
+                txn.status === 'pending' ? 'status-pending' : 
+                'status-rejected' 
+              %>">
+                <i class="<%= 
+                  txn.status === 'completed' ? 'fas fa-check-circle' : 
+                  txn.status === 'pending' ? 'fas fa-clock' : 
+                  'fas fa-times-circle' 
+                %>"></i>
+                <%= txn.status.charAt(0).toUpperCase() + txn.status.slice(1) %>
+                <% if (txn.type === 'refund' && txn.status === 'pending') { %> (Awaiting Admin)<% } %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <% if (txn.type === 'refund' && txn.status === 'pending' && user.role === 'admin') { %>
+          <div class="p-3 border-top bg-light d-flex gap-2 justify-content-end">
+            <button class="btn btn-sm btn-success confirm-refund" 
+                    data-txn-id="<%= txn._id %>"
+                    data-amount="<%= txn.amount %>">
+              Confirm Refund
+            </button>
+            <button class="btn btn-sm btn-danger reject-refund" 
+                    data-txn-id="<%= txn._id %>">
+              Reject
+            </button>
           </div>
         <% } %>
+      </div>
+    <% }) %>
+  </div>
 
-        <!-- Info Boxes -->
+  <!-- Pagination - only if more than 1 page -->
+  <% if (totalPages > 1) { %>
+  <div class="d-flex justify-content-center align-items-center gap-3 mt-5 mb-5 flex-wrap">
+    <a href="?page=<%= currentPage - 1 %>" 
+       class="btn btn-outline-secondary px-4 <%= currentPage <= 1 ? 'disabled' : '' %>">
+      <i class="fas fa-chevron-left me-2"></i> Previous
+    </a>
+
+    <% 
+      const maxVisible = 5;
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+    %>
+
+    <% for (let i = start; i <= end; i++) { %>
+      <a href="?page=<%= i %>" 
+         class="btn <%= i === currentPage ? 'btn-primary' : 'btn-outline-secondary' %> px-3 py-2">
+        <%= i %>
+      </a>
+    <% } %>
+
+    <a href="?page=<%= currentPage + 1 %>" 
+       class="btn btn-outline-secondary px-4 <%= currentPage >= totalPages ? 'disabled' : '' %>">
+      Next <i class="fas fa-chevron-right ms-2"></i>
+    </a>
+  </div>
+
+  <div class="text-center text-muted small">
+    Showing <strong><%= (currentPage - 1) * limit + 1 %></strong>–
+    <strong><%= Math.min(currentPage * limit, totalTransactions) %></strong>
+    of <strong><%= totalTransactions %></strong> transactions
+  </div>
+  <% } %>
+<% } %>
+    
         <div class="row mt-5">
           <div class="col-md-6">
             <div class="p-3 bg-light rounded shadow-sm">
@@ -136,6 +173,8 @@
       </div>
     </div>
   </div>
+
+  
 
   <div class="partial">
     <%- include("../../views/partials/user/footer") %>
