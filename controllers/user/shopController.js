@@ -5,6 +5,7 @@ import Cart from "../../models/cartSchema.js";
 import { calculatePricing } from '../../utils/calculatePricing.js';
 import STATUS from '../../constants/statusCode.js';
 import MESSAGES from '../../constants/messages.js'; 
+import mongoose from 'mongoose'
 
 export const loadShopPage = async (req, res) => {
   try {
@@ -308,9 +309,96 @@ export const checkProductAvailability = async (req, res) => {
   }
 };
 
+// export const loadProductPage = async (req, res) => {
+//   try {
+//     const productId = req.params.id;
+
+//     const product = await Product.findOne({
+//       _id: productId,
+//       status: "Available",
+//       isActive: true,
+//       isBlocked: false,
+//     })
+//       .populate("category")
+//       .lean();
+
+//     if (!product) {
+//       return res.status(STATUS.NOT_FOUND).render("user/page-404", {
+//         pageTitle: "Product Not Found",
+//         message: MESSAGES.PRODUCT.NOT_FOUND || "The product you are looking for is not available."
+//       });
+//     }
+
+//     product.pricing = calculatePricing(product);
+
+//     const discountsApplied = product.pricing.isOnOffer
+//       ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
+//       : "";
+
+//     const relatedProducts = await Product.find({
+//       category: product.category._id,
+//       _id: { $ne: productId },
+//       status: "Available",
+//       isActive: true,
+//       isBlocked: false,
+//     })
+//       .populate('category')
+//       .limit(4)
+//       .lean();
+
+//     relatedProducts.forEach(rel => {
+//       rel.pricing = calculatePricing(rel);
+//     });
+
+//     let wishlistProductIds = [];
+//     let inCart = false;
+
+//     if (req.user?._id) {
+//       const wl = await WishList.findOne({ user: req.user._id }).lean();
+//       if (wl?.products?.length) wishlistProductIds = wl.products.map(i => i.productId.toString());
+
+//       const cart = await Cart.findOne({ user: req.user._id }).lean();
+//       if (cart) {
+//         inCart = cart.items.some(item => item.productId.toString() === productId);
+//         relatedProducts.forEach(rel => {
+//           rel.inCart = cart.items.some(item => item.productId.toString() === rel._id.toString());
+//         });
+//       }
+//     }
+
+//     res.render("user/product-details", {
+//       product,
+//       relatedProducts,
+//       wishlistProductIds,
+//       discountsApplied,
+//       inCart,
+//       user: req.user 
+//     });
+
+//   } catch (error) {
+//     console.error("Error loading product page:", error.stack);
+//     res.status(STATUS.INTERNAL_ERROR).render("user/page-404", {
+//       pageTitle: "Error",
+//       message: MESSAGES.PRODUCT.LOAD_FAILED || "An error occurred while loading the product page."
+//     });
+//   }
+// };
+
+
+
 export const loadProductPage = async (req, res) => {
   try {
+
+    
     const productId = req.params.id;
+
+    // 🛡️ IMPORTANT: block invalid ObjectId BEFORE DB query
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(404).render("user/page-404", {
+        pageTitle: "Page Not Found",
+        message: "Page not found"
+      });
+    }
 
     const product = await Product.findOne({
       _id: productId,
@@ -324,16 +412,22 @@ export const loadProductPage = async (req, res) => {
     if (!product) {
       return res.status(STATUS.NOT_FOUND).render("user/page-404", {
         pageTitle: "Product Not Found",
-        message: MESSAGES.PRODUCT.NOT_FOUND || "The product you are looking for is not available."
+        message:
+          MESSAGES.PRODUCT.NOT_FOUND ||
+          "The product you are looking for is not available."
       });
     }
 
+    // pricing
     product.pricing = calculatePricing(product);
 
     const discountsApplied = product.pricing.isOnOffer
-      ? `${product.pricing.discountPercentage}% ${product.pricing.offerSource === 'category' ? 'Category' : 'Product'} Offer`
+      ? `${product.pricing.discountPercentage}% ${
+          product.pricing.offerSource === "category" ? "Category" : "Product"
+        } Offer`
       : "";
 
+    // related products
     const relatedProducts = await Product.find({
       category: product.category._id,
       _id: { $ne: productId },
@@ -341,7 +435,7 @@ export const loadProductPage = async (req, res) => {
       isActive: true,
       isBlocked: false,
     })
-      .populate('category')
+      .populate("category")
       .limit(4)
       .lean();
 
@@ -349,39 +443,53 @@ export const loadProductPage = async (req, res) => {
       rel.pricing = calculatePricing(rel);
     });
 
+    // wishlist & cart
     let wishlistProductIds = [];
     let inCart = false;
 
     if (req.user?._id) {
       const wl = await WishList.findOne({ user: req.user._id }).lean();
-      if (wl?.products?.length) wishlistProductIds = wl.products.map(i => i.productId.toString());
+      if (wl?.products?.length) {
+        wishlistProductIds = wl.products.map(i =>
+          i.productId.toString()
+        );
+      }
 
       const cart = await Cart.findOne({ user: req.user._id }).lean();
       if (cart) {
-        inCart = cart.items.some(item => item.productId.toString() === productId);
+        inCart = cart.items.some(
+          item => item.productId.toString() === productId
+        );
+
         relatedProducts.forEach(rel => {
-          rel.inCart = cart.items.some(item => item.productId.toString() === rel._id.toString());
+          rel.inCart = cart.items.some(
+            item => item.productId.toString() === rel._id.toString()
+          );
         });
       }
     }
 
+    // render
     res.render("user/product-details", {
       product,
       relatedProducts,
       wishlistProductIds,
       discountsApplied,
       inCart,
-      user: req.user 
+      user: req.user,
     });
 
   } catch (error) {
-    console.error("Error loading product page:", error.stack);
+    console.error("Error loading product page:", error);
     res.status(STATUS.INTERNAL_ERROR).render("user/page-404", {
       pageTitle: "Error",
-      message: MESSAGES.PRODUCT.LOAD_FAILED || "An error occurred while loading the product page."
+      message:
+        MESSAGES.PRODUCT.LOAD_FAILED ||
+        "An error occurred while loading the product page."
     });
   }
 };
+
 
 export default {
   loadShopPage,
